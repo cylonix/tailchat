@@ -432,7 +432,7 @@ class _ChatPageState extends State<ChatPage>
           setState(() {});
         }
       } else {
-        _deleteMessage(message);
+        await _deleteMessage(message);
       }
       return;
     }
@@ -491,7 +491,7 @@ class _ChatPageState extends State<ChatPage>
     return hasPeersReady;
   }
 
-  void _addMessage(
+  Future<void> _addMessage(
     types.Message message, {
     bool save = true,
     String? path,
@@ -569,7 +569,10 @@ class _ChatPageState extends State<ChatPage>
     return message;
   }
 
-  void _deleteMessage(types.Message message, {bool forAll = false}) async {
+  Future<void> _deleteMessage(
+    types.Message message, {
+    bool forAll = false,
+  }) async {
     final index = _messages.indexWhere((element) => element.id == message.id);
     if (index < 0) {
       return;
@@ -587,7 +590,7 @@ class _ChatPageState extends State<ChatPage>
     }
     if (forAll) {
       final m = types.DeleteMessage.fromMessage(message);
-      _addMessage(m);
+      await _addMessage(m);
     }
   }
 
@@ -739,7 +742,7 @@ class _ChatPageState extends State<ChatPage>
     if (r.success) {
       status = types.Status.sent;
       if (message is types.DeleteMessage) {
-        _deleteMessage(message);
+        await _deleteMessage(message);
         if (mounted) {
           Toast.s(tr.deleteFromAllPeersSuccessText).show(context);
         }
@@ -799,8 +802,8 @@ class _ChatPageState extends State<ChatPage>
   /// file permission issue. This is to prioritize sending/showing the message,
   /// however, if it is not that much an improvement compared to just copy first
   /// and then send, then we probably should just copy first.
-  void _addNewFileMessage(ChatMessage m, String path) async {
-    _addMessage(m.message, path: path);
+  Future<void> _addNewFileMessage(ChatMessage m, String path) async {
+    await _addMessage(m.message, path: path);
     m.copyFile(path);
   }
 
@@ -819,11 +822,11 @@ class _ChatPageState extends State<ChatPage>
       allowMultiple: true,
     );
     for (var file in result?.files ?? []) {
-      _handleFilePathAdded(file.path, file.size);
+      await _handleFilePathAdded(file.path, file.size);
     }
   }
 
-  void _handleFilePathAdded(String? path, int? size) async {
+  Future<void> _handleFilePathAdded(String? path, int? size) async {
     if (path == null) {
       return;
     }
@@ -847,7 +850,7 @@ class _ChatPageState extends State<ChatPage>
     setState(() {
       _replyMessage = null;
     });
-    _addNewFileMessage(m, path);
+    await _addNewFileMessage(m, path);
   }
 
   void _forwardMessage(types.Message message) {
@@ -1030,12 +1033,13 @@ class _ChatPageState extends State<ChatPage>
         allowMultiple: true,
       );
       for (var file in result?.files ?? []) {
-        _handleImagePathAdded(file.path);
+        await _handleImagePathAdded(file.path);
       }
     }
   }
 
-  void _handleImagePathAdded(String? path, {bool isEmoji = false}) async {
+  Future<void> _handleImagePathAdded(String? path,
+      {bool isEmoji = false}) async {
     if (path != null) {
       final bytes = await File(path).readAsBytes();
       final image = await decodeImageFromList(bytes);
@@ -1051,7 +1055,7 @@ class _ChatPageState extends State<ChatPage>
       setState(() {
         _replyMessage = null;
       });
-      _addNewFileMessage(m, path);
+      await _addNewFileMessage(m, path);
     }
   }
 
@@ -1220,9 +1224,9 @@ class _ChatPageState extends State<ChatPage>
         await _sendMessage(message);
       },
       otherActions: TextButton(
-        onPressed: () {
-          _deleteMessage(message);
+        onPressed: () async {
           Navigator.of(context).pop(true);
+          await _deleteMessage(message);
         },
         child: Text(tr.deleteText),
       ),
