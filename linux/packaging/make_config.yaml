@@ -1,0 +1,38 @@
+display_name: Tailchat
+package_name: tailchat
+
+maintainer:
+  name: EZBLOCK Authors
+  email: contact@ezblock.io
+
+priority: optional
+
+section: x11
+
+installed_size: 57488
+
+dependencies:
+
+essential: false
+
+icon: android/app/src/main/res/mipmap-hdpi/ic_launcher.webp
+
+postuninstall_scripts:
+  - echo "Sorry to see you go."
+
+keywords:
+  - Secure Messaging
+  - Peer to peer messaging
+  - Tailscale
+  - Tailnet
+
+generic_name: Secure Chat 
+
+categories:
+  - IM
+  - Utility
+  - Communication
+  - Security
+  - Privacy
+
+startup_notify: true

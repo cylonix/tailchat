@@ -1,0 +1,27 @@
+name: flutter_audio_desktop
+description: An audio playback library for Flutter Desktop. Supports Windows & Linux. Based on miniaudio.
+version: 0.1.0
+homepage: https://github.com/alexmercerind/flutter_audio_desktop
+repository: https://github.com/alexmercerind/flutter_audio_desktop
+documentation: https://github.com/alexmercerind/flutter_audio_desktop/blob/master/README.md
+
+environment:
+  sdk: ">=2.14.0 <3.0.0"
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  path: ^1.7.0
+  path_provider: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  plugin:
+    platforms:
+      linux:
+        pluginClass: FlutterAudioDesktopPlugin
+      windows:
+        pluginClass: FlutterAudioDesktopPlugin

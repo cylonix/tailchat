@@ -1,0 +1,1415 @@
+{
+  "@@locale": "en",
+  "appTitle": "Tailchat",
+  "@appTitle": {
+    "description": "The application title"
+  },
+  "loadingConfigTitle": "Tailchat is loading saved configurations. Please wait",
+  "@loadingConfigTitle": {
+    "description": "loading start up config title"
+  },
+  "loadingConfigLabel": "Configuration is still be loaded...",
+  "@loadingConfigLabel": {
+    "description": "semantic label text for the loading circle"
+  },
+  "urlFormatErrorAlert": "URL format error",
+  "@urlFormatErrorAlert": {
+    "description": "URL format error alert text"
+  },
+  "currentSetting": "Current setting",
+  "@currentSetting": {
+    "description": "current setting text"
+  },
+  "hitReturnToConfirm": "Hit enter key to confirm",
+  "@hitReturnToConfirm": {
+    "description": "hit enter key to confirm helper text"
+  },
+  "changeButtonText": "Change",
+  "@changeButtonText": {
+    "description": "change button text"
+  },
+  "userName": "Username",
+  "@userName": {
+    "description": "Input text field of username"
+  },
+  "userNameHint": "Please enter your username",
+  "@userNameHint": {
+    "description": "Input text field of username hint"
+  },
+  "errDeviceExists": "The device already exists.",
+  "@errDeviceExists": {
+    "description": "register device already exists failure text"
+  },
+  "errEmailExists": "Email is already used by another user.",
+  "@errEmailExists": {
+    "description": "register email already exists failure text"
+  },
+  "errLabelExists": "The label already exists.",
+  "@errLabelExists": {
+    "description": "register label already exists failure text"
+  },
+  "errUserExists": "The user already exists.",
+  "@errUserExists": {
+    "description": "register user already exists failure text"
+  },
+  "errBadUserInfo": "There is an error in the user information.",
+  "@errBadUserInfo": {
+    "description": "register user information error text"
+  },
+  "errUserNotExists": "The user does not exist.",
+  "@errUserNotExists": {
+    "description": "register user does not exist text"
+  },
+  "ok": "OK",
+  "@ok": {
+    "description": "ok button text"
+  },
+  "confirmDialogTitle": "Please confirm",
+  "@confirmDialogTitle": {
+    "description": "confirm dialog title"
+  },
+  "yesButton": "Yes",
+  "@yesButton": {
+    "description": "Yes button text"
+  },
+  "cancelButton": "Cancel",
+  "@cancelButton": {
+    "description": "Cancel button text"
+  },
+  "disapprovedMsg": "Device is disapproved. Please contact administrator.",
+  "@disapprovedMsg": {
+    "description": "device disapproved message"
+  },
+  "needsApprovalMsg": "Device is not yet approved. Please contact administrator.",
+  "@needsApprovalMsg": {
+    "description": "device needs approval message"
+  },
+  "refreshText": "Refresh",
+  "@refreshText": {
+    "description": "Refresh meeting text"
+  },
+  "rotateText": "Rotate",
+  "@rotateText": {
+    "description": "Rotate the screen text"
+  },
+  "unauthorizedTitle": "Unauthorized.",
+  "@unauthorizedTitle": {
+    "description": "unauthorized alert title"
+  },
+  "authorizedTitle": "Authorized.",
+  "@authorizedTitle": {
+    "description": "Authorized alert title"
+  },
+  "authorizedMsg": "Device is now authorized.",
+  "@authorizedMsg": {
+    "description": "device authorized message"
+  },
+  "qrScan": "Scan",
+  "@qrScan": {
+    "description": "QR scan text"
+  },
+  "scanMeText": "Scan the QR code to add me as a friend",
+  "@scanMeText": {
+    "description": "QR scan text"
+  },
+  "scanAgainText": "Scan again",
+  "@scanAgainText": {
+    "description": "scan again text"
+  },
+  "noCodeFoundFromImageText": "No code found from image",
+  "@noCodeFoundFromImageText": {
+    "description": "no code found from image text"
+  },
+  "codeInvalidText": "Code invalid",
+  "@codeInvalidText": {
+    "description": "code invalid text"
+  },
+  "deviceTitle": "Device",
+  "@deviceTitle": {
+    "description": "Device title text"
+  },
+  "chooseChatTitle": "Please select a chat",
+  "@chooseChatTitle": {
+    "description": "Chat list text"
+  },
+  "sendToText": "Send to ",
+  "@sendToText": {
+    "description": "Send to user text"
+  },
+  "fileNotExistsText": "File not exists",
+  "@fileNotExistsText": {
+    "description": "File not exists text"
+  },
+  "noFilesHint": "Select files from gallery or file manager.",
+  "@noFilesHint": {
+    "description": "No files hint text"
+  },
+  "addCaption": "Add caption",
+  "@addCaption": {
+    "description": "Add caption text"
+  },
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Settings list title text"
+  },
+  "statusTitle": "Status",
+  "@statusTitle": {
+    "description": "Status title text"
+  },
+  "aboutTitle": "About Tailchat",
+  "@aboutTitle": {
+    "description": "About list title text"
+  },
+  "pleaseAgreeToUserAgreementText": "Please agree to the User Agreement and Privacy Policy.",
+  "@pleaseAgreeToUserAgreementText": {
+    "description": "please agree to user agreement text"
+  },
+  "pleaseAgreeToPersonalInfoGuideText": "Please agree to the Personal Information Protection Guidelines",
+  "@pleaseAgreeToPersonalInfoGuideText": {
+    "description": "please agree to personal info guide text"
+  },
+  "policyTitle": "Privacy policy",
+  "@policyTitle": {
+    "description": "Privacy policy title text"
+  },
+  "userAgreement": "User agreement",
+  "@userAgreement": {
+    "description": "User agreement title text"
+  },
+  "userAgreementAndPolicyTitle": "User agreement and privacy policy",
+  "@userAgreementAndPolicyTitle": {
+    "description": "user agreement and privacy policy title text"
+  },
+  "haveReadAndAgreeWithTerms": "I have read and agreed with the user agreement and privacy policy",
+  "@haveReadAndAgreeWithTerms": {
+    "description": "Have read and agreed text"
+  },
+  "policyHint": "Please check policy agreement before logging in",
+  "@policyHint": {
+    "description": "check policy agreement text"
+  },
+  "networkUnavailableHint": "Network is not available. Please check the network setting of the device.",
+  "@networkUnavailableHint": {
+    "description": "check network text"
+  },
+  "agree": "Agree",
+  "@agree": {
+    "description": "Agree text"
+  },
+  "disAgree": "Disagree",
+  "@disAgree": {
+    "description": "Disagree text"
+  },
+  "personalInfoGuideTitle": "Personal Information Protection Guidelines",
+  "@personalInfoGuideTitle": {
+    "description": "Personal information protection guidelines title text"
+  },
+  "personalInfoGuide": "Any information used by the app is only stored locally on your devices. In order to provide you with services, the app uses your device name, operating system version and IP address to help connect your device and manage your settings. We will not decrypt your traffic. We will not send any information to any server, so we will never see your data or logs. If you agree, please click the agree button below to accept our service.",
+  "@personalInfoGuide": {
+    "description": "Personal information protection guidelines text"
+  },
+  "policyDialog": "Please read carefully and fully understand the terms of the \"User agreement\" and \"Privacy policy\", including but not limited to: In order to provide you with better services, the app uses the your device's IP address to establish a peer connection, device name, operating system information for device management in the app. We will not use the data for other purposes and no information is sent to any of our servers. All data are only stored locally on your devices. You can read the agreement and the policy for details. If you agree, please click the agree button below to start using our service.",
+  "@policyDialog": {
+    "description": "policy dialog text"
+  },
+  "alertErrorMessage": "Error",
+  "@alertErrorMessage": {
+    "description": "alert error message title"
+  },
+  "logout": "Log out",
+  "@logout": {
+    "description": "Log out text"
+  },
+  "leaveText": "Leave",
+  "@leave": {
+    "description": "Leave text"
+  },
+  "version": "Version",
+  "@version": {
+    "description": "Version text"
+  },
+  "contact": "Contact us",
+  "@contact": {
+    "description": "Contact us text"
+  },
+  "email": "Email Contact",
+  "@email": {
+    "description": "Email address text"
+  },
+  "address": "Address",
+  "@address": {
+    "description": "Office address text"
+  },
+  "copyright": "{company}. All Rights Reserved ",
+  "@copyright": {
+    "description": "copy right text",
+    "placeholders": {
+      "company": {}
+    }
+  },
+  "unauthenticated": "Session expired, please login again.",
+  "@unauthenticated": {
+    "description": "token expired, need to login again"
+  },
+  "hostnameText": "Host",
+  "@hostnameText": {
+    "description": "host name text"
+  },
+  "ipText": "IP",
+  "@ipText": {
+    "description": "IP text"
+  },
+  "osText": "OS",
+  "@osText": {
+    "description": "os text"
+  },
+  "mkeyText": "ID",
+  "@mkeyText": {
+    "description": "Machine key text"
+  },
+  "nkeyText": "Node",
+  "@nkeyText": {
+    "description": "Node key text"
+  },
+  "activeText": "Active",
+  "@activeText": {
+    "description": "active text"
+  },
+  "relayText": "Relay",
+  "@relayText": {
+    "description": "active text"
+  },
+  "directText": "Direct",
+  "@directText": {
+    "description": "direct text"
+  },
+  "exitNodeText": "Exit node",
+  "@exitNodeText": {
+    "description": "exit node text"
+  },
+  "allowedIPsText": "Allowed IPs",
+  "@allowedIPsText": {
+    "description": "allowed IPs text"
+  },
+  "videoMeetingText": "Video meeting",
+  "@videoMeetingText": {
+    "description": "video meeting text"
+  },
+  "txBytes": "Tx",
+  "@txBytes": {
+    "description": "tx bytes"
+  },
+  "rxBytes": "Rx",
+  "@rxBytes": {
+    "description": "rx bytes"
+  },
+  "lastHandshake": "Last handshake",
+  "@lastHandshake": {
+    "description": "Last handshake time"
+  },
+  "lastSeen": "Last seen",
+  "@lastSeen": {
+    "description": "Last seen time"
+  },
+  "createdTime": "Created",
+  "@created": {
+    "description": "Created time"
+  },
+  "offlineDevicesTitle": "Offline devices",
+  "@offlineDevicesTitle": {
+    "description": "offline devices title text"
+  },
+  "offlineDevicesLastSeenTitle": "Devices last seen more than 5 minutes ago",
+  "@offlineDevicesLastSeenTitle": {
+    "description": "devices last seen subtitle text"
+  },
+  "selfTitle": "This device",
+  "@selfTitle": {
+    "description": "device self title text"
+  },
+  "statusList": "Status list",
+  "@statusList": {
+    "@description": "Status list text"
+  },
+  "publicKey": "Public key",
+  "@publicKey": {
+    "description": "public key text"
+  },
+  "introWords": "Tailchat is a truly serverless, secure instant messaging app built on Tailscale's WireGuard®-based mesh network. No message storage. No central servers. Just direct, encrypted communication. Tailchat is not affiliated with, endorsed by, or sponsored by Tailscale Inc. Tailscale® and Tailnet are trademarks of Tailscale Inc.",
+  "@introWords": {
+    "description": "introduction page words"
+  },
+  "introTitle": "Welcome to Tailchat",
+  "@introTitle": {
+    "description": "introduction page title"
+  },
+  "getStarted": "Get started",
+  "@getStarted": {
+    "description": "introduction page get started hint"
+  },
+  "themeMode": "Theme mode",
+  "@themeMode": {
+    "description": "theme mode at setting page"
+  },
+  "lightMode": "Light mode",
+  "@lightMode": {
+    "description": "Light Mode in theme page"
+  },
+  "darkMode": "Dark mode",
+  "@darkMode": {
+    "description": "Dark Mode in theme page"
+  },
+  "showLog": "Open logs",
+  "@showLog": {
+    "description": "show console log for debugging"
+  },
+  "showDaemonLog": "Open Tailchat service logs",
+  "@showDaemonLog": {
+    "description": "show daemon console log for debugging"
+  },
+  "daemonLogConsoleTitleText": "Tailchat background service log console",
+  "@daemonLogConsoleTitleText": {
+    "description": "tailchat daemon log console title text"
+  },
+  "logConsoleTitleText": "Log console",
+  "@logConsoleTitleText": {
+    "description": "log console title text"
+  },
+  "logConsoleFilterText": "Filter log message",
+  "@logConsoleFilterText": {
+    "description": "log console filter text"
+  },
+  "debugText": "Debug",
+  "@debugText": {
+    "description": "debug label text"
+  },
+  "verboseText": "Verbose",
+  "@verboseText": {
+    "description": "Verbose label text"
+  },
+  "infoText": "Info",
+  "@infoText": {
+    "description": "Info label text"
+  },
+  "warningText": "Warning",
+  "@warningText": {
+    "description": "warning label text"
+  },
+  "errorText": "Error",
+  "@errorText": {
+    "description": "error label text"
+  },
+  "wtfText": "WTF",
+  "@wtfText": {
+    "description": "WTF label text"
+  },
+  "daemon": "Tailchat Daemon",
+  "@daemon": {
+    "description": "the daemon service"
+  },
+  "status": "Status",
+  "@status": {
+    "description": "status"
+  },
+  "userInformation": "User information",
+  "@userInformation": {
+    "description": "title of user detail page"
+  },
+  "name": "name",
+  "@name": {
+    "description": "for user name's label"
+  },
+  "country": "Country",
+  "@country": {
+    "description": "for Country label"
+  },
+  "contactWay": "Contact information",
+  "@contactWay": {
+    "description": "for Contact information's label"
+  },
+  "photo": "Photo",
+  "@photo": {
+    "description": "Photo text"
+  },
+  "file": "File",
+  "@File": {
+    "description": "File text"
+  },
+  "phone": "Phone number",
+  "@phone": {
+    "description": "for Phone Number's label"
+  },
+  "mail": "Mail",
+  "@mail": {
+    "description": "for Mail's label"
+  },
+  "companyInformation": "Company information",
+  "@companyInformation": {
+    "description": "for Company Information's label"
+  },
+  "companyName": "Company name",
+  "@companyName": {
+    "description": "for Company Name's label"
+  },
+  "companyJob": "Position",
+  "@companyJob": {
+    "description": "for Position's label"
+  },
+  "companyAddress": "Company address",
+  "@companyAddress": {
+    "description": "for Company Address's label"
+  },
+  "nightMode": "Night mode",
+  "@nightMode": {
+    "description": "Used to open/close the night mode"
+  },
+  "dayMode": "Day mode",
+  "@dayMode": {
+    "description": "Used to open/close the night mode"
+  },
+  "videoInviteText": "invites you to a video meeting",
+  "@videoInviteText": {
+    "description": "Invites you to a video meeting text"
+  },
+  "videoRequestText": "Waiting for the peer's approval",
+  "@videoRequestText": {
+    "description": "Waiting for the peer's approval text"
+  },
+  "connectFailText": "Failed to connect with the peer. Please try again later",
+  "@connectFailText": {
+    "description": "Failed to connect with the peer text"
+  },
+  "usernameEmpty": "User name cannot be empty.",
+  "@usernameEmpty": {
+    "description": "prompt text for user name empty error"
+  },
+  "goodUsernameText": "Username must be of minimum of 4 chars with English letters and/or numbers only.",
+  "@goodUsernameText": {
+    "description": "good username text"
+  },
+  "namespaceEmpty": "Organization cannot be empty.",
+  "@namespaceEmpty": {
+    "description": "prompt text for organization empty error"
+  },
+  "invalidNamespaceTitle": "Organization name error",
+  "@invalidNamespaceTitle": {
+    "description": "invalid organization name message title"
+  },
+  "advancedStatusTitle": "Advanced",
+  "@advancedStatusTitle": {
+    "description": "advanced status title text"
+  },
+  "daemonStatusDetail": "Daemon status detail",
+  "@daemonStatusDetail": {
+    "description": "daemon status detail subtitle text"
+  },
+  "peerStatusDetail": "Peer status detail",
+  "@peerStatusDetail": {
+    "description": "peer status detail subtitle text"
+  },
+  "contactsAndPeersTitle": "Contacts and devices",
+  "@contactsAndPeersTitle": {
+    "description": "contacts and peers title text"
+  },
+  "confirmApproveQrCodeLogin": "Please confirm if you approve the login",
+  "@confirmApproveQrCodeLogin": {
+    "description": "approve qr code login confirm dialog text"
+  },
+  "waitForQrCode": "Waiting for qr code scan result...",
+  "@waitForQrCode": {
+    "description": "qr code waiting status text"
+  },
+  "approvedQrCodeLogin": "QR code login approved",
+  "@approvedQrCodeLogin": {
+    "description": "approved qr code login status text"
+  },
+  "notApprovedQrCodeLogin": "QR code login not yet approved",
+  "@notApprovedQrCodeLogin": {
+    "description": "not approved qr code login status text"
+  },
+  "qrCodeHandlerError": "Failed to handle qr code scan result",
+  "@qrCodeHandlerError": {
+    "description": "qr code handler error text"
+  },
+  "qrCodeHandlerSuccess": "Succeeded to handle QR code scan result",
+  "@qrCodeHandlerSuccess": {
+    "description": "qr code handler success text"
+  },
+  "enterPhone": "Please enter your mobile phone number",
+  "@enterPhone": {
+    "description": "ask user to enter mobile phone number"
+  },
+  "smsCode": "One time code",
+  "@smsCode": {
+    "description": "label of sms one time code"
+  },
+  "enterSmsCode": "Please enter the one time code sent to your mobile phone",
+  "@enterSmsCode": {
+    "description": "Input text field of sms code"
+  },
+  "phoneError": "Please enter a valid mobile phone number",
+  "@phoneError": {
+    "description": "phone number is invalid"
+  },
+  "smsError": "Please enter a valid one time code",
+  "@smsError": {
+    "description": "sms code length is invalid"
+  },
+  "smsValidationError": "SMS code validation failed",
+  "@smsValidationError": {
+    "description": "sms code validation failure title text"
+  },
+  "sendSmsCode": "Send code",
+  "@sendSmsCode": {
+    "description": "send sms code button label"
+  },
+  "noSelectedItem": "No Item Selected",
+  "@noSelectedItem": {
+    "description": "No Item Selected text"
+  },
+  "advancedSettingsTitle": "Advanced Settings",
+  "@advancedSettingsTitle": {
+    "description": "advanced setting title text"
+  },
+  "sessionsTitle": "Sessions",
+  "@sessionsTitle": {
+    "description": "sessions title text"
+  },
+  "contactsTitle": "Contacts",
+  "@contactsTitle": {
+    "description": "contacts title text"
+  },
+  "searchHintText": "Search",
+  "@searchHintText": {
+    "description": "search input hint text"
+  },
+  "userDevicesDetails": "...",
+  "@userDevicesDetails": {
+    "description": "user devices details text"
+  },
+  "userDevicesDetailsTip": "Details of the user and devices",
+  "@userDevicesDetailsTip": {
+    "description": "user devices details tip text"
+  },
+  "userMoreOperationTip": "More",
+  "@userMoreOperationTip": {
+    "description": "user more operation tip text"
+  },
+  "confirmText": "Confirm",
+  "@confirmText": {
+    "description": "confirm label text"
+  },
+  "copyText": "Copy",
+  "@copyText": {
+    "description": "copy text"
+  },
+  "deleteText": "Delete",
+  "@deleteText": {
+    "description": "delete label"
+  },
+  "removeText": "Remove",
+  "@removeText": {
+    "description": "remove label"
+  },
+  "editText": "Edit",
+  "@editText": {
+    "description": "Edit label"
+  },
+  "recallText": "Recall",
+  "@recallText": {
+    "description": "recall text"
+  },
+  "deleteFromAllPeersText": "Delete from all peers",
+  "@deleteFromAllPeersText": {
+    "description": "delete from all peers text"
+  },
+  "deleteFromAllPeersSuccessText": "Deleted from all peers.",
+  "@deleteFromAllPeersSuccessText": {
+    "description": "delete from all peers success text"
+  },
+  "pinText": "Pin",
+  "@pinText": {
+    "description": "pin label"
+  },
+  "saveText": "Save",
+  "@saveText": {
+    "description": "save label"
+  },
+  "shareText": "Share",
+  "@shareText": {
+    "description": "share label"
+  },
+  "sendAgainText": "Send again",
+  "@sendAgainText": {
+    "description": "send again label"
+  },
+  "sendText": "Send",
+  "@sendText": {
+    "description": "send text"
+  },
+  "confirmSessionDeleteMessageText": "Really deleting the session?",
+  "@confirmSessionDeleteMessageText": {
+    "description": "confirm deleting a session message text"
+  },
+  "notYetImplementedMessageText": "Not yet implemented",
+  "@notYetImplementedMessageText": {
+    "description": "not yet implemented message text"
+  },
+  "notificationsText": "Notifications",
+  "@notificationsText": {
+    "description": "Notifications label text"
+  },
+  "unknownText": "Unknown",
+  "@unknownText": {
+    "description": "Unknown label text"
+  },
+  "notFoundText": "not found",
+  "@notFoundText": {
+    "description": "not found text"
+  },
+  "addUsersText": "Add users",
+  "@addUsersText": {
+    "description": "add users label text"
+  },
+  "selectUsersText": "Select users",
+  "@selectUsersText": {
+    "description": "select users text"
+  },
+  "selectADeviceText": "Select a device",
+  "@selectADeviceText": {
+    "description": "select a device text"
+  },
+  "selectUserForChatText": "Please select the user to join the chat.",
+  "@selectUserForChatText": {
+    "description": "select user for chat label"
+  },
+  "selectOneUserOnlyForChatText": "Need to select only one user into chat.",
+  "@selectOneUserOnlyForChatText": {
+    "description": "select more than one user for chat error text"
+  },
+  "selectOneDeviceOnlyForChatText": "Need to select one device for the chat.",
+  "@selectOneDeviceOnlyForChatText": {
+    "description": "select more than one device for chat error text"
+  },
+  "confirmAddingToGroupChatText": "Confirm adding to group chat",
+  "@confirmAddingToGroupChatText": {
+    "description": "confirm adding to group chat text"
+  },
+  "pleaseSelectOneUserText": "Please select one user.",
+  "@pleaseSelectOneUserText": {
+    "description": "please select one user text"
+  },
+  "pleaseSelectOneDeviceText": "Please select one device. If there is no device available, please choose a different user.",
+  "@pleaseSelectOneDeviceText": {
+    "description": "please select one device text"
+  },
+  "chatWithAUserText": "Chat with a user",
+  "@chatWithAUserText": {
+    "description": "chat with a user text"
+  },
+  "chatWithAUserOnDeviceText": "Chat with a user on a device",
+  "@chatWithAUserOnDeviceText": {
+    "description": "chat with a user on a device text"
+  },
+  "selfUserNotFoundError": "User profile not found for self.",
+  "@selfUserNotFoundError": {
+    "description": "self user not found error message"
+  },
+  "selfUserNotInGroupChatError": "Need to select self into the group chat.",
+  "@selfUserNotInGroupChatError": {
+    "description": "self user not selected in group chat error message"
+  },
+  "groupChatUserCountNotEnoughError": "Need to select more than one other user for a group chat.",
+  "@groupChatUserCountNotEnoughError": {
+    "description": "group chat user number not enough error message"
+  },
+  "groupNameText": "Group name",
+  "@groupNameText": {
+    "description": "label for group name"
+  },
+  "groupNameInputHintText": "Input group name",
+  "@groupNameInputHintText": {
+    "description": "group name input hint text"
+  },
+  "groupNameEmptyError": "Group name must not be empty.",
+  "@groupNameEmptyError": {
+    "description": "group name is empty error message"
+  },
+  "addGroupChatText": "Add group chat",
+  "@addGroupChatText": {
+    "description": "add group chat text"
+  },
+  "addFriendText": "Add friend",
+  "@addFriendText": {
+    "description": "add friend text"
+  },
+  "scanToAddText": "Scan to add friend",
+  "@scanToADdFriendText": {
+    "description": "scan to add friend text"
+  },
+  "addFriendSuccessText": "Add friend success",
+  "@addFriendSuccessText": {
+    "description": "add friend success text"
+  },
+  "deleteFriendSuccess": "Delete friend success",
+  "@deleteFriendSuccess": {
+    "description": "Delete friend successfully text"
+  },
+  "deleteFriendFailed": "Failed to delete friend. Please try again later",
+  "@deleteFriendFailed": {
+    "description": "Failed to delete friend text"
+  },
+  "deleteFriend": "Delete friend",
+  "@deleteFriend": {
+    "description": "Delete friend text"
+  },
+  "deleteFriendDetail": "Delete the friend and delete the chat record with the friend",
+  "@deleteFriendDetail": {
+    "description": "Delete friend detail text"
+  },
+  "requestSendText": "Add to address book",
+  "@requestSendText": {
+    "description": "Friend request send text"
+  },
+  "friendRequestText": "Friend request",
+  "@friendRequestText": {
+    "description": "friend request text"
+  },
+  "agreeVerifyText": "Approve",
+  "@agreeVerifyText": {
+    "description": "Pass verification text"
+  },
+  "refuseVerifyText": "Reject",
+  "@refuseVerifyText": {
+    "description": "Refuse verification text"
+  },
+  "refuseRequestSuccess": "You have rejected your friend request",
+  "@refuseRequestSuccess": {
+    "description": "Refuse success text"
+  },
+  "refuseFailedText": "Reject request failed",
+  "@refuseFailedText": {
+    "description": "Refuse failed text"
+  },
+  "newFriendText": "New friend",
+  "@newFriendText": {
+    "description": "New friend text"
+  },
+  "waitVerifyText": "Waiting for approval",
+  "@waitVerifyText": {
+    "description": "Waiting for verification text"
+  },
+  "useMobileText": "Please scan the code with your mobile device.",
+  "@useMobileText": {
+    "description": "Waiting for verification text"
+  },
+  "myQrCodeText": "My QR code",
+  "@myQrCodeText": {
+    "description": "My QR code text"
+  },
+  "noFriendRequestText": "There is no request to add friends currently",
+  "@noFriendRequestText": {
+    "description": "My QR code text"
+  },
+  "selfText": "I am ",
+  "@selfText": {
+    "description": "self text"
+  },
+  "noteText": "Friend request notes",
+  "@noteText": {
+    "description": "note text"
+  },
+  "sendRequestFailedText": "Request send failed",
+  "@sendRequestFailedText": {
+    "description": "Request sending failed text"
+  },
+  "sendRequestSuccess": "You have sent a friend request",
+  "@sendRequestSuccess": {
+    "description": "Request send successfully text"
+  },
+  "cannotAddSelf": "You cannot add yourself as a friend",
+  "@cannotAddSelf": {
+    "description": "You cannot add yourself text"
+  },
+  "userNotExist": "The user does not exist",
+  "@userNotExist": {
+    "description": "The user does not exist text"
+  },
+  "tryLaterText": "Please try later",
+  "@tryLaterText": {
+    "description": "Please try later text"
+  },
+  "qrCodeErrDetail": "Fail to get QR code, unknown exception",
+  "@qrCodeErrDetail": {
+    "description": "get qr code err text"
+  },
+  "qrCodeExpired": "QR code has expired, please refresh and try again",
+  "@qrCodeExpired": {
+    "description": "qr code expired text"
+  },
+  "scanFriendFailedText": "Processing error after scanning code to add friends",
+  "@scanFriendFailedText": {
+    "description": "add friends text"
+  },
+  "selectUsersForGroupChatText": "Please select the users to join the group.",
+  "@selectUsersForGroupChatText": {
+    "description": "label for selecting users of a group chat"
+  },
+  "noDeviceAvailableToChatMessageText": "No device is available to chat.",
+  "@noDeviceAvailableToChatMessageText": {
+    "description": "no device is available to chat error message text"
+  },
+  "groupChatInfoMissingErrorText": "Group chat information is missing.",
+  "@groupChatInfoMissingErrorText": {
+    "description": "group chat info missing error text"
+  },
+  "invalidChatUserCountErrorText": "Invalid number of users.",
+  "@invalidChatUserCountErrorText": {
+    "description": "invalid number of chat users error text"
+  },
+  "chatText": "Chat",
+  "@chatText": {
+    "description": "Chat text"
+  },
+  "chatWithAllDevicesText": "Chat with all available devices of this user",
+  "@chatWithAllDevicesText": {
+    "description": "chat with all devices title text"
+  },
+  "chatWithSingleDeviceText": "Chat with a device of this user",
+  "@chatWithSingleDeviceText": {
+    "description": "chat with single device title text"
+  },
+  "allDevicesText": "All devices",
+  "@allDevicesText": {
+    "description": "All devices"
+  },
+  "userText": "User",
+  "@userText": {
+    "description": "user text"
+  },
+  "personalUsers": "Community user",
+  "@personalUsers": {
+    "description": "Personal user text"
+  },
+  "chatWithUserText": "Chat with {username}",
+  "@chatWithUserText": {
+    "description": "chat with user text",
+    "placeholders": {
+      "username": {}
+    }
+  },
+  "prompt": "Alert",
+  "@prompt": {
+    "description": "prompt , dialog title"
+  },
+  "successText": "Success",
+  "@successText": {
+    "description": "Success text"
+  },
+  "failedText": "Failed",
+  "@failedText": {
+    "description": "Failed text"
+  },
+  "bindFailedContent": "Failed to add the mobile phone number.",
+  "@bindFailedContent": {
+    "description": "Binding failure text."
+  },
+  "setVerbosityLevelText": "Daemon logging verbosity level",
+  "@setVerbosityLevelText": {
+    "description": "set verbosity level text"
+  },
+  "displayNameText": "Display name",
+  "@displayNameText": {
+    "description": "display name text"
+  },
+  "emailText": "Email",
+  "@emailText": {
+    "description": "email label text"
+  },
+  "audioOnlyText": "Audio only",
+  "@audioOnlyText": {
+    "description": "audio only text"
+  },
+  "audioMutedText": "Audio muted",
+  "@audioMutedText": {
+    "description": "audio muted text"
+  },
+  "videoMutedText": "Video muted",
+  "@videoMutedText": {
+    "description": "video muted text"
+  },
+  "videoWaitingForPeerToAnswerText": "Waiting for {peer} to answer the call",
+  "@videoWaitingForPeerToAnswerText": {
+    "description": "waiting for peer to answer call text",
+    "placeholders": {
+      "peer": {
+        "type": "String",
+        "example": "Jane"
+      }
+    }
+  },
+  "enableARSetting": "AR Glasses Mode",
+  "@enableARSetting": {
+    "description": "AR Glasses Mode text"
+  },
+  "enableTVSetting": "Enable TV Mode",
+  "@enableTVSetting": {
+    "description": "Enable TV Mode text"
+  },
+  "tvModeText": "TV Mode",
+  "@tvModeText": {
+    "description": "TV Mode text"
+  },
+  "saveToFileText": "Save to file",
+  "@saveToFileText": {
+    "description": "save to file text"
+  },
+  "saveToGalleryText": "Save to photos",
+  "@saveToGalleryText": {
+    "description": "save to photos text"
+  },
+  "imageSavedToFileText": "Image saved to {file}",
+  "@imageSavedToFileText": {
+    "description": "image saved to file text",
+    "placeholders": {
+      "file": {
+        "type": "String",
+        "example": "/tmp/a.png"
+      }
+    }
+  },
+  "imageSavedToGalleryText": "Image saved to gallery",
+  "@imageSavedToGalleryText": {
+    "description": "image saved to gallery text"
+  },
+  "errSavingImageText": "Error saving media",
+  "@errSavingImageText": {
+    "description": "error saving image text"
+  },
+  "unsupportedMediaText": "Unsupported image or video format",
+  "@unsupportedMediaText": {
+    "description": "unsupported image or video format text"
+  },
+  "cameraText": "Camera",
+  "@cameraText": {
+    "description": "camera text"
+  },
+  "galleryText": "Gallery",
+  "@mediaText": {
+    "description": "gallery text"
+  },
+  "downloadWeChatText": "Please download WeChat app first",
+  "@downloadWeChatText": {
+    "description": "please download WeChat app text"
+  },
+  "videoText": "Video",
+  "@videoText": {
+    "description": "video text"
+  },
+  "selectUserForVideoCallText": "Select user to join the video call",
+  "@selectUserForVideoCall": {
+    "description": "select user to join the video call text"
+  },
+  "switchCameraText": "Switch camera",
+  "@switchCameraText": {
+    "description": "switch camera text"
+  },
+  "toggleFlashText": "Toggle flash",
+  "@toggleFlashText": {
+    "description": "toggle flash text"
+  },
+  "scanFromImageText": "Scan from image",
+  "@scanFromImageText": {
+    "@description": "scan from image text"
+  },
+  "emptyQrCodeText": "QR code is empty",
+  "@emptyQrCodeText": {
+    "description": "empty qr code text"
+  },
+  "recentChatsText": "Recent chats",
+  "@recentChatsText": {
+    "description": "recent chats text"
+  },
+  "messageSendResultsText": "Message send results",
+  "@messageSendResultsText": {
+    "description": "message send results text"
+  },
+  "successDeviceCountText": "Success device count",
+  "@successDeviceCountText": {
+    "description": "success device count text"
+  },
+  "failureDeviceCountText": "Failure device count",
+  "@failureDeviceCountText": {
+    "description": "failure device count"
+  },
+  "dontShowAgainText": "Don't show again",
+  "@dontShowAgainText": {
+    "description": "don't show again text"
+  },
+  "fileSavedToText": "File saved to",
+  "@fileSavedToText": {
+    "@description": "file saved to text"
+  },
+  "failedToSaveFileText": "Failed to save file",
+  "@failedToSaveFileText": {
+    "description": "failed to save file text"
+  },
+  "saveToAppStorageText": "Save to app storage",
+  "@saveToAppStorageText": {
+    "description": "save to app storage text"
+  },
+  "saveToSharedStorageText": "Save to shared storage",
+  "@saveToSharedStorageText": {
+    "description": "save to shared storage text"
+  },
+  "forwardText": "Forward",
+  "@forwardText": {
+    "description": "forward text"
+  },
+  "retrySendingToFailedDevicesText": "Retry sending to failed devices",
+  "@retrySendingToFailedDevicesText": {
+    "description": "retry sending to failed device text"
+  },
+  "sharedTextText": "Shared text",
+  "@sharedTextText": {
+    "description": "shared text text"
+  },
+  "forwardMessagesToText": "Forward messages to",
+  "@forwardMessagesToText": {
+    "description": "forward messages to text"
+  },
+  "highText": "High",
+  "@highText": {
+    "description": "high text"
+  },
+  "higherText": "Higher",
+  "@higherText": {
+    "description": "higher text"
+  },
+  "lowText": "Low",
+  "@lowText": {
+    "description": "low text"
+  },
+  "mediumText": "Medium",
+  "@mediumText": {
+    "description": "medium text"
+  },
+  "standardText": "Standard",
+  "@standardText": {
+    "description": "standard text"
+  },
+  "forceToTurnOffText": "Force to turn off",
+  "@forceToTurnOffText": {
+    "description": "force to turn off text"
+  },
+  "turnOnSuccessText": "Successfully connected to cylonix",
+  "@turnOnSuccessText": {
+    "description": "turn on success text"
+  },
+  "turnOffSuccessText": "Successfully disconnected from cylonix",
+  "@turnOffSuccessText": {
+    "description": "turn off success text"
+  },
+  "moreOptionsText": "More options",
+  "@moreOptionsText": {
+    "description": "more options text"
+  },
+  "addAccountDetailsText": "Add account details",
+  "@addAccountDetailsText": {
+    "description": "add account details text"
+  },
+  "addAccountDetailsHintText": "For example, set up username or add email",
+  "@addAccountDetailsHintText": {
+    "description": "add account details hint text"
+  },
+  "addAccountDetailsSucceedText": "Add account details succeed.",
+  "@addAccountDetailsSucceedText": {
+    "description": "add account details succeed text"
+  },
+  "addAccountDetailsFailedText": "Failed to add account details.",
+  "@addAccountDetailsFailedText": {
+    "description": "add account details failed text"
+  },
+  "firstNameText": "First name",
+  "@firstNameText": {
+    "description": "First name text"
+  },
+  "lastNameText": "Last name",
+  "@lastNameText": {
+    "description": "last name text"
+  },
+  "inputHasNoUpdateText": "Input has no update",
+  "@inputHasNoUpdateText": {
+    "@description": "input has no update text"
+  },
+  "updateProfilePictureText": "Update profile picture",
+  "@updateProfilePictureText": {
+    "description": "update profile picture text"
+  },
+  "userAvatarNotExistsText": "User avatar does not exist",
+  "@userAvatarNotExistsText": {
+    "description": "user avatar not exists text"
+  },
+  "replyText": "Reply",
+  "@replyText": {
+    "description": "reply text"
+  },
+  "simpleChatUI": "Simple chat user interface",
+  "@simpleChatUI": {
+    "description": "simple chat UI text"
+  },
+  "onlyGroupChatAdminCanRemoveMemberText": "Only group chat administrator can remove member",
+  "@onlyGroupChatAdminCanRemoveMemberText": {
+    "description": "only group chat administrator can remove member text"
+  },
+  "generateNewRoomIDText": "Generate a new room ID",
+  "@generateNewRoomIDText": {
+    "description": "generate a new room ID text"
+  },
+  "useDefaultRoomText": "Use default room",
+  "@useDefaultRoomText": {
+    "description": "use default room text"
+  },
+  "deleteAllChatMessagesText": "Delete all chat messages",
+  "@deleteAllChatMessagesText": {
+    "description": "delete all chat messages text"
+  },
+  "confirmDeleteAllChatMessagesText": "Please confirm if to delete all chat messages. Messages will be forever deleted.",
+  "@confirmDeleteAllChatMessagesText": {
+    "description": "confirm delete all chat messages text"
+  },
+  "deleteAllChatMessagesSucceededText": "Delete all chat messages succeeded.",
+  "@deleteAllChatMessagesSucceededText": {
+    "description": "delete all chat messages succeeded text"
+  },
+  "deleteAllChatMessagesFailedText": "Failed to delete all chat messages.",
+  "@deleteAllChatMessagesFailedText": {
+    "description": "failed to delete all chat messages text"
+  },
+  "setMessageExpirationTimeText": "Set message expiration time",
+  "@setMessageExpirationTimeText": {
+    "description": "set message expiration time text"
+  },
+  "fifteenSecondsText": "15 seconds",
+  "@fifteenSecondsText": {
+    "description": "15 seconds text"
+  },
+  "oneMinuteText": "1 minute",
+  "@oneMinuteText": {
+    "description": "1 minute text"
+  },
+  "oneHourText": "1 hour",
+  "@oneHourText": {
+    "description": "1 hour text"
+  },
+  "oneDayText": "1 day",
+  "@oneDayText": {
+    "description": "1 day text"
+  },
+  "noExpirationText": "No expiration",
+  "@noExpirationText": {
+    "description": "no expiration text"
+  },
+  "remoteNotExistsText": "Remote does not exist.",
+  "@remoteNotExistsText": {
+    "description": "remote not exists text"
+  },
+  "remoteNameTxt": "Remote name",
+  "@remoteNameText": {
+    "description": "remote name text"
+  },
+  "inputRemoteText": "Input remote device code or IP or name",
+  "@inputRemoteText": {
+    "description": "input remote text"
+  },
+  "userNotAvailableText": "{user} is not available",
+  "@userNotAvailableText": {
+    "description": "user not available text",
+    "placeholders": {
+      "user": {}
+    }
+  },
+  "homeText": "Home",
+  "@homeText": {
+    "description": "home text"
+  },
+  "sidebarText": "SideBar",
+  "@sidebarText": {
+    "description": "sidebar text"
+  },
+  "checkForUpdateText": "Check for app update",
+  "@checkForUpdateText": {
+    "description": "check for app update text"
+  },
+  "clickToUpdateText": "Click to update app",
+  "@clickToUpdateText": {
+    "description": "click to update text"
+  },
+  "cannotLaunchUrlText": "Cannot launch URL",
+  "@cannotLaunchUrlText": {
+    "description": "cannot launch URL text"
+  },
+  "confirmToOverwriteFileText": "File exists already. Do you want to overwrite it?",
+  "@confirmToOverwriteFileText": {
+    "description": "confirm to overwrite file text"
+  },
+  "expandText": "Expand",
+  "@expandText": {
+    "description": "expand text"
+  },
+  "compactText": "Compact",
+  "@compactText": {
+    "description": "compact text"
+  },
+  "showIntroPagesOnNextStartText": "Show user agreement and privacy policy pages on next app start",
+  "@showIntroPagesOnNextStartText": {
+    "description": "show intro page on next start text"
+  },
+  "restartDaemonServiceText": "Restart daemon service",
+  "@restartDaemonServiceText": {
+    "description": "restart daemon service text"
+  },
+  "confirmRestartDaemonServiceText": "To restore the service we need to restart the daemon process. It may ask you to approve the change with administrator permission twice. Please approve the changes when being prompted.",
+  "@confirmRestartDaemonServiceText": {
+    "description": "confirm to restart daemon service text"
+  },
+  "changeText": "Change",
+  "@changeText": {
+    "description": "change text"
+  },
+  "doneText": "Done",
+  "@doneText": {
+    "description": "done text"
+  },
+  "searchUserText": "Search user",
+  "@searchUserText": {
+    "description": "search user text"
+  },
+  "cannotInviteSelfText": "Cannot invite self",
+  "@cannotInviteSelfText": {
+    "description": "cannot invite self text"
+  },
+  "serverNotReachableText": "{server} is not reachable. Please try again later.",
+  "@serverNotReachableText": {
+    "description": "server is not reachable text",
+    "placeholders": {
+      "server": {}
+    }
+  },
+  "startTimeText": "Start time",
+  "@startTimeText": {
+    "description": "start time text"
+  },
+  "pageUpText": "Page up",
+  "@pageUpText": {
+    "description": "page up text"
+  },
+  "pageDownText": "Page down",
+  "@pageDownText": {
+    "description": "page down text"
+  },
+  "noUserAvailableDetailsText": "No user is available. This could be due to either there is no user online or any newly added user is not yet sync'ed to your device. It may take as long as a minute to be synced up.",
+  "@noUserAvailableDetailsText": {
+    "description": "details of why there is no user available"
+  },
+  "toStartText": "To start",
+  "@toStartText": {
+    "description": "to start text"
+  },
+  "addVideoCallText": "Start call",
+  "@addVideoCallText": {
+    "description": "instant video call text"
+  },
+  "returnText": "Return",
+  "@returnText": {
+    "description": "return text"
+  },
+  "openToEditText": "Open to edit",
+  "@openToEditText": {
+    "description": "open to edit text"
+  },
+  "meetingOptionText": "meeting options",
+  "@meetingOptionsText": {
+    "description": "meeting options text"
+  },
+  "bitrateScaleFactorText": "Bitrate scale factor",
+  "@bitrateScaleFactorText": {
+    "description": "bitrate scale factor text"
+  },
+  "todayLabel": "Today",
+  "@todayLabel": {
+    "description": "Today label"
+  },
+  "selectDateLabel": "Select date",
+  "@selectDateLabel": {
+    "description": "Select date label"
+  },
+  "selectTimeLabel": "Select time",
+  "@selectTimeLabel": {
+    "description": "Select time label"
+  },
+  "amText": "AM",
+  "@amText": {
+    "description": "AM text"
+  },
+  "pmText": "PM",
+  "@pmText": {
+    "description": "PM text"
+  },
+  "twentyFourHourText": "24 hour",
+  "@twentyFourHourText": {
+    "description": "24 hour text"
+  },
+  "setMeetingOptionsLabel": "Set meeting options",
+  "@setMeetingOptionsLabel": {
+    "description": "set meeting options label"
+  },
+  "setPortraitModeLabel": "Set portrait mode",
+  "@setPortraitModeLabel": {
+    "description": "set portrait mode label"
+  },
+  "enableSimulcastLabel": "Enable simulcast",
+  "@enableSimulcastLabel": {
+    "description": "enable simulcast label"
+  },
+  "appearanceTitle": "Appearance",
+  "@appearanceTitle": {
+    "description": "appearance title"
+  },
+  "appearanceSettingsTitle": "Appearance settings",
+  "@appearanceSettingsTitle": {
+    "description": "appearance settings title"
+  },
+  "featureTitle": "Feature",
+  "@featureTitle": {
+    "description": "feature title"
+  },
+  "featureSettingsTitle": "Feature settings",
+  "@featureSettingsTitle": {
+    "description": "feature settings title"
+  },
+  "networkTitle": "Network",
+  "@networkTitle": {
+    "description": "network title"
+  },
+  "networkSettingsTitle": "Network settings",
+  "@networkSettingsTitle": {
+    "description": "network settings title"
+  },
+  "shieldsUpTitle": "Shields up",
+  "@shieldsUpTitle": {
+    "description": "shields up title"
+  },
+  "dontAllowIncomingConnectionsText": "Don't allow incoming connections.",
+  "@dontAllowIncomingConnectionsText": {
+    "description": "don't allow incoming connections text"
+  },
+  "failedToSaveChangeText": "failed to save change",
+  "@failedToSaveChangeText": {
+    "description": "failed to save change text"
+  },
+  "pressOneMoreTimeToExitTheAppText": "Press one more time in 10 seconds to exit the app.",
+  "@pressOneMoreTimeToExitTheAppText": {
+    "description": "press one more time in 10 seconds to exit the app text"
+  }
+}

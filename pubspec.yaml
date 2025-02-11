@@ -1,0 +1,182 @@
+name: tailchat
+description: "A point to point serverless chat app for users on tailscale network."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+2
+
+environment:
+  sdk: ^3.6.0
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^1.0.8
+
+  flutter_localizations:
+    sdk: flutter
+
+  bubble: ^1.2.1
+  collection: ^1.19.0
+  confirm_dialog: ^1.0.0
+  connectivity_plus: ^6.0.5
+  convert: ^3.1.1
+  cylonix_emojis:
+    path: 'plugins/cylonix_emojis'
+  desktop_window: ^0.4.0
+  device_info_plus: ^11.2.0
+  downloadsfolder: ^1.2.0
+  duration: ^4.0.3
+  email_validator: ^3.0.0
+  equatable: ^2.0.5
+  event_bus: ^2.0.0
+  file_manager: ^1.0.1
+  file_picker: ^8.1.7
+  flutter_audio_desktop:
+    path: "plugins/flutter_audio_desktop"
+  flutter_chat_types:
+    path: "plugins/flutter_chat_types"
+  flutter_chat_ui:
+    path: "plugins/flutter_chat_ui"
+  flutter_dotenv: ^5.1.0
+  flutter_keyboard_visibility: ^6.0.0
+  flutter_local_notifications: ^18.0.1
+  flutter_markdown: ^0.7.5
+  font_awesome_flutter: ^10.8.0
+  http: ^1.2.2
+  image: ^4.0.0
+  image_picker: ^1.1.2
+  image_gallery_saver_plus: '^3.0.5'
+  intl: ^0.19.0
+  introduction_screen: ^3.1.7
+  json_annotation: ^4.8.1
+  just_audio: ^0.9.30
+  mime: ^2.0.0
+  mutex: ^3.0.0
+  logger: ^2.5.0
+  flutter_logger:
+    path: "plugins/flutter_logger"
+  open_file: ^3.5.10
+  overlay_support: ^2.1.0
+  package_info_plus: ^8.0.2
+  path: ^1.9.0
+  path_provider: ^2.0.2
+  platform: ^3.1.0
+  provider: ^6.0.1
+  qr_flutter: ^4.1.0
+  random_color: ^1.0.6-nullsafety
+  receive_sharing_intent:
+    path: "plugins/receive_sharing_intent"
+  record: ^5.2.0
+  rxdart: ^0.28.0
+  screen_retriever: ^0.2.0
+  share_plus: ^10.0.2
+  shared_preferences: ^2.0.0
+  shelf: ^1.2.0
+  shelf_router: ^1.1.1
+  shelf_plus: ^1.10.0
+  sprintf: ^7.0.0
+  timeago: ^3.7.0
+  timer_builder: ^2.0.0
+  top_snackbar_flutter: ^3.1.0
+  url_launcher: ^6.3.0
+  uuid: ^4.5.1
+  visibility_detector: ^0.4.0+2
+  yaml: ^3.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  flutter_lints: ^5.0.0
+
+  flutter_launcher_icons: "^0.14.2"
+
+flutter_launcher_icons:
+  android: false
+  ios: false
+  remove_alpha_ios: true
+  image_path: "lib/assets/images/tailchat1024.png"
+  web:
+    generate: false
+    image_path: "lib/assets/images/tailchat.png"
+    background_color: "#ffffff"
+    theme_color: "#ffffff"
+  windows:
+    generate: false
+    image_path: "lib/assets/images/tailchat.png"
+    icon_size: 48 # min:48, max:256, default: 48
+  macos:
+    generate: false
+    image_path: "lib/assets/images/tailchat_macos_512x512.png"
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  assets:
+    - lib/assets/images/tailchat.png
+    - lib/assets/images/apple_store.png
+    - lib/assets/images/google_play.png
+  #   - images/a_dot_ham.jpeg
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package

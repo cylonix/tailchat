@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Tailchat
+Comment=Secure Prviate Chat
+Path=/opt/tailchat
+Exec=tailchat
+Icon=tailchat.png
+Terminal=false
+Type=Application
+StartupNotify=true

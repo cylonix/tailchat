@@ -1,0 +1,29 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+override_dh_auto_build:
+	cd ../../tailchatd; go build -ldflags="-s -w" -o tailchatd
+	cd ../../; flutter build linux --release
+override_dh_auto_install:
+	mkdir -p $(CURDIR)/debian/tailchat/opt/tailchatd
+	install -m 755 ../../tailchatd/tailchatd $(CURDIR)/debian/tailchat/opt/tailchatd
+	mkdir -p $(CURDIR)/debian/tailchat/lib/systemd/system
+	install -m 644 $(CURDIR)/debian/tailchatd.service $(CURDIR)/debian/tailchat/lib/systemd/system
+	mkdir -p $(CURDIR)/debian/tailchat/usr/sbin
+	ln -sf /lib/systemd/system/tailchatd.service $(CURDIR)/debian/tailchat/usr/sbin/tailchatd
+
+	mkdir -p $(CURDIR)/debian/tailchat/opt/tailchat
+	install -d $(CURDIR)/debian/tailchat/opt/tailchat/data/flutter_assets
+	cp -r ../../build/linux/x64/release/bundle/tailchat $(CURDIR)/debian/tailchat/opt/tailchat/.
+	cp -r ../../build/linux/x64/release/bundle/* $(CURDIR)/debian/tailchat/opt/tailchat/.
+	mkdir -p $(CURDIR)/debian/tailchat/usr/bin
+	ln -sf /opt/tailchat/tailchat $(CURDIR)/debian/tailchat/usr/bin/tailchat
+
+	mkdir -p $(CURDIR)/debian/tailchat/usr/share/applications
+	mkdir -p $(CURDIR)/debian/tailchat/usr/share/pixmaps
+	cp tailchat.desktop $(CURDIR)/debian/tailchat/usr/share/applications/.
+	cp tailchat.png $(CURDIR)/debian/tailchat/usr/share/pixmaps/tailchat.png
+
+override_dh_installsystemd:
+	dh_installsystemd --name=tailchatd

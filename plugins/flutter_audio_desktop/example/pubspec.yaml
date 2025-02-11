@@ -1,0 +1,21 @@
+name: flutter_audio_desktop_example
+description: Demonstrates how to use the flutter_audio_desktop plugin.
+
+publish_to: 'none'
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_audio_desktop:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

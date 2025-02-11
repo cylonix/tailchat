@@ -1,0 +1,13 @@
+[Unit]
+Description=Tailchatd - WebSocket Chat Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/tailchatd
+ExecStart=/opt/tailchatd/tailchatd
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

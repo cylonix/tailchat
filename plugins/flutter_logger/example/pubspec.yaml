@@ -1,0 +1,17 @@
+name: example
+description: Demonstrates how to use the flutter_logger plugin.
+publish_to: 'none'
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_logger:
+    path: ../
+  logger: ^2.5.0
+
+flutter:
+  uses-material-design: true

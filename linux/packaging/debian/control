@@ -1,0 +1,13 @@
+Source: tailchat
+Section: net
+Priority: optional
+Maintainer: EZBLOCK Authors
+Build-Depends: debhelper-compat (= 12)
+Standards-Version: 4.6.0
+Homepage: https://cylonix.io/tailchat
+Rules-Requires-Root: no
+
+Package: tailchat
+Architecture: amd64
+Description: Tailchat Application
+  TaleChat provides point to point direct messaging between two tailnet nodes.

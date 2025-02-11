@@ -1,0 +1,60 @@
+name: flutter_chat_ui
+publish_to: none
+description: >
+  Actively maintained, community-driven chat UI implementation with an
+  optional Firebase BaaS.
+version: 1.5.1
+homepage: https://flyer.chat
+repository: https://github.com/flyerhq/flutter_chat_ui
+
+environment:
+  sdk: ">=2.14.0"
+  flutter: ">=2.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cylonix_emojis:
+    path: '../cylonix_emojis'
+  diffutil_dart: ^2.0.0+1
+  equatable: ^2.0.3
+  flutter_chat_types:
+    path: '../flutter_chat_types'
+  flutter_link_previewer:
+    path: '../flutter_link_previewer'
+  intl: ^0.19.0
+  just_audio: ^0.9.26
+  meta: ^1.3.0
+  mime: ^2.0.0
+  photo_view: ^0.14.0
+  path_provider: ^2.0.2
+  video_thumbnail:
+    git:
+      url: https://github.com/cylonix/video_thumbnail.git
+      ref: 8d0920180d9db6ae5019f7b0bdcfcf7cf8760581
+
+dev_dependencies:
+  flutter_lints: ^1.0.4
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  assets:
+    - packages/flutter_chat_ui/assets/icon-attachment.png
+    - packages/flutter_chat_ui/assets/icon-delivered.png
+    - packages/flutter_chat_ui/assets/icon-document.png
+    - packages/flutter_chat_ui/assets/icon-error.png
+    - packages/flutter_chat_ui/assets/icon-seen.png
+    - packages/flutter_chat_ui/assets/icon-send.png
+    - packages/flutter_chat_ui/assets/2.0x/icon-attachment.png
+    - packages/flutter_chat_ui/assets/2.0x/icon-delivered.png
+    - packages/flutter_chat_ui/assets/2.0x/icon-document.png
+    - packages/flutter_chat_ui/assets/2.0x/icon-error.png
+    - packages/flutter_chat_ui/assets/2.0x/icon-seen.png
+    - packages/flutter_chat_ui/assets/2.0x/icon-send.png
+    - packages/flutter_chat_ui/assets/3.0x/icon-attachment.png
+    - packages/flutter_chat_ui/assets/3.0x/icon-delivered.png
+    - packages/flutter_chat_ui/assets/3.0x/icon-document.png
+    - packages/flutter_chat_ui/assets/3.0x/icon-error.png
+    - packages/flutter_chat_ui/assets/3.0x/icon-seen.png
+    - packages/flutter_chat_ui/assets/3.0x/icon-send.png

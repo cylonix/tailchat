@@ -1,0 +1,20 @@
+# vscode
+
+.vscode
+
+# audio
+
+*.mp3
+
+# dart
+
+.dart_tool
+.packages
+
+# flutter
+
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# miniaudio: https://github.com/mackron/miniaudio
+# Get miniaudio.h & miniaudio_engine.h from the link above & place at the following location.

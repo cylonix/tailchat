@@ -1,0 +1,4 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="com.example.flutter_chat_types">
+  <meta-data android:name="flutterEmbedding" android:value="2"/>
+</manifest>
