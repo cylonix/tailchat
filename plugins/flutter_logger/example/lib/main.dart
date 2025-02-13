@@ -26,8 +26,6 @@ void log() {
 
   logger.e("Error! Something bad happened: Test Error");
 
-  loggerNoStack.v({"key": 5, "value": "something"});
-
   Future.delayed(Duration(seconds: 5), log);
 }
 

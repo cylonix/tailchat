@@ -27,7 +27,7 @@ class Global {
       lineLength: 20,
       colors: true,
       printEmojis: true,
-      printTime: true,
+      dateTimeFormat: DateTimeFormat.dateAndTime,
     ),
     level: Level.debug,
     output: ConsoleOutput(),
@@ -100,7 +100,7 @@ class Global {
     }
   }
 
-  /// TODO: move logfile back to private storage with
+  /// TODO: move log file back to private storage with
   /// getExternalStorageDirectory.
   static Future<void> getDirectoryForLogRecord() async {
     //_directory = await getExternalStorageDirectory();
@@ -145,7 +145,8 @@ class Global {
       lineLength: lineLength, // width of the output
       colors: true, // colorful log messages
       printEmojis: true, // print an emoji for each log message
-      printTime: true, // print each log with a timestamp
+      dateTimeFormat:
+          DateTimeFormat.dateAndTime, // print each log with a timestamp
     ); // use pretty printer to format and print log
     final debugLogger = Logger(
       filter: ProductionFilter(), // log is wanted even in production
@@ -181,7 +182,7 @@ class Global {
         methodCount: 1,
         errorMethodCount: 8,
         lineLength: lineLength,
-        printTime: true,
+        dateTimeFormat: DateTimeFormat.dateAndTime,
       ),
       level: Level.debug,
       output: multiOutputWithFile,
@@ -193,7 +194,7 @@ class Global {
         methodCount: 0,
         errorMethodCount: 4,
         lineLength: lineLength,
-        printTime: true,
+        dateTimeFormat: DateTimeFormat.dateAndTime,
       ),
       level: Level.warning,
       output: fileOutput,
@@ -219,7 +220,7 @@ class Global {
         methodCount: 0,
         errorMethodCount: 4,
         lineLength: lineLength,
-        printTime: true,
+        dateTimeFormat: DateTimeFormat.dateAndTime,
       ),
       level: Level.debug,
       output: multiOutputWithFile,

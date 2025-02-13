@@ -100,7 +100,7 @@ class _LogConsoleState extends State<LogConsole> {
   final _scrollController = ScrollController();
   final _filterController = TextEditingController();
 
-  Level _filterLevel = Level.verbose;
+  Level _filterLevel = Level.trace;
   double _logFontSize = 14;
 
   var _currentId = 0;
@@ -450,12 +450,12 @@ class _LogConsoleState extends State<LogConsole> {
           DropdownButton(
             value: _filterLevel,
             items: [
-              DropdownMenuItem(value: Level.verbose, child: Text(_verboseText)),
+              DropdownMenuItem(value: Level.trace, child: Text(_verboseText)),
               DropdownMenuItem(value: Level.debug, child: Text(_debugText)),
               DropdownMenuItem(value: Level.info, child: Text(_infoText)),
               DropdownMenuItem(value: Level.warning, child: Text(_warningText)),
               DropdownMenuItem(value: Level.error, child: Text(_errorText)),
-              DropdownMenuItem(value: Level.wtf, child: Text(_wtfText))
+              DropdownMenuItem(value: Level.fatal, child: Text(_wtfText))
             ],
             onChanged: (value) {
               if (value != null) {

@@ -4,7 +4,7 @@
 import 'dart:typed_data';
 
 class UserAvatarChangeEvent {
-  final int userID;
+  final String userID;
   final Uint8List avatar;
   UserAvatarChangeEvent({required this.userID, required this.avatar});
 }
