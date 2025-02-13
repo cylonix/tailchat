@@ -85,5 +85,12 @@ make deb
 ### Build macos or ios package
 
 Please follow flutter macos and ios app building instructions with xcode.
-<https://docs.flutter.dev/deployment/macos>
-<https://docs.flutter.dev/deployment/ios>
+- <https://docs.flutter.dev/deployment/macos>
+- <https://docs.flutter.dev/deployment/ios>
+
+Please note that you need to build macos with CLI first before running it with xcode:
+
+``` bash
+flutter build macos
+```
+
