@@ -1,13 +1,17 @@
 // Copyright (c) EZBLOCK Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
+import 'dart:collection';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_logger/flutter_logger.dart' as log;
+import 'package:logger/logger.dart';
+import '../../api/chat_service.dart';
 import '../../gen/l10n/app_localizations.dart';
 import '../../models/log_file.dart';
 import '../../utils/global.dart';
+import '../../utils/logger.dart' as log;
 import '../../utils/utils.dart';
 import '../common_widgets.dart';
 import '../snackbar_widget.dart';
@@ -26,6 +30,8 @@ class AdvancedSettingsWidget extends StatefulWidget {
 }
 
 class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
+  static final _logger = log.Logger(tag: "AdvancedSetting");
+
   LogFile get _appLogFile {
     return LogFile.appLogFile;
   }
@@ -98,7 +104,7 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
     return const Icon(Icons.arrow_forward_ios, size: 16);
   }
 
-  static const _isServiceLogConsoleSupported = false;
+  static const _isServiceLogConsoleSupported = true;
   Widget get _serviceLogConsole {
     final tr = AppLocalizations.of(context);
     Global.setLogConsoleLocalTexts(context);
@@ -117,7 +123,7 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
                     dark: _isDarkTheme,
                     title: tr.daemonLogConsoleTitleText,
                     showRefreshButton: true,
-                    //getLogOutputEvents: Cylonixd.getLogOutputEvents,
+                    getLogOutputEvents: _getChatServiceLogs,
                     saveFile: () => _save(_cylonixdLogFile),
                     shareFile:
                         _canShareFile ? () => _share(_cylonixdLogFile) : null,
@@ -127,6 +133,20 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
             }
           : null,
     );
+  }
+
+  Future<ListQueue<OutputEvent>> _getChatServiceLogs() async {
+    ListQueue<OutputEvent> events = ListQueue();
+    try {
+      final logs = await ChatService.getLogs();
+      for (var line in logs.split('\n')) {
+        final event = OutputEvent(LogEvent(Level.info, ""), [line]);
+        events.add(event);
+      }
+    } catch (e) {
+      _logger.e("Failed to get logs: $e");
+    }
+    return events;
   }
 
   List<Widget> get _settingsList {

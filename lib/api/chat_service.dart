@@ -66,6 +66,19 @@ class ChatService {
     }
   }
 
+  static Completer<String>? logCompleter;
+  static Future<String> getLogs() async {
+    logCompleter = Completer<String>();
+    await platform.invokeMethod('logs');
+    return await logCompleter!.future.timeout(Duration(seconds: 5));
+  }
+
+  static void handleLogs(String? logs) {
+    if (logs != null) {
+      logCompleter?.complete(logs);
+    }
+  }
+
   String get _socketName {
     return "tcp://:${_socket?.port} -> $serverAddress:$port";
   }

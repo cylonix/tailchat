@@ -116,11 +116,11 @@ class _MainBottomBarState extends State<MainBottomBar> {
       type: BottomNavigationBarType.fixed,
       items: <BottomNavigationBarItem>[
         BottomNavigationBarItem(
-          icon: const ContactsIcon(),
+          icon: const ContactsIcon(useDefaultColor: true),
           label: tr.contactsTitle,
         ),
         BottomNavigationBarItem(
-          icon: const SessionsIcon(),
+          icon: const SessionsIcon(useDefaultColor: true),
           label: "Chats",
         ),
       ],

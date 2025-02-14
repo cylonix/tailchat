@@ -106,6 +106,7 @@ class _LogConsoleState extends State<LogConsole> {
   var _currentId = 0;
   bool _scrollListenerEnabled = true;
   bool _followBottom = true;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -144,7 +145,13 @@ class _LogConsoleState extends State<LogConsole> {
 
     _renderedBuffer.clear();
     if (getEventsF != null) {
+      setState(() {
+        _isLoading = true;
+      });
       events = await getEventsF();
+      setState(() {
+        _isLoading = false;
+      });
     } else {
       events = _outputEventBuffer;
     }
@@ -208,6 +215,9 @@ class _LogConsoleState extends State<LogConsole> {
   }
 
   Widget _buildLogContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
     return Container(
       color: widget.dark ? Colors.black : Colors.grey[150],
       child: ListView.builder(

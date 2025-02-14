@@ -23,6 +23,7 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
     private var methodChannel: FlutterMethodChannel?
     private var eventChannel: FlutterEventChannel?
     private var chatMessageChannel: FlutterEventChannel?
+    private var eventSink: FlutterEventSink?
     var isAppInBackground = false
     private let logger = Logger(tag: "AppDelegate")
     #if os(iOS)
@@ -119,6 +120,9 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
             case "stopService":
                 self.stopChatService()
                 result(nil)
+            case "logs":
+                self.getLogs()
+                result(nil)
             default:
                 result(FlutterMethodNotImplemented)
             }
@@ -150,6 +154,25 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
         chatService = nil
     }
 
+    private func getLogs() {
+        let logFilePath = logger.getLogFilePath()
+        do {
+            let logContents = try String(contentsOfFile: logFilePath, encoding: .utf8)
+            if let eventSink = eventSink {
+                DispatchQueue.main.async {
+                    eventSink(
+                        [
+                            "type": "logs",
+                            "logs": logContents,
+                        ]
+                    )
+                }
+            }
+        } catch {
+            logger.e("Failed to read log file: \(error)")
+        }
+    }
+
     // FlutterStreamHandler
     func onListen(withArguments args: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
         let argsDescription = args.map { String(describing: $0) } ?? "nil"
@@ -157,6 +180,7 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
         if args as? String == "chat_messages" {
             chatService?.setChatMessageSink(eventSink: events)
         } else {
+            eventSink = events
             chatService?.setEventSink(eventSink: events)
         }
         return nil
