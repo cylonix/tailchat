@@ -190,6 +190,7 @@ class _HostnameChangeDialogState extends State<HostnameChangeDialog> {
       setState(() {
         _alert = Alert("Please select a contact from the existing contacts.");
       });
+      return;
     }
     final updatedContact = _selectedContact!..devices.add(widget.newDevice);
     try {

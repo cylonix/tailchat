@@ -164,11 +164,15 @@ class _DeviceDialogState extends State<DeviceDialog> {
   void _saveDevice() async {
     if (!_formKey.currentState!.validate()) return;
     var hostname = _hostnameController.text;
-    if (await deviceExists(Device.generateID(hostname))) {
+    var device = await getDevice(Device.generateID(hostname));
+    if (device != null) {
+      final contact = await getContact(device.userID);
       if (mounted) {
         setState(() {
-          _alert = Alert('Device $hostname already exists. '
-              'Please enter a different hostname.');
+          _alert = Alert(
+            'Device $hostname already exists for ${contact?.name} '
+            'Please select or enter a different hostname.',
+          );
         });
       }
       return;
@@ -192,7 +196,7 @@ class _DeviceDialogState extends State<DeviceDialog> {
       return;
     }
 
-    final device = Device(
+    device = Device(
       userID: widget.contact,
       address: address,
       hostname: hostname,
