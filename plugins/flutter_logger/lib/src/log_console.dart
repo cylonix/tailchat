@@ -100,12 +100,13 @@ class _LogConsoleState extends State<LogConsole> {
   final _scrollController = ScrollController();
   final _filterController = TextEditingController();
 
-  Level _filterLevel = Level.verbose;
+  Level _filterLevel = Level.trace;
   double _logFontSize = 14;
 
   var _currentId = 0;
   bool _scrollListenerEnabled = true;
   bool _followBottom = true;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -144,7 +145,13 @@ class _LogConsoleState extends State<LogConsole> {
 
     _renderedBuffer.clear();
     if (getEventsF != null) {
+      setState(() {
+        _isLoading = true;
+      });
       events = await getEventsF();
+      setState(() {
+        _isLoading = false;
+      });
     } else {
       events = _outputEventBuffer;
     }
@@ -208,6 +215,9 @@ class _LogConsoleState extends State<LogConsole> {
   }
 
   Widget _buildLogContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
     return Container(
       color: widget.dark ? Colors.black : Colors.grey[150],
       child: ListView.builder(
@@ -450,12 +460,12 @@ class _LogConsoleState extends State<LogConsole> {
           DropdownButton(
             value: _filterLevel,
             items: [
-              DropdownMenuItem(value: Level.verbose, child: Text(_verboseText)),
+              DropdownMenuItem(value: Level.trace, child: Text(_verboseText)),
               DropdownMenuItem(value: Level.debug, child: Text(_debugText)),
               DropdownMenuItem(value: Level.info, child: Text(_infoText)),
               DropdownMenuItem(value: Level.warning, child: Text(_warningText)),
               DropdownMenuItem(value: Level.error, child: Text(_errorText)),
-              DropdownMenuItem(value: Level.wtf, child: Text(_wtfText))
+              DropdownMenuItem(value: Level.fatal, child: Text(_wtfText))
             ],
             onChanged: (value) {
               if (value != null) {

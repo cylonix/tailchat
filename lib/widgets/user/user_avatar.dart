@@ -16,8 +16,8 @@ import '../snackbar_widget.dart';
 
 class UserAvatar extends StatefulWidget {
   final bool enableUpdate;
-  final String? firstname;
-  final String? lastname;
+  final String? firstName;
+  final String? lastName;
   final String? username;
   final String? userID;
   final Image? image;
@@ -27,8 +27,8 @@ class UserAvatar extends StatefulWidget {
   const UserAvatar({
     super.key,
     this.size = 100.0,
-    this.firstname,
-    this.lastname,
+    this.firstName,
+    this.lastName,
     this.username,
     this.userID,
     this.image,
@@ -130,24 +130,24 @@ class _UserAvatarState extends State<UserAvatar> {
   }
 
   Widget _getInitialAvatar() {
-    var firstname = widget.firstname;
-    if (firstname == null || firstname.isEmpty) {
+    var firstName = widget.firstName;
+    if (firstName == null || firstName.isEmpty) {
       var username = widget.username;
       if (username == null || username.isEmpty) {
         username = Pst.selfUser?.name ?? "";
       }
-      firstname = username;
+      firstName = username;
     }
-    if (firstname.isEmpty) {
+    if (firstName.isEmpty) {
       return _getDefaultAvatar();
     }
 
-    var initial = firstname.substring(0, 1).toUpperCase();
-    final lastname = widget.lastname;
-    if (lastname != null && lastname.isNotEmpty) {
-      initial = "$initial${lastname.substring(0, 1).toUpperCase()}";
-    } else if (firstname.length > 1) {
-      initial = "$initial${firstname.substring(1, 2)}";
+    var initial = firstName.substring(0, 1).toUpperCase();
+    final lastName = widget.lastName;
+    if (lastName != null && lastName.isNotEmpty) {
+      initial = "$initial${lastName.substring(0, 1).toUpperCase()}";
+    } else if (firstName.length > 1) {
+      initial = "$initial${firstName.substring(1, 2)}";
     }
 
     final style = TextStyle(color: Colors.white, fontSize: widget.size / 2.5);

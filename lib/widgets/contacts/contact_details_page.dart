@@ -173,6 +173,8 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
           itemCount: _contact.devices.length,
           itemBuilder: (context, index) {
             final device = _contact.devices[index];
+            final addr =
+                device.address == device.hostname ? "" : "${device.address} ";
             final lastSeenMsg = device.isOnline
                 ? ""
                 : "\nLast seen: ${timeago.format(device.lastSeen)}";
@@ -184,7 +186,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
                   color: device.isOnline ? Colors.green : Colors.grey,
                 ),
                 title: Text(device.hostname),
-                subtitle: Text('Port: ${device.port}$lastSeenMsg'),
+                subtitle: Text('${addr}Port: ${device.port}$lastSeenMsg'),
                 trailing: IconButton(
                   onPressed: () => _deleteDevice(device),
                   icon: const Icon(Icons.delete),

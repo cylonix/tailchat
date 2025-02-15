@@ -140,6 +140,10 @@ class ChatServer {
         case "file_receive":
           _logger.d("Receive file $event");
           break;
+        case "logs":
+          _logger.d("Received logs");
+          ChatService.handleLogs(event['logs'] as String?);
+          break;
         default:
           _logger.e("Unknown event type: ${event['type']} $event");
       }

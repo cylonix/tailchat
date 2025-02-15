@@ -9,7 +9,7 @@ public class Logger {
     private let fileManager = FileManager.default
     private let logQueue = DispatchQueue(label: "io.cylonix.tailchat.logger")
     private let maxLogFiles = 5
-    private let maxFileSize: UInt64 = 1024 * 1024 // 1MB
+    private let maxFileSize: UInt64 = 64 * 1024 // 64KB
 
     private lazy var logFileURL: URL = {
         let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -83,5 +83,9 @@ public class Logger {
 
     static func opt(_ a: Any?) -> String {
         return a.map { String(describing: $0) } ?? "nil"
+    }
+
+    func getLogFilePath() -> String {
+        return logFileURL.path
     }
 }

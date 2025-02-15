@@ -92,6 +92,13 @@ class _ContactsPageState extends State<NetworkMonitor> {
         }
         return;
       }
+      if (_alert != null) {
+        if (mounted) {
+          setState(() {
+            _alert = null;
+          });
+        }
+      }
       try {
         await _handleStartingWithNewContact(
           hostname,

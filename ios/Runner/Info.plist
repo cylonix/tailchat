@@ -48,7 +48,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Photos are accessed only if user selects photos to send in the chat.</string>
 		<key>NSCameraUsageDescription</key>
-	<string>Camera is accessed only if user chooses to scan QR codes or record video as chat message</string>
+	<string>Camera is accessed only if user chooses to take a photo or record video as chat message</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Microphone is accessed only if user chooses to record voice message in the chat.</string>
 </dict>
