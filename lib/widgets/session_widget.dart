@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import '../api/chat_server.dart';
@@ -71,6 +72,7 @@ class SessionWidget extends StatefulWidget {
 
 class SessionWidgetState extends State<SessionWidget> {
   StreamSubscription<ChatRoomEvent>? _chatSub;
+  StreamSubscription<ContactsEvent>? _contactSub;
   Offset? _savedTapPosition;
   String _titleText = "";
   late final FocusNode _focus;
@@ -92,11 +94,13 @@ class SessionWidgetState extends State<SessionWidget> {
     _setTitleText();
     _setPeerUser();
     _registerChatEvent();
+    _registerContactsEvent();
   }
 
   @override
   void dispose() {
     _chatSub?.cancel();
+    _contactSub?.cancel();
     super.dispose();
   }
 
@@ -137,6 +141,30 @@ class SessionWidgetState extends State<SessionWidget> {
   void _handleChatEvent(ChatReceiveUpdateRoomEvent event) {
     if (event.chatID == widget.session.sessionID) {
       _setTitleText();
+    }
+  }
+
+  void _registerContactsEvent() {
+    if (_session is ChatSession) {
+      _contactSub = contactsEventBus.on<ContactsEvent>().listen((onData) {
+        final device = onData.device;
+        if ((onData.eventType == ContactsEventType.updateDevice ||
+                onData.eventType == ContactsEventType.addDevice) &&
+            onData.deviceID == _session.peerDeviceID &&
+            device != null) {
+          final updated = _session.peerIP != device.address ||
+              _session.peerDeviceName != device.hostname;
+          if (updated) {
+            _session.peerDeviceName = device.hostname;
+            _session.peerIP = device.address;
+            if (mounted) {
+              setState(() {
+                // Update UI
+              });
+            }
+          }
+        }
+      });
     }
   }
 
@@ -321,6 +349,7 @@ class SessionWidgetState extends State<SessionWidget> {
             if (widget.onEdit != null)
               _dialogMenuItem("edit", Icons.edit, tr.editText),
             _dialogMenuItem("delete", Icons.delete, tr.deleteText),
+            _dialogMenuItem("json", Icons.code, "Show session data"),
           ],
         ),
       ),
@@ -347,6 +376,7 @@ class SessionWidgetState extends State<SessionWidget> {
           if (widget.onEdit != null) _menuItem("edit", Icons.edit, tr.editText),
           _menuItem("delete", Icons.delete, tr.deleteText),
           //_menuItem("pin", Icons.push_pin, tr.pinText),
+          _menuItem("json", Icons.code, "Show session data"),
         ],
       );
     }
@@ -367,6 +397,39 @@ class SessionWidgetState extends State<SessionWidget> {
         break;
       case "edit":
         widget.onEdit?.call();
+        break;
+      case "json":
+        const JsonEncoder encoder = JsonEncoder.withIndent('  ');
+        final prettyJson = encoder.convert(_session.toJson());
+        if (mounted) {
+          final size = MediaQuery.of(context).size;
+          await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(_titleText),
+              content: Container(
+                constraints: BoxConstraints(maxHeight: size.height * 0.6),
+                child: SingleChildScrollView(
+                  controller: ScrollController(),
+                  padding: const EdgeInsets.all(16.0),
+                  child: SelectableText(
+                    prettyJson,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text("OK"),
+                ),
+              ],
+            ),
+          );
+        }
         break;
       case "pin":
         if (mounted) {

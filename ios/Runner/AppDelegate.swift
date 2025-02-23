@@ -67,7 +67,7 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
         // Handle window close
         override func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
             chatService?.setAppActive(false)
-            //return false // Keep running after window closes
+            // return false // Keep running after window closes
             return true
         }
 
@@ -199,13 +199,42 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
 
     private func requestNotificationPermissions() {
         #if os(iOS)
-            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            // Request all necessary notification permissions
+            UNUserNotificationCenter.current().requestAuthorization(
+                options: [.alert, .badge, .sound, .provisional, .criticalAlert]
+            ) { granted, error in
                 if granted {
                     self.logger.i("Notification permission granted")
+
+                    // Configure notification categories
+                    let continueAction = UNNotificationAction(
+                        identifier: "CONTINUE_SERVICE",
+                        title: "Continue",
+                        options: [.foreground]
+                    )
+
+                    let stopAction = UNNotificationAction(
+                        identifier: "STOP_SERVICE",
+                        title: "Stop",
+                        options: [.destructive]
+                    )
+
+                    let category = UNNotificationCategory(
+                        identifier: "SERVICE_EXPIRING",
+                        actions: [continueAction, stopAction],
+                        intentIdentifiers: [],
+                        options: [.customDismissAction]
+                    )
+
+                    // Register the category
+                    UNUserNotificationCenter.current().setNotificationCategories([category])
                 } else {
                     self.logger.e("Notification permission denied: \(String(describing: error))")
                 }
             }
+
+            // Set notification delegate
+            UNUserNotificationCenter.current().delegate = self
         #elseif os(macOS)
             let center = UNUserNotificationCenter.current()
             center.requestAuthorization(options: [.alert, .sound]) { granted, error in
@@ -217,4 +246,33 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
             }
         #endif
     }
+
+    #if os(iOS)
+        override func userNotificationCenter(
+            _: UNUserNotificationCenter,
+            willPresent _: UNNotification,
+            withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+        ) {
+            // Show notification with banner, list, and sound
+            completionHandler([.banner, .list, .sound])
+        }
+
+        override func userNotificationCenter(
+            _: UNUserNotificationCenter,
+            didReceive response: UNNotificationResponse,
+            withCompletionHandler completionHandler: @escaping () -> Void
+        ) {
+            switch response.actionIdentifier {
+            case "CONTINUE_SERVICE":
+                // Will bring app to foreground automatically
+                logger.i("User chose to continue service")
+            case "STOP_SERVICE":
+                logger.i("User chose to stop service")
+                chatService?.stopService()
+            default:
+                logger.i("Default notification action")
+            }
+            completionHandler()
+        }
+    #endif
 }

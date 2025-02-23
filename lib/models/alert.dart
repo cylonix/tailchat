@@ -13,7 +13,8 @@ enum AlertVariant {
 class Alert {
   final AlertVariant variant;
   final String text;
-  const Alert(this.text, {this.variant = AlertVariant.error});
+  final String? setter;
+  const Alert(this.text, {this.setter, this.variant = AlertVariant.error});
   Color? get color {
     switch (variant) {
       case (AlertVariant.success):
@@ -26,6 +27,7 @@ class Alert {
         return null;
     }
   }
+
   Color? get background {
     switch (variant) {
       case (AlertVariant.success):

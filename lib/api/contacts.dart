@@ -11,9 +11,12 @@ ContactsRepository? _repository;
 EventBus contactsEventBus = EventBus();
 
 enum ContactsEventType {
-  add,
-  update,
-  delete,
+  addContact,
+  addDevice,
+  updateContact,
+  updateDevice,
+  deleteContact,
+  deleteDevice,
 }
 
 class ContactsEvent {
@@ -29,6 +32,11 @@ class ContactsEvent {
     this.contact,
     this.device,
   });
+  @override
+  String toString() {
+    return '${eventType.name} contact_id=$contactID '
+        'device_id=$deviceID $contact $device';
+  }
 }
 
 Future<Contact?> getContact(String? id) async {
@@ -74,7 +82,7 @@ Future<void> addContact(Contact contact) async {
   await _repository?.addContact(contact);
   contactsEventBus.fire(
     ContactsEvent(
-      eventType: ContactsEventType.add,
+      eventType: ContactsEventType.addContact,
       contact: contact,
       contactID: contact.id,
     ),
@@ -86,7 +94,7 @@ Future<void> updateContact(Contact contact) async {
   await _repository?.updateContact(contact);
   contactsEventBus.fire(
     ContactsEvent(
-      eventType: ContactsEventType.update,
+      eventType: ContactsEventType.updateContact,
       contact: contact,
       contactID: contact.id,
     ),
@@ -99,7 +107,7 @@ Future<void> updateDevice(Device device) async {
   final contact = await getContact(device.userID);
   contactsEventBus.fire(
     ContactsEvent(
-      eventType: ContactsEventType.update,
+      eventType: ContactsEventType.updateDevice,
       contact: contact,
       device: device,
       deviceID: device.id,
@@ -113,7 +121,7 @@ Future<void> deleteContact(String id) async {
   await _repository?.deleteContact(id);
   contactsEventBus.fire(
     ContactsEvent(
-      eventType: ContactsEventType.delete,
+      eventType: ContactsEventType.deleteContact,
       contactID: id,
     ),
   );
@@ -124,9 +132,10 @@ Future<void> addDevice(Device device) async {
   await _repository?.addDevice(device);
   contactsEventBus.fire(
     ContactsEvent(
-      eventType: ContactsEventType.add,
+      eventType: ContactsEventType.addDevice,
       device: device,
       deviceID: device.id,
+      contactID: device.userID,
     ),
   );
 }
@@ -136,7 +145,7 @@ Future<void> deleteDevice(String id) async {
   await _repository?.deleteDevice(id);
   contactsEventBus.fire(
     ContactsEvent(
-      eventType: ContactsEventType.delete,
+      eventType: ContactsEventType.deleteDevice,
       deviceID: id,
     ),
   );

@@ -60,19 +60,15 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
     }
   }
 
-  void _handleContactsEvent(ContactsEvent event) {
-    switch (event.eventType) {
-      case ContactsEventType.update:
-        final contact = event.contact;
-        if (mounted && _contact.id == event.contactID && contact != null) {
-          _logger.d("contact updated: $contact");
-          setState(() {
-            _contact = contact;
-          });
-        }
-      default:
-        // No-op
-        break;
+  void _handleContactsEvent(ContactsEvent event) async {
+    if (event.contactID != _contact.id) {
+      return;
+    }
+    final contact = await getContact(_contact.id);
+    if (mounted && contact != null) {
+      setState(() {
+        _contact = contact;
+      });
     }
   }
 
@@ -281,17 +277,18 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
   void _addDevice() async {
     showDialog(
       context: context,
-      builder: (context) => DeviceDialog(contact: _contact.id),
+      builder: (context) => DeviceDialog(
+        contact: _contact.id,
+        exclude: [Pst.selfDevice?.hostname ?? ""],
+      ),
     ).then((device) async {
       if (device == null) {
         return;
       }
       try {
+        _logger.d("Adding device: $device");
         await addDevice(device);
         if (mounted) {
-          setState(() {
-            _contact.devices.add(device);
-          });
           toast(context, "Device ${device.hostname} added.");
         }
       } catch (e) {

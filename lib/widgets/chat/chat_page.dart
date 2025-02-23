@@ -106,9 +106,10 @@ class _ChatPageState extends State<ChatPage>
   types.Room? _room;
   types.User? _user;
   Alert? _alert;
+  bool _initDone = false;
   bool _canReceive = false;
   bool _showSendResult = true;
-  bool _hasPeersReady = true;
+  bool _hasPeersReady = false;
   bool _simpleUI = Pst.chatSimpleUI ?? false;
   int _onlineUsers = 0;
   late Timer _timer;
@@ -116,11 +117,15 @@ class _ChatPageState extends State<ChatPage>
   late ChatSession _session;
   late ChatStorage _storage;
   final Map<String, types.Status> _statusMap = {};
-  final _logger = Logger(tag: "Chat");
   final _isTV = Pst.enableTV ?? false;
   Contact? _peerContact;
   Device? _peerDevice;
   bool _canSendChecking = false;
+  bool _isActive = true;
+  Timer? _tryToConnectPeersTimer;
+  int _tryToConnectAttempts = 0;
+  final _initalTryToConnectBackoff = 1; // seconds
+  final _maxTryToConnectBackoff = 1800; // 30 mins in seconds
 
   @override
   bool get wantKeepAlive => true;
@@ -145,6 +150,7 @@ class _ChatPageState extends State<ChatPage>
     _getPeerContact();
     _getPeerDevice();
     _timer = _startTimer();
+    _initDone = true;
   }
 
   @override
@@ -155,24 +161,22 @@ class _ChatPageState extends State<ChatPage>
 
   @override
   void didPush() {
-    _onTryToConnect();
-    ChatServer.setIsOnFront(_chatID.id, true);
+    _onAcive();
   }
 
   @override
   void didPopNext() {
-    _onTryToConnect();
-    ChatServer.setIsOnFront(_chatID.id, true);
+    _onAcive();
   }
 
   @override
   void didPop() {
-    ChatServer.setIsOnFront(_chatID.id, false);
+    _onInactive();
   }
 
   @override
   void didPushNext() {
-    ChatServer.setIsOnFront(_chatID.id, false);
+    _onInactive();
   }
 
   @override
@@ -180,6 +184,26 @@ class _ChatPageState extends State<ChatPage>
     _cancelSubs();
     ChatServer.setIsOnFront(_chatID.id, false);
     super.dispose();
+  }
+
+  Logger get _logger {
+    return Logger(tag: "Chat $_title $_subTitle");
+  }
+
+  void _onAcive() {
+    _logger.d("-> Active");
+    _isActive = true;
+    _tryToConnectAttempts = 0;
+    _onTryToConnect();
+    ChatServer.setIsOnFront(_chatID.id, true);
+  }
+
+  void _onInactive() {
+    _logger.d("-> Inactive");
+    _isActive = false;
+    _tryToConnectPeersTimer?.cancel();
+    _tryToConnectAttempts = 0;
+    ChatServer.setIsOnFront(_chatID.id, false);
   }
 
   void _cancelSubs() {
@@ -216,9 +240,7 @@ class _ChatPageState extends State<ChatPage>
     final eventBus = contactsEventBus;
     _contactsEventSub = eventBus.on<ContactsEvent>().listen((event) {
       _logger.d("Contacts event received. Update check peers status.");
-      if (mounted) {
-        _updateChatPeersStatus();
-      }
+      _updateChatPeersStatus();
     });
   }
 
@@ -1020,13 +1042,18 @@ class _ChatPageState extends State<ChatPage>
   void _handleImageSelection(bool fromCamera) async {
     String? path;
     if (utils.isMobile()) {
-      final result = await ImagePicker().pickImage(
-        imageQuality: 70,
-        maxWidth: 1440,
-        source: fromCamera ? ImageSource.camera : ImageSource.gallery,
-      );
-      path = result?.path;
-      _handleImagePathAdded(path);
+      if (fromCamera) {
+        final result = await ImagePicker().pickImage(
+          source: ImageSource.camera,
+        );
+        path = result?.path;
+        _handleImagePathAdded(path);
+        return;
+      }
+      final result = await ImagePicker().pickMultiImage(limit: 64);
+      for (var r in result) {
+        _handleImagePathAdded(r.path);
+      }
     } else {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
@@ -1412,12 +1439,18 @@ class _ChatPageState extends State<ChatPage>
   }
 
   String get _title {
-    final tr = AppLocalizations.of(context);
     if (_isGroupChat) {
       final room = _room;
       return "${_session.groupName} ($_onlineUsers/${room?.users.length})";
     }
-    return _peerContact?.name ?? tr.chatText;
+    if (_peerContact?.name != null) {
+      return _peerContact!.name;
+    }
+    if (_initDone && mounted) {
+      final tr = AppLocalizations.of(context);
+      return tr.chatText;
+    }
+    return "";
   }
 
   String? get _subTitle {
@@ -1693,29 +1726,66 @@ class _ChatPageState extends State<ChatPage>
   }
 
   void _onTryToConnect() async {
+    _tryToConnectPeersTimer?.cancel();
     if (_hasPeersReady) {
-      _logger.d("Already can send. Skip...");
+      _logger.d("Already can send. Skip trying to connect.");
       return;
     }
+    if (!_isActive || !mounted) {
+      _logger.d("Not yet mounted or inactive. Skip trying to connect.");
+      return;
+    }
+    if (_canSendChecking) {
+      _logger.d("Already checking. Stop trying to connect.");
+      setState(() {
+        _tryToConnectAttempts = 0;
+        _tryToConnectPeersTimer?.cancel();
+        _tryToConnectPeersTimer = null;
+        _canSendChecking = false;
+      });
+      return;
+    }
+    _logger.d("Trying to connect...");
     setState(() {
       _canSendChecking = true;
     });
 
     final peers = await _chatID.chatPeers ?? [];
     final result = await tryConnectToPeers(peers);
-    setState(() {
-      _canSendChecking = false;
-    });
+    if (mounted) {
+      setState(() {
+        _canSendChecking = false;
+      });
+    }
 
-    if (!result.success) {
-      _logger.d("Failed to connect to peers: ${result.failureMsg}");
+    if (result.success) {
       if (mounted) {
-        setState(() {
-          _alert = Alert(
-            "Failed to connect to peers: ${result.failureMsg}",
-          );
-        });
+        if (_alert?.setter == 'onTryToConnect') {
+          setState(() {
+            _alert = null;
+          });
+        }
       }
+      return;
+    }
+    _logger.d("Failed to connect to peers: ${result.failureMsg}");
+    _tryToConnectAttempts++;
+    var backoff = _initalTryToConnectBackoff << _tryToConnectAttempts;
+    if (backoff >= _maxTryToConnectBackoff) {
+      backoff = _maxTryToConnectBackoff;
+    }
+    _tryToConnectPeersTimer = Timer(
+      Duration(seconds: backoff),
+      _onTryToConnect,
+    );
+    if (mounted) {
+      setState(() {
+        _alert = Alert(
+          'Failed to connect to peers: ${result.failureMsg}. '
+          'Retry in $backoff seconds.',
+          setter: 'onTryToConnect',
+        );
+      });
     }
   }
 
@@ -1730,6 +1800,7 @@ class _ChatPageState extends State<ChatPage>
     if (_isTV) {
       return null;
     }
+    _logger.d("Update appbar _canSendChecking=$_canSendChecking");
     return ChatAppBar(
       title: _title,
       canReceive: _canReceive,

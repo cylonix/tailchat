@@ -21,6 +21,7 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		2588F4AE2D6AA0E100F4C400 /* Dns.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2588F4AD2D6AA0E100F4C400 /* Dns.swift */; };
 		25BB76BB2D37975E00DE35A3 /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25BB76BA2D37975E00DE35A3 /* ChatService.swift */; };
 		25BB76BD2D38862D00DE35A3 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25BB76BC2D38862D00DE35A3 /* AppDelegate.swift */; };
 		25BB76C02D39D40E00DE35A3 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25BB76BE2D39D40E00DE35A3 /* Logger.swift */; };
@@ -67,6 +68,7 @@
 /* Begin PBXFileReference section */
 		0FCC360919491EB15CF6E853 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		1466F910690D2EF20CB0A378 /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
+		2588F4AD2D6AA0E100F4C400 /* Dns.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Dns.swift; path = ../ios/Runner/Dns.swift; sourceTree = "<group>"; };
 		25BB76BA2D37975E00DE35A3 /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ChatService.swift; path = ../ios/Runner/ChatService.swift; sourceTree = "<group>"; };
 		25BB76BC2D38862D00DE35A3 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = ../ios/Runner/AppDelegate.swift; sourceTree = "<group>"; };
 		25BB76BE2D39D40E00DE35A3 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Logger.swift; path = ../ios/Runner/Logger.swift; sourceTree = "<group>"; };
@@ -139,6 +141,7 @@
 		33CC10E42044A3C60003C045 = {
 			isa = PBXGroup;
 			children = (
+				2588F4AD2D6AA0E100F4C400 /* Dns.swift */,
 				25BB76BE2D39D40E00DE35A3 /* Logger.swift */,
 				25BB76BF2D39D40E00DE35A3 /* NetworkMonitor.swift */,
 				25BB76BC2D38862D00DE35A3 /* AppDelegate.swift */,
@@ -447,6 +450,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2588F4AE2D6AA0E100F4C400 /* Dns.swift in Sources */,
 				25BB76C02D39D40E00DE35A3 /* Logger.swift in Sources */,
 				25BB76C12D39D40E00DE35A3 /* NetworkMonitor.swift in Sources */,
 				25BB76BD2D38862D00DE35A3 /* AppDelegate.swift in Sources */,

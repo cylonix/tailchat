@@ -137,7 +137,7 @@ class _SettingsWidgetState extends State<SettingsWidget> {
     return Column(
       children: [
         if (!enableARByDefault) const ARMode(),
-        const ThemeSettingWidget(),
+        const ThemeSettingWidget(adaptiveIcon: true),
       ],
     );
   }

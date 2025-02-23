@@ -79,13 +79,13 @@ class _FirstLaunchPageState extends State<FirstLaunchPage> {
       _logger.d('System username: $username');
 
       _systemUsername = username?.toLowerCase();
-      if (username != null) {
+      if (_systemUsername != null && _systemUsername != 'localhost') {
         _usernameController.text = _systemUsername!;
-      }
-      if (mounted && username != null) {
-        setState(() {
-          // Update UI.
-        });
+        if (mounted) {
+          setState(() {
+            // Update UI.
+          });
+        }
       }
     } catch (e) {
       _logger.e('Failed to get system username: $e');

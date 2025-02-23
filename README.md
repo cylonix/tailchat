@@ -2,7 +2,7 @@
 
  A truly serverless, secure instant messaging app built on Tailscale's WireGuard®-based mesh network
 
- No message storage. No central servers. Just direct, encrypted communication
+ No message storage off device. No central servers. Just direct, encrypted communication
 
 **Note**: Tailchat is not affiliated with, endorsed by, or sponsored by Tailscale Inc. Tailscale® and Tailnet are trademarks of Tailscale Inc.
 
@@ -88,9 +88,4 @@ Please follow flutter macos and ios app building instructions with xcode.
 - <https://docs.flutter.dev/deployment/macos>
 - <https://docs.flutter.dev/deployment/ios>
 
-Please note that you need to build macos with CLI first before running it with xcode:
-
-``` bash
-flutter build macos
-```
 

@@ -53,7 +53,7 @@ dependencies:
   equatable: ^2.0.5
   event_bus: ^2.0.0
   file_manager: ^1.0.1
-  file_picker: ^8.1.7
+  file_picker: ^9.0.0
   flutter_audio_desktop:
     path: "plugins/flutter_audio_desktop"
   flutter_chat_types:

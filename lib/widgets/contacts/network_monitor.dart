@@ -29,6 +29,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
   static final _logger = Logger(tag: 'NetworkMonitor');
   StreamSubscription<ChatReceiveNetworkConfigEvent>? _networkConfigEventSub;
   Alert? _alert;
+  static final hostnameChangeDialogRouteName = "HostnameChangeDialog";
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +71,24 @@ class _ContactsPageState extends State<NetworkMonitor> {
     return;
   }
 
+  void _removeCurrentHostnameChangeDialog() {
+    var showingHostnameChangeDialog = false;
+    Navigator.maybeOf(context)?.popUntil((route) {
+      _logger.d("route setting=${route.settings}");
+      final currentName = route.settings.name;
+      if (currentName == hostnameChangeDialogRouteName) {
+        showingHostnameChangeDialog = true;
+      }
+      _logger.d("current name is $currentName");
+      // Stop popping
+      return true;
+    });
+    if (showingHostnameChangeDialog) {
+      _logger.d("HostnameChangeDialog is showing. Pop it.");
+      Navigator.of(context).pop();
+    }
+  }
+
   void _handleNetworkConfig(ChatReceiveNetworkConfigEvent event) async {
     final currentDevice = Pst.selfDevice?.hostname ?? "";
     final currentAddress = Pst.selfDevice?.address ?? "";
@@ -78,6 +97,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
     final hostname = event.hostname ?? "";
     Contact? selfContact;
     _logger.d("Network config event $event received");
+    _removeCurrentHostnameChangeDialog();
     if (selfContactID.isEmpty) {
       _logger.d('Self contact not found');
       if (hostname.isEmpty) {
@@ -192,6 +212,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
         final update = await showDialog<bool>(
           context: context,
           barrierDismissible: false,
+          routeSettings: RouteSettings(name: hostnameChangeDialogRouteName),
           builder: (context) {
             return AlertDialog.adaptive(
               title: Text("Hostname changed"),
@@ -253,6 +274,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
         contact = await showDialog<Contact>(
           context: context,
           barrierDismissible: false,
+          routeSettings: RouteSettings(name: hostnameChangeDialogRouteName),
           builder: (context) => HostnameChangeDialog(
             currentContact: selfContact!,
             currentDevice: Pst.selfDevice!,
@@ -261,8 +283,6 @@ class _ContactsPageState extends State<NetworkMonitor> {
         );
         if (contact == null) {
           _logger.e("Not adding self contact is not expected");
-          Pst.saveSelfDevice(null);
-          Pst.saveSelfUser(null);
           return;
         }
         try {

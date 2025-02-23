@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import 'package:flutter/material.dart';
+import 'package:tailchat/utils/utils.dart';
 
 import '../../api/config.dart';
 import '../../api/contacts.dart';
@@ -12,7 +13,6 @@ import '../../models/contacts/user_profile.dart';
 import '../base_input/button.dart';
 import '../common_widgets.dart';
 import '../paged_list.dart';
-import '../device/peer_popup_menu_item.dart';
 import '../snackbar_widget.dart';
 import 'user_card.dart';
 
@@ -105,10 +105,14 @@ class _SelectUsersState extends State<SelectUsers> {
       );
     }
 
+    final userList = _groupUserList;
+    if (userList == null) {
+      return _noUserOrDeviceAvailable;
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SingleChildScrollView(child: _groupUserList),
+        SingleChildScrollView(child: userList),
         const SizedBox(height: 8),
         if (!_simpleSelect) _bottomButton(context),
       ],
@@ -178,8 +182,10 @@ class _SelectUsersState extends State<SelectUsers> {
             _groupValue = value;
           });
           chooseOnlyOne?.call(value);
-          if (widget.chooseOnlyOneUser && !widget.chooseOnlyOneDevice) {
-            _confirmFocusNode.requestFocus();
+          if (widget.chooseOnlyOneUser) {
+            if (!widget.chooseOnlyOneDevice) {
+              _confirmFocusNode.requestFocus();
+            }
           }
         },
       );
@@ -223,21 +229,24 @@ class _SelectUsersState extends State<SelectUsers> {
     if (filteredPeers.isEmpty) {
       return null;
     }
-    return PopupMenuButton<Device>(
-      onSelected: (Device peer) {
-        _flipSelectedState(index, peer);
-        if (_simpleSelect) {
-          _handleSelectOnlyOneUser();
-        }
-      },
-      tooltip: tr.selectADeviceText,
-      offset: const Offset(0, 50),
-      child: child ?? const Icon(Icons.more_vert_rounded),
-      itemBuilder: (context) {
-        return filteredPeers.map((peer) {
-          return PeerPopupMenuItem(peer: peer);
-        }).toList();
-      },
+    return MenuAnchor(
+      alignmentOffset: const Offset(0, 50),
+      menuChildren: filteredPeers.map((peer) {
+        return MenuItemButton(
+          child: Text(peer.hostname),
+          onPressed: () {
+            _flipSelectedState(index, peer);
+            if (_simpleSelect) {
+              _handleSelectOnlyOneUser();
+            }
+          },
+        );
+      }).toList(),
+      child: child ??
+          Tooltip(
+            message: tr.selectADeviceText,
+            child: Icon(Icons.more_vert_rounded),
+          ),
     );
   }
 
@@ -247,12 +256,17 @@ class _SelectUsersState extends State<SelectUsers> {
       contentPadding: widget.enableScroll ? null : const EdgeInsets.all(0),
       selected: _groupValue == index,
       title: Text(user.name),
+      isThreeLine: true,
       subtitle: device != null
-          ? Row(children: [
-              Expanded(child: Text(device.hostname)),
-              Text(device.address),
-            ])
-          : null,
+          ? isMediumScreen(context)
+              ? Row(children: [
+                  Expanded(child: Text(device.hostname)),
+                  Text(device.address),
+                ])
+              : Text('${device.hostname}\n${device.address}')
+          : _groupValue == index && widget.chooseOnlyOneDevice
+              ? Text(AppLocalizations.of(context).pleaseSelectOneDeviceText)
+              : null,
     );
     if (widget.chooseOnlyOneDevice &&
         widget.chooseOnlyOneUser &&
@@ -311,10 +325,19 @@ class _SelectUsersState extends State<SelectUsers> {
     );
   }
 
-  Widget _getUserDeviceCards(Contact user) {
+  Widget get _noUserOrDeviceAvailable {
+    return ListTile(
+      title: const Text(
+        "No User or Device Available",
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget? _getUserDeviceCards(Contact user) {
     final filteredPeers = _getUserDevices(user);
     if (filteredPeers.isEmpty) {
-      return Card(child: Text("No device is avaibale"));
+      return null;
     }
     return ListView.builder(
       controller: ScrollController(),
@@ -333,9 +356,9 @@ class _SelectUsersState extends State<SelectUsers> {
     );
   }
 
-  Widget get _groupUserList {
+  Widget? get _groupUserList {
     if (_users.isEmpty) {
-      return Container();
+      return null;
     }
     if (_users.length == 1 && widget.chooseOnlyOneDevice) {
       _selectedUser = _users[0];

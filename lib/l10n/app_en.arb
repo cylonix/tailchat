@@ -647,7 +647,7 @@
   "@sendText": {
     "description": "send text"
   },
-  "confirmSessionDeleteMessageText": "Really deleting the session?",
+  "confirmSessionDeleteMessageText": "Really delete the session?",
   "@confirmSessionDeleteMessageText": {
     "description": "confirm deleting a session message text"
   },

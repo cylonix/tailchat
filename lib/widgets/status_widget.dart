@@ -15,12 +15,14 @@ import 'common_widgets.dart';
 import 'tv/icon_button.dart';
 
 class StatusWidget extends StatefulWidget {
+  final bool adaptiveIcon;
   final bool compact;
   final IconData? icon;
   final void Function()? onPressed;
   final double? size;
   const StatusWidget({
     super.key,
+    this.adaptiveIcon = false,
     this.compact = false,
     this.icon,
     this.onPressed,
@@ -98,7 +100,10 @@ class _StatusWidgetState extends State<StatusWidget> {
 
     return ListTile(
       leading: getIcon(widget.icon ?? Icons.connect_without_contact,
-          color: _color, appleBackgroundColor: CupertinoColors.systemGrey4),
+        color: _color,
+        appleBackgroundColor: CupertinoColors.systemGrey4,
+        adaptive: widget.adaptiveIcon,
+      ),
       title: Text(tr.statusTitle),
       onTap: widget.onPressed ?? _showStatusPage,
     );

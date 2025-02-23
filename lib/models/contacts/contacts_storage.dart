@@ -13,6 +13,7 @@ class ContactsStorage {
   static final _logger = Logger(tag: "ChatStorage");
   static const String _storageKey = 'contacts';
   final SharedPreferences _prefs;
+  List<Contact>? _cachedContacts;
 
   ContactsStorage(this._prefs);
 
@@ -35,7 +36,7 @@ class ContactsStorage {
         .firstWhereOrNull((d) => d.id == id);
   }
 
-  Future<List<Contact>> getContacts({List<String>? idList}) async {
+  Future<List<Contact>> _getContacts() async {
     final String? contactsJson = _prefs.getString(_storageKey);
     if (contactsJson == null) return [];
     List<dynamic> decoded = [];
@@ -47,10 +48,15 @@ class ContactsStorage {
         "${contactsJson.shortString(300)}: $e",
       );
     }
-    final contacts = decoded
+    return decoded
         .map((json) {
           try {
-            return Contact.fromJson(json);
+            var contact = Contact.fromJson(json);
+            contact.devices = contact.devices.map((d) {
+              d.isOnline = false;
+              return d;
+            }).toList();
+            return contact;
           } catch (e) {
             _logger.e(
               "Failed to decode json to contact: "
@@ -61,6 +67,10 @@ class ContactsStorage {
         })
         .nonNulls
         .toList();
+  }
+
+  Future<List<Contact>> getContacts({List<String>? idList}) async {
+    final contacts = _cachedContacts ?? await _getContacts();
     if (idList == null) {
       return contacts;
     }
@@ -85,6 +95,7 @@ class ContactsStorage {
     final String encoded = jsonEncode(
       contacts.map((contact) => contact.toJson()).toList(),
     );
+    _cachedContacts = contacts;
     await _prefs.setString(_storageKey, encoded);
   }
 
@@ -122,6 +133,10 @@ class ContactsStorage {
     final contacts = await getContacts();
     final c = contacts.firstWhere((c) => c.id == device.userID);
     c.devices.add(device);
+    _logger.d(
+      "Device added to ${c.name}: ${device.hostname}. "
+      "Total devices: ${c.devices.length}",
+    );
     await saveContacts(contacts);
   }
 

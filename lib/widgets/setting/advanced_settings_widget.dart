@@ -162,7 +162,7 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
 
   Widget get _settingsListView {
     return ListView.separated(
-      padding: EdgeInsets.all(widget.showAppBar ? 16 : 0),
+      padding: const EdgeInsets.all(8),
       controller: ScrollController(),
       itemCount: _settingsList.length,
       itemBuilder: (_, index) => _settingsList[index],

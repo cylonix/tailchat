@@ -206,56 +206,7 @@ class NetworkMonitor {
         return ipValue >= startValue && ipValue <= endValue
     }
 
-    #if os(macOS)
-        func reverseDNS(ip: String) -> String {
-            let digOutput = shell("dig @100.100.100.100 -x \(ip) +short")
-            logger.d("Dig output: \(digOutput)")
-
-            // Remove trailing dot and newlines
-            let hostname = digOutput
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .trimmingCharacters(in: CharacterSet(charactersIn: "."))
-
-            // Return hostname if found, otherwise return IP
-            return hostname.isEmpty ? ip : hostname
-        }
-    #endif
-
-    #if os(macOS)
-        private func resolveDNS(for address: String) async throws -> String {
-            #if os(macOS)
-                return reverseDNS(ip: address)
-            #endif
-            var attempt = 0
-            var delay = BackoffConfig.initialDelay
-            logger.d("Resolving \(address)")
-            while attempt < BackoffConfig.maxAttempts {
-                do {
-                    return try await withCheckedThrowingContinuation { continuation in
-                        DispatchQueue.global().async {
-                            let host = Host(address: address)
-                            if let name = host.name {
-                                continuation.resume(returning: name)
-                            } else {
-                                continuation.resume(throwing: NetworkError.dnsResolutionFailed)
-                            }
-                        }
-                    }
-                } catch {
-                    attempt += 1
-                    if attempt == BackoffConfig.maxAttempts {
-                        throw error
-                    }
-                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-                    delay = min(delay * 2, BackoffConfig.maxDelay)
-                }
-            }
-            throw NetworkError.dnsResolutionFailed
-        }
-    #endif
-    #if os(iOS)
     private let dnsResolver = DNSResolver()
-
     private func resolveDNS(for address: String) async throws -> String {
         do {
             return try await dnsResolver.reverseLookup(address: address)
@@ -264,48 +215,4 @@ class NetworkMonitor {
             throw NetworkError.dnsResolutionFailed
         }
     }
-    #endif
-    #if os(watchOS)
-        private func resolveDNS(for address: String) async throws -> String {
-            var hints = addrinfo(
-                ai_flags: AI_DEFAULT,
-                ai_family: AF_UNSPEC,
-                ai_socktype: SOCK_STREAM,
-                ai_protocol: 0,
-                ai_addrlen: 0,
-                ai_canonname: nil,
-                ai_addr: nil,
-                ai_next: nil
-            )
-
-            var result: UnsafeMutablePointer<addrinfo>?
-            defer { if let result = result { freeaddrinfo(result) } }
-
-            let status = getaddrinfo(address, nil, &hints, &result)
-            guard status == 0 else {
-                throw NetworkError.dnsResolutionFailed
-            }
-
-            var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-            guard let addr = result?.pointee.ai_addr else {
-                throw NetworkError.dnsResolutionFailed
-            }
-
-            let error = getnameinfo(
-                addr,
-                socklen_t(addr.pointee.sa_len),
-                &hostname,
-                socklen_t(hostname.count),
-                nil,
-                0,
-                NI_NAMEREQD
-            )
-
-            guard error == 0 else {
-                return address // Return IP if resolution fails
-            }
-
-            return String(cString: hostname)
-        }
-    #endif
 }

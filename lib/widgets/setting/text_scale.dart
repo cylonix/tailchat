@@ -20,14 +20,14 @@ class TextScale extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            ElevatedButton(
-              child: const Icon(Icons.remove),
+            FilledButton.tonal(
               onPressed: () => _changeScale(add: false),
+              child: const Icon(Icons.remove),
             ),
             const SizedBox(width: 16),
-            ElevatedButton(
-              child: const Icon(Icons.add),
+            FilledButton.tonal(
               onPressed: () => _changeScale(add: true),
+              child: const Icon(Icons.add),
             )
           ],
         ),

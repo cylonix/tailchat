@@ -251,6 +251,7 @@ class _MainNavigationRailState extends State<MainNavigationRail> {
               onFocusChange: (value) => _onFocusChange(value, "theme"),
               child: ThemeSettingWidget(
                 compact: !extended,
+                adaptiveIcon: false,
                 size: _iconSize("theme"),
               ),
             ),
@@ -264,7 +265,7 @@ class _MainNavigationRailState extends State<MainNavigationRail> {
             ),
           extended
               ? ListTile(
-                  leading: getIcon(Icons.info, darkTheme: isDarkMode(context)),
+                  leading: getIcon(Icons.info, adaptive: false),
                   title: Text(tr.aboutTitle),
                   onTap: _showAboutPage,
                 )
@@ -297,9 +298,7 @@ class _MainNavigationRailState extends State<MainNavigationRail> {
   }
 
   Widget _icon(IconData icon, {double? size}) {
-    return _extended
-        ? getIcon(icon, size: size, darkTheme: isDarkMode(context))
-        : Icon(icon, size: size);
+    return Icon(icon, size: size);
   }
 
   List<NavigationRailDestination> get _destinations {
@@ -320,7 +319,7 @@ class _MainNavigationRailState extends State<MainNavigationRail> {
       _rail(
         extended,
         ContactsIcon(
-          useDefaultColor: !_extended,
+          useDefaultColor: true,
           size: _iconSize(tr.contactsTitle),
         ),
         tr.contactsTitle,
@@ -328,7 +327,7 @@ class _MainNavigationRailState extends State<MainNavigationRail> {
       _rail(
         extended,
         SessionsIcon(
-          useDefaultColor: !_extended,
+          useDefaultColor: true,
           size: _iconSize(tr.sessionsTitle),
         ),
         'Chats',

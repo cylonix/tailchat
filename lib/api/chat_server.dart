@@ -293,7 +293,9 @@ class ChatServer {
       }));
 
       final self = json.firstWhereOrNull(
-        (c) => (c['is_local'] ?? false) && (isFQDN(c['hostname'])),
+        (c) =>
+            (c['is_local'] ?? false) &&
+            (isFQDN(c['hostname']) || isIPv4Address(c['address'])),
       );
       if (self == null) {
         _logger.e("invalid update with self device information: $json");

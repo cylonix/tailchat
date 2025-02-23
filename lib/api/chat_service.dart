@@ -25,7 +25,7 @@ class ChatService {
   // Per-chat session send service.
   final String serverAddress;
   final int port, subscriberPort;
-  final int _maxRetries = 10;
+  final int _maxRetries = 3;
   final Duration _initialRetryDelay = Duration(seconds: 1);
   final String? deviceID;
   final String? userID;
@@ -311,6 +311,7 @@ class ChatService {
       } else {
         _logger.e('Max retries reached. Connection failed permanently.');
         _closeSocket();
+        throw Exception("Failed to connect to socket after $_maxRetries tries");
       }
     }
   }
@@ -380,7 +381,11 @@ class ChatService {
         throw Exception("Socket already exists");
       }
       _logger.d("Connecting to socket tcp://$serverAddress:$port");
-      _socket = await Socket.connect(serverAddress, port);
+      _socket = await Socket.connect(
+        serverAddress,
+        port,
+        timeout: Duration(seconds: 5),
+      );
       _monitorSocket();
       _logger.i("Socket Connected");
       _eventBus.fire(ChatServiceStateEvent(

@@ -27,12 +27,26 @@ class AppearanceSettings extends StatelessWidget {
           ? SettingAppBar(context, tr.appearanceSettingsTitle)
           : null,
       body: ListView(
+        padding: EdgeInsets.all(8),
         children: [
-          if (showThemeSetting) const ThemeSettingWidget(),
-          const ARMode(),
-          const TVMode(),
-          const ChatSimpleUI(),
-          const TextScale(),
+          if (showThemeSetting)
+            Card(
+              child: const ThemeSettingWidget(adaptiveIcon: true),
+            ),
+          Card(
+            child: Column(
+              children: [
+                const ARMode(),
+                const TVMode(),
+              ],
+            ),
+          ),
+          Card(
+            child: const ChatSimpleUI(),
+          ),
+          Card(
+            child: const TextScale(),
+          ),
         ],
       ),
     );

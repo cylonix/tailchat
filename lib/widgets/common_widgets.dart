@@ -29,7 +29,6 @@ AppBar getAppBar(BuildContext context, String title) {
 }
 
 const appleLightThemeIconBackgroundColors = [
-  CupertinoColors.activeGreen,
   CupertinoColors.activeOrange,
   CupertinoColors.lightBackgroundGray,
   CupertinoColors.systemCyan,
@@ -38,8 +37,7 @@ const appleLightThemeIconBackgroundColors = [
 ];
 
 const appleDarkThemeIconBackgroundColors = [
-  CupertinoColors.activeGreen,
-  CupertinoColors.activeOrange,
+  CupertinoColors.activeBlue,
   CupertinoColors.darkBackgroundGray,
   CupertinoColors.systemCyan,
   CupertinoColors.systemTeal,
@@ -52,9 +50,10 @@ Widget getIcon(
   Color? color,
   double? size,
   bool darkTheme = false,
+  bool adaptive = true,
   Color? appleBackgroundColor,
 }) {
-  if (isApple()) {
+  if (isApple() && adaptive) {
     final set = darkTheme
         ? appleDarkThemeIconBackgroundColors
         : appleLightThemeIconBackgroundColors;

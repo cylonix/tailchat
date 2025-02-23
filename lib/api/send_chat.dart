@@ -165,9 +165,8 @@ ChatSendPeersResult _toChatSendPeersResult(
     final peer = peers[i];
     final addr = peer.address;
     final msg = status.msg;
-    final shortMsg = msg.length < 50 ? msg : msg.substring(0, 50);
     final idx = status.success ? s + 1 : f + 1;
-    final info = '$idx. $addr ${peer.hostname}: $shortMsg';
+    final info = '$idx. $addr ${peer.hostname}: $msg';
     statusMap[peer.id] = status.success;
     if (status.success) {
       successPeersInfo.add(info);

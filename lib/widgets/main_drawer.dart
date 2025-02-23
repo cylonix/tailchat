@@ -98,7 +98,8 @@ class _MainDrawerState extends State<MainDrawer> {
                   );
                 },
               ),
-            if (_showThemeSetting) const ThemeSettingWidget(),
+            if (_showThemeSetting)
+              const ThemeSettingWidget(adaptiveIcon: false),
             if (_showStatus) const StatusWidget(),
             ListTile(
               leading: _listIcon(Icons.settings),
@@ -133,6 +134,11 @@ class _MainDrawerState extends State<MainDrawer> {
   }
 
   Widget _listIcon(IconData icon, {Color? color}) {
-    return getIcon(icon, color: color, darkTheme: isDarkMode(context));
+    return getIcon(
+      icon,
+      color: color,
+      darkTheme: isDarkMode(context),
+      adaptive: false,
+    );
   }
 }

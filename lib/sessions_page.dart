@@ -66,6 +66,7 @@ class SessionsPageState extends State<SessionsPage>
   StreamSubscription<ChatReceiveEvent>? _chatReceiveSub;
   StreamSubscription<ChatReceiveRoomEvent>? _chatRxRoomSub;
   StreamSubscription<ConfigChangeEvent>? _configSub;
+  StreamSubscription<ContactsEvent>? _contactSub;
   StreamSubscription<SessionEvent>? _sessionEventSub;
   SessionStorage? _storage;
   SessionType _selectedSessionType = SessionType.chat;
@@ -98,14 +99,16 @@ class SessionsPageState extends State<SessionsPage>
     _registerToNewSessionNotifier();
     _registerToSessionEvent();
     _registerChatServerEvent();
+    _registerContactsEvent();
   }
 
   @override
   void dispose() {
-    Global.logger.d("$logTag: disposing sessions page");
+    _logger.d("$logTag: disposing sessions page");
     _chatReceiveSub?.cancel();
     _chatRxRoomSub?.cancel();
     _configSub?.cancel();
+    _contactSub?.cancel();
     _sessionEventSub?.cancel();
     super.dispose();
   }
@@ -118,7 +121,7 @@ class SessionsPageState extends State<SessionsPage>
 
   @override
   void didPush() {
-    Global.logger.d("SessionsPageState did push");
+    _logger.d("SessionsPageState did push");
   }
 
   void _registerConfigChangeEvent() {
@@ -152,15 +155,42 @@ class SessionsPageState extends State<SessionsPage>
     });
   }
 
+  void _registerContactsEvent() {
+    _contactSub = contactsEventBus.on<ContactsEvent>().listen((onData) async {
+      final device = onData.device;
+      _logger.d("contacts event: $onData");
+      if ((onData.eventType == ContactsEventType.updateDevice ||
+              onData.eventType == ContactsEventType.addDevice) &&
+          device != null) {
+        final idx = sessions.indexWhere(
+            (s) => (s is ChatSession && s.peerDeviceID == device.id));
+        if (idx < 0) {
+          return;
+        }
+
+        final session = sessions[idx] as ChatSession;
+        final updated = session.peerIP != device.address ||
+            session.peerDeviceName != device.hostname;
+        if (!updated) {
+          return;
+        }
+        session.peerDeviceName = device.hostname;
+        session.peerIP = device.address;
+        // No need to update UI as it is handled in the session widget.
+        await _storage?.updateSession(session);
+      }
+    });
+  }
+
   void _initStorage() {
-    Global.logger.d("$logTag: init sessions storage");
+    _logger.d("$logTag: init sessions storage");
     final userInfo = Pst.selfUser;
     if (userInfo != null) {
       final userID = userInfo.id;
       if (_userID != userID) {
         _userID = userID;
         _storage = SessionStorage(userID: userID);
-        Global.logger.d("$logTag: reload sessions after user id is ready");
+        _logger.d("$logTag: reload sessions after user id is ready");
         _reloadSessions();
       }
     }
@@ -181,7 +211,7 @@ class SessionsPageState extends State<SessionsPage>
       }
       final session = notifier.session;
       if (session != null) {
-        Global.logger.d("new ${session.type} session: ${session.sessionID}");
+        _logger.d("new ${session.type} session: ${session.sessionID}");
         _addSession(session);
         if (mounted) {
           setState(() {
@@ -201,7 +231,7 @@ class SessionsPageState extends State<SessionsPage>
       }
       final session = notifier.session;
       if (session != null) {
-        Global.logger.d("delete session: ${session.sessionID}");
+        _logger.d("delete session: ${session.sessionID}");
         _deleteSession(null, session);
       }
     });
@@ -235,7 +265,7 @@ class SessionsPageState extends State<SessionsPage>
             setState(() {});
           }
         } else {
-          Global.logger.e("Session not found in list: $session");
+          _logger.e("Session not found in list: $session");
         }
       }
     });
@@ -281,13 +311,13 @@ class SessionsPageState extends State<SessionsPage>
       status: SessionStatus.unread,
     );
 
-    Global.logger.d("add new session $newSession");
+    _logger.d("add new session $newSession");
     _addSession(newSession);
   }
 
   void _handleChatReceiveEvent(ChatReceiveEvent event) async {
     final chatID = ChatID(id: event.chatID);
-    Global.logger.d("received chat event to ID ${event.chatID}");
+    _logger.d("received chat event to ID ${event.chatID}");
     final session = sessionsMap[event.chatID];
     if (session != null) {
       // Handle delete-all from self.
@@ -301,7 +331,7 @@ class SessionsPageState extends State<SessionsPage>
         }
       }
       // Move it to top and be done handling existing session.
-      Global.logger.d("existing chat session. skip");
+      _logger.d("existing chat session. skip");
       moveSessionToTop(session);
       return;
     }
@@ -315,7 +345,7 @@ class SessionsPageState extends State<SessionsPage>
       final peer = await getDevice(machine);
       if (peer == null) {
         final author = event.message.author;
-        Global.logger.e("received a message from unkown user $author $machine");
+        _logger.e("received a message from unkown user $author $machine");
         return;
       }
       room = await getRoom(event.chatID, peer);
@@ -325,7 +355,7 @@ class SessionsPageState extends State<SessionsPage>
         return;
       }
 
-      Global.logger.e("received a group chat without a session created");
+      _logger.e("received a group chat without a session created");
       return;
     }
 
@@ -334,7 +364,7 @@ class SessionsPageState extends State<SessionsPage>
     UserProfile? user, selfUser;
     Device? peer;
     selfUser = Pst.selfUser;
-    String? peerUserID;
+    String? peerUserID, peerID;
     if (selfUser != null && userIDs != null && userIDs.length == 2) {
       peerUserID = userIDs[0];
       if (peerUserID == selfUser.id) {
@@ -344,7 +374,7 @@ class SessionsPageState extends State<SessionsPage>
       if (machines != null && machines.length == 2) {
         final selfDevice = Pst.selfDevice;
         if (selfDevice != null) {
-          var peerID = machines[0];
+          peerID = machines[0];
           if (peerID == selfDevice.id) {
             peerID = machines[1];
           }
@@ -383,16 +413,16 @@ class SessionsPageState extends State<SessionsPage>
       }
     }
     if (selfUser == null || user == null) {
-      Global.logger.d("unknown chat ID $chatID");
+      _logger.d("unknown chat ID $chatID");
       return;
     }
-    Global.logger.d("new chat session to add $chatID");
+    _logger.d("new chat session to add $chatID");
 
     final newSession = ChatSession(
       sessionID: event.chatID,
       selfUserID: selfUser.id,
-      peerUserID: user.id,
-      peerDeviceID: peer?.id,
+      peerUserID: peerUserID,
+      peerDeviceID: peerID,
       peerDeviceName: peer?.hostname,
       peerIP: peer?.address,
       peerName: user.name,
@@ -408,13 +438,13 @@ class SessionsPageState extends State<SessionsPage>
   void _loadSessions() async {
     final storage = _storage;
     if (storage == null) {
-      Global.logger.d("session storage is null. skip loading sessions");
+      _logger.d("session storage is null. skip loading sessions");
       return;
     }
-    Global.logger.d("loading sessions from $storage...");
+    _logger.d("loading sessions from $storage...");
     storage.readSessions().then((sessionsRead) {
       if (!mounted) {
-        Global.logger.d("ignored read sessions (${sessionsRead.length})");
+        _logger.d("ignored read sessions (${sessionsRead.length})");
         return;
       }
       var unread = 0;
@@ -428,7 +458,7 @@ class SessionsPageState extends State<SessionsPage>
       final notifier = context.read<BottomBarSessionNoticeCount>();
       notifier.set(unread);
 
-      Global.logger.d("added ${sessionsRead.length} sessions");
+      _logger.d("added ${sessionsRead.length} sessions");
       sessions.addAll(_deviceSessions);
       sessions.addAll(_otherSessions);
       setState(() {});
@@ -443,7 +473,7 @@ class SessionsPageState extends State<SessionsPage>
       await _storage!.writeSession(session);
       setState(() {});
     } catch (e) {
-      Global.logger.e("failed to write to session storage: $e");
+      _logger.e("failed to write to session storage: $e");
     }
   }
 
@@ -510,7 +540,7 @@ class SessionsPageState extends State<SessionsPage>
 
   void _deleteSession(int? index, Session session) async {
     final sessionID = session.sessionID;
-    Global.logger.d("session with $sessionID deleted");
+    _logger.d("session with $sessionID deleted");
     if (session.status == SessionStatus.unread) {
       final notifier = context.read<BottomBarSessionNoticeCount>();
       notifier.add(-1);
@@ -534,7 +564,7 @@ class SessionsPageState extends State<SessionsPage>
         sessions.removeWhere((element) => element.equal(session));
       }
       sessionsMap[sessionID] = null;
-      Global.logger.d("sessions is now at length: ${sessions.length}");
+      _logger.d("sessions is now at length: ${sessions.length}");
     });
     await _storage?.removeSession(session);
   }
@@ -559,7 +589,7 @@ class SessionsPageState extends State<SessionsPage>
       }
     } else {
       if (newSession.status == SessionStatus.unread) {
-        Global.logger.d("new session add to the notice");
+        _logger.d("new session add to the notice");
         if (mounted) {
           final notifier = context.read<BottomBarSessionNoticeCount>();
           notifier.add(1);
@@ -573,7 +603,7 @@ class SessionsPageState extends State<SessionsPage>
     sessions.addAll(_deviceSessions);
     sessions.addAll(_otherSessions);
     final length = sessions.length;
-    Global.logger.d("new session. sessions length: $length");
+    _logger.d("new session. sessions length: $length");
     _sessionTypeSelected(newSession.type);
   }
 

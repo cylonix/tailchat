@@ -13,10 +13,12 @@ import '../common_widgets.dart';
 
 class ThemeSettingWidget extends StatefulWidget {
   final bool compact;
+  final bool adaptiveIcon;
   final double? size;
   const ThemeSettingWidget({
     super.key,
     this.compact = false,
+    this.adaptiveIcon = false,
     this.size,
   });
 
@@ -76,6 +78,7 @@ class _ThemeSettingWidgetState extends State<ThemeSettingWidget> {
         leading: getIcon(
           _selectedTheme ? Icons.sunny : Icons.nights_stay,
           darkTheme: isDarkMode(context),
+          adaptive: widget.adaptiveIcon,
         ),
         title: Text(
           _selectedTheme ? tr.dayMode : tr.nightMode,
@@ -86,7 +89,11 @@ class _ThemeSettingWidgetState extends State<ThemeSettingWidget> {
       );
     }
     return ListTile(
-      leading: getIcon(Icons.nights_stay, darkTheme: isDarkMode(context)),
+      leading: getIcon(
+        Icons.nights_stay,
+        darkTheme: isDarkMode(context),
+        adaptive: widget.adaptiveIcon,
+      ),
       trailing: Switch.adaptive(
         value: _selectedTheme,
         onChanged: (nightModeOn) {

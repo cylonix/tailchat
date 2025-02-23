@@ -20,8 +20,10 @@ import '../../utils/utils.dart';
 class DeviceDialog extends StatefulWidget {
   final Device? device;
   final String contact;
+  final List<String>? exclude;
 
-  const DeviceDialog({super.key, this.device, required this.contact});
+  const DeviceDialog(
+      {super.key, this.device, this.exclude, required this.contact});
 
   @override
   State<DeviceDialog> createState() => _DeviceDialogState();
@@ -39,7 +41,9 @@ class _DeviceDialogState extends State<DeviceDialog> {
   @override
   void initState() {
     super.initState();
-    _devicesKnown = ChatServer.deviceList;
+    _devicesKnown = ChatServer.deviceList
+        .whereNot((d) => widget.exclude?.contains(d.hostname) ?? false)
+        .toList();
     _hostnameController = TextEditingController(text: widget.device?.hostname);
     _portController = TextEditingController(
       text: widget.device?.port.toString() ?? '50311',

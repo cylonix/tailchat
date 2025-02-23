@@ -35,8 +35,129 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             isRunning = true
             startNetworkMonitor()
             startServer()
+            #if os(iOS)
+                registerForAppStateNotifications()
+            #endif
         }
     }
+
+    #if os(iOS)
+        private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+        private func registerForAppStateNotifications() {
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(appDidEnterBackground),
+                name: UIApplication.didEnterBackgroundNotification,
+                object: nil
+            )
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(appWillEnterForeground),
+                name: UIApplication.willEnterForegroundNotification,
+                object: nil
+            )
+        }
+
+        @objc private func appDidEnterBackground() {
+            logger.i("App entered background")
+            startBackgroundTask()
+        }
+
+        @objc private func appWillEnterForeground() {
+            logger.i("App will enter foreground")
+            endBackgroundTask()
+        }
+
+        private func startBackgroundTask() {
+            backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "ChatServiceBackgroundTask") { [weak self] in
+                self?.endBackgroundTask()
+            }
+
+            // Schedule notification and task end after 30 seconds
+            DispatchQueue.global().asyncAfter(deadline: .now() + 20) { [weak self] in
+                // Show notification 10 seconds before expiration
+                self?.showBackgroundTaskExpirationNotification()
+            }
+
+            // Schedule task end after 30 seconds
+            DispatchQueue.global().asyncAfter(deadline: .now() + 30) { [weak self] in
+                self?.endBackgroundTask()
+            }
+        }
+
+        private var notificationTimer: Timer?
+        private func showBackgroundTaskExpirationNotification() {
+            logger.i("Preparing to show background expiration notification")
+
+            // Stop any existing notification timer
+            notificationTimer?.invalidate()
+            notificationTimer = nil
+            if backgroundTask == .invalid || isAppActive() {
+                logger.i("Background task is already invalid or App is active. Not showing notification.")
+                return
+            }
+
+            // Create notification content
+            let content = UNMutableNotificationContent()
+            content.title = "Tailchat Service"
+            content.subtitle = "Swipe down to show options"
+            content.body = "Tailchat background receiving service will stop soon. Swipe down to continue or stop the service."
+            content.sound = .default
+            content.categoryIdentifier = "SERVICE_EXPIRING"
+
+            if #available(iOS 15.0, *) {
+                content.interruptionLevel = .timeSensitive
+                content.relevanceScore = 1.0
+            }
+
+            let request = UNNotificationRequest(
+                identifier: "service-expiring-\(UUID().uuidString)",
+                content: content,
+                trigger: nil
+            )
+
+            // Schedule the notification
+            UNUserNotificationCenter.current().add(request) { [weak self] error in
+                if let error = error {
+                    self?.logger.e("Failed to schedule notification: \(error)")
+                } else {
+                    self?.logger.i("Background expiration notification scheduled successfully")
+
+                    // Start repeating timer to show notification every 3 seconds
+                    // Create timer on main queue
+                    DispatchQueue.main.async {
+                        self?.notificationTimer = Timer.scheduledTimer(
+                            withTimeInterval: 5.0,
+                            repeats: true
+                        ) { [weak self] _ in
+                            self?.logger.i("Timer fired - showing notification again")
+                            self?.showBackgroundTaskExpirationNotification()
+                        }
+
+                        // Make sure timer runs in background
+                        self?.notificationTimer?.tolerance = 0.1
+                        RunLoop.current.add(self?.notificationTimer ?? Timer(), forMode: .common)
+                    }
+                }
+            }
+        }
+
+        private func endBackgroundTask() {
+            logger.i("Entering endBackgroundTask. Stopping timer.")
+            // Stop notification timer
+            notificationTimer?.invalidate()
+            notificationTimer = nil
+
+            // Remove any pending notifications
+            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+
+            if backgroundTask != .invalid {
+                UIApplication.shared.endBackgroundTask(backgroundTask)
+                backgroundTask = .invalid
+            }
+        }
+
+    #endif
 
     private func startNetworkMonitor() {
         networkMonitor = NetworkMonitor(delegate: self)
@@ -288,7 +409,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                 guard let self = self else { return }
                 let shouldNotify = !isAppActive()
                 if shouldNotify {
-                    self.showNotification(title: "New Message", body: message)
+                    self.showNotification(title: "New Message Received", body: "")
                 }
             }
             error = sendAck(connection: connection, id: parts[1], status: "DONE")
@@ -607,6 +728,9 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     }
 
     func stopService() {
+        #if os(iOS)
+            endBackgroundTask()
+        #endif
         listener?.cancel()
         subscriberListener?.cancel()
         isRunning = false
