@@ -201,7 +201,7 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
         #if os(iOS)
             // Request all necessary notification permissions
             UNUserNotificationCenter.current().requestAuthorization(
-                options: [.alert, .badge, .sound, .provisional, .criticalAlert]
+                options: [.alert, .badge, .sound]
             ) { granted, error in
                 if granted {
                     self.logger.i("Notification permission granted")

@@ -55,5 +55,13 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSUserNotificationAlertStyle</key>
+	<string>alert</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>We need to send you notifications about incoming messages and service status</string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>io.cylonix.tailchat.chatServiceTask</string>
+    </array>
 </dict>
 </plist>

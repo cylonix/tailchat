@@ -69,7 +69,10 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
 
         private func startBackgroundTask() {
-            backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "ChatServiceBackgroundTask") { [weak self] in
+            let taskIdentifier = "io.cylonix.tailchat.chatServiceTask"
+            backgroundTask = UIApplication.shared.beginBackgroundTask(
+                withName: taskIdentifier
+            ) { [weak self] in
                 self?.endBackgroundTask()
             }
 
