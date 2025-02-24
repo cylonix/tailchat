@@ -77,6 +77,7 @@ class Pst {
   static const _spDevice = "device";
   static const _spEnableAR = "enable_ar";
   static const _spEnableTV = "enable_tv";
+  static const _spPushNotificationUUID = "push_notification_uuid";
   static const _spQrData = "qr_data";
   static const _spSkipIntro = "skip_intro";
   static const _spThemeIndex = "theme_index";
@@ -90,6 +91,7 @@ class Pst {
   static bool? enableAR;
   static bool? enableTV;
   static final eventBus = EventBus();
+  static String? pushNotificationUUID;
   static String? qrData;
   static Device? selfDevice;
   static UserProfile? selfUser;
@@ -118,6 +120,7 @@ class Pst {
       chatSimpleUI = tryCatch(_getSavedChatSimpleUISetting);
       enableAR = tryCatch(_getSavedEnableAR);
       enableTV = tryCatch(_getSavedEnableTV);
+      pushNotificationUUID = tryCatch(_getSavedPushNotificationUUID);
       skipIntro = tryCatch(_getSavedSkipIntro);
       themeIndex = tryCatch(_getSavedThemeIndex);
       qrData = tryCatch(_getSavedQrData);
@@ -285,6 +288,25 @@ class Pst {
   /// Del enable TV
   static Future<bool> removeSavedEnableTV() async {
     return removeWithKey(_spEnableTV);
+  }
+
+  static Future<String?> getSavedPushNotificationUUID() async {
+    final sp = await SharedPreferences.getInstance();
+    return _getSavedPushNotificationUUID(sp);
+  }
+
+  static String? _getSavedPushNotificationUUID(SharedPreferences sp) {
+    return sp.getString(_spPushNotificationUUID);
+  }
+
+  static Future<bool> savePushNotificationUUID(String uuid) async {
+    pushNotificationUUID = uuid;
+    return setStringWithKey(_spPushNotificationUUID, uuid);
+  }
+
+  static Future<bool> removeSavedPushNoitificationUUID() async {
+    pushNotificationUUID = null;
+    return removeWithKey(_spPushNotificationUUID);
   }
 
   /// Get saved user/self qr data

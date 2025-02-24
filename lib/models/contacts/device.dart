@@ -10,6 +10,7 @@ class Device {
   String address;
   String hostname;
   String os;
+  String? pnUUID;
   int port;
   DateTime lastSeen;
   bool isOnline;
@@ -21,6 +22,7 @@ class Device {
     required this.hostname,
     required this.port,
     this.os = "",
+    this.pnUUID,
     this.isAvailable = false,
     this.isOnline = false,
     DateTime? lastSeen,
@@ -38,6 +40,7 @@ class Device {
         'hostname': hostname,
         'port': port,
         "os": os,
+        'pnUUID': pnUUID,
         'lastSeen': lastSeen.toIso8601String(),
         'isOnline': isOnline,
         "isAvailable": isAvailable,
@@ -49,6 +52,7 @@ class Device {
         hostname: json['hostname'],
         port: json['port'],
         os: json['os'],
+        pnUUID: json['pnUUID'],
         lastSeen: DateTime.parse(json['lastSeen']),
         isOnline: json['isOnline'] ?? false,
         isAvailable: json['isAvailable'] ?? false,

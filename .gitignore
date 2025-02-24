@@ -54,3 +54,6 @@ linux/packaging/debian/tailchat.substvars
 
 # Tailchatd
 /tailchatd/tailchatd
+
+# Pnserver
+/pnserver/pnserver

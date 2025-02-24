@@ -5,6 +5,7 @@ import UserNotifications
 
 #if os(iOS)
     import Flutter
+    import Foundation
     import UIKit
 #elseif os(macOS)
     import AppKit
@@ -31,6 +32,11 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
             _ application: UIApplication,
             didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
         ) -> Bool {
+            #if os(iOS)
+                // Register for remote notifications
+                application.registerForRemoteNotifications()
+            #endif
+
             GeneratedPluginRegistrant.register(with: self)
             requestNotificationPermissions()
             startChatService()
@@ -248,6 +254,54 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
     }
 
     #if os(iOS)
+        private var apnUUID: String?
+        override func application(
+            _: UIApplication,
+            didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+        ) {
+            let tokenString = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
+            logger.i("Got APN token: \(tokenString)")
+
+            // Get or generate UUID for this device
+            if apnUUID == nil {
+                if let savedUUID = UserDefaults.standard.string(forKey: "apn_device_uuid") {
+                    apnUUID = savedUUID
+                    logger.i("Retrieved saved APN UUID: \(savedUUID)")
+                } else {
+                    apnUUID = UUID().uuidString
+                    UserDefaults.standard.set(apnUUID, forKey: "apn_device_uuid")
+                    logger.i("Generated new APN UUID: \(apnUUID!)")
+                }
+            }
+
+            // Store token and UUID in ChatService
+            chatService?.setAPNToken(token: tokenString, uuid: apnUUID!)
+        }
+
+        override func application(
+            _: UIApplication,
+            didFailToRegisterForRemoteNotificationsWithError error: Error
+        ) {
+            logger.e("Failed to register for remote notifications: \(error)")
+        }
+
+        // Handle incoming push notifications
+        override func application(
+            _: UIApplication,
+            didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+            fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+        ) {
+            logger.i("Received remote notification: \(userInfo)")
+
+            if let peerID = userInfo["peer_id"] as? String {
+                // Start chat service if needed
+                startChatService()
+                chatService?.handleIncomingConnection(fromPeerID: peerID)
+            }
+
+            completionHandler(.newData)
+        }
+
         override func userNotificationCenter(
             _: UNUserNotificationCenter,
             willPresent _: UNNotification,

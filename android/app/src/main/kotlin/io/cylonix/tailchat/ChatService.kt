@@ -239,6 +239,9 @@ class ChatService : Service(), NetworkMonitorDelegate {
                     val type = parts[0]
                     val id = parts[1]
                     when {
+                        type == "CTRL" -> {
+                            broadcastOrBufferMessage(extractedMessage)
+                        }
                         type == "TEXT" -> {
                             broadcastOrBufferMessage(extractedMessage)
                         }

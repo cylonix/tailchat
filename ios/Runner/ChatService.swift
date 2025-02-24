@@ -42,6 +42,26 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     }
 
     #if os(iOS)
+        private var apnToken: String?
+        private var apnUUID: String?
+
+        func setAPNToken(token: String, uuid: String) {
+            apnToken = token
+            apnUUID = uuid
+            logger.i("Set APN token: \(token) with UUID: \(uuid)")
+
+            broadcastAPNToken()
+        }
+
+        private func broadcastAPNToken() {
+            sendApnInfo()
+        }
+
+        func handleIncomingConnection(fromPeerID: String) {
+            logger.i("Handling incoming connection request from peer: \(fromPeerID)")
+            // Handle connection request from push notification
+        }
+
         private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
         private func registerForAppStateNotifications() {
             NotificationCenter.default.addObserver(
@@ -311,7 +331,6 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         defer {
             connection.cancel()
         }
-
         receiveMessages(connection: connection, messageHandler: handleMessage)
     }
 
@@ -394,6 +413,8 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
         var error: Error?
         switch parts[0] {
+        case "CTRL":
+            error = broadcastOrBufferMessage(message: message)
         case "TEXT":
             error = broadcastOrBufferMessage(message: message)
         case "FILE_START":
@@ -584,6 +605,22 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
     }
 
+    #if os(iOS)
+        private func sendApnInfo() {
+            if let eventSink = eventSink {
+                DispatchQueue.main.async {
+                    eventSink(
+                        [
+                            "type": "pn_info",
+                            "token": self.apnToken ?? "",
+                            "uuid": self.apnUUID ?? "",
+                        ]
+                    )
+                }
+            }
+        }
+    #endif
+
     private func sendAck(connection: NWConnection, id: String, status: String) -> Error? {
         let ackMessage = "ACK:\(id):\(status)\n"
         let semaphore = DispatchSemaphore(value: 0)
@@ -748,6 +785,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         if eventSink != nil {
             logger.i("EventSink set")
             updateNetworkConfig()
+            sendApnInfo()
         } else {
             logger.i("EventSink unset")
         }

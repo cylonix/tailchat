@@ -137,6 +137,13 @@ class ChatServer {
           _logger.i("Network config: $event");
           await _handleReceiveNetworkConfig(event['devices']);
           break;
+        case "pn_info":
+          _logger.d("Received push notification info: $event");
+          final uuid = event['uuid'];
+          if (uuid != null) {
+            await Pst.savePushNotificationUUID(uuid);
+          }
+          break;
         case "file_receive":
           _logger.d("Receive file $event");
           break;
@@ -206,6 +213,7 @@ class ChatServer {
         final sender = {
           "profile": self,
           "device": selfDevice,
+          "pn_uuid": Pst.pushNotificationUUID,
         };
         try {
           await from.sendMessage("SENDER:${jsonEncode(sender)}");
@@ -234,6 +242,9 @@ class ChatServer {
       }
       final id = parts[1];
       switch (parts[0]) {
+        case "CTRL":
+          _logger.d("Received control message: $line");
+          break;
         case "TEXT":
           _handleReceiveChatMessage(line.replaceFirst("TEXT:$id:", ""));
           break;
@@ -330,9 +341,11 @@ class ChatServer {
       final json = jsonDecode(sender);
       final user = UserProfile.fromJson(json['profile']);
       final device = Device.fromJson(json['device']);
+      final pnUUID = json['pn_uuid'] as String?;
       device.isAvailable = true;
       device.lastSeen = DateTime.now();
       device.isOnline = true;
+      device.pnUUID = pnUUID;
 
       final contact = await getContact(user.id);
       if (contact == null) {

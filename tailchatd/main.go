@@ -260,7 +260,7 @@ func handleMessage(input *bufio.Reader, output *bufio.Writer, message string, fu
 	message = strings.TrimSuffix(message, "\n")
 	logger.Println("Received message:", message)
 	switch {
-	case strings.HasPrefix(message, "TEXT:"):
+	case strings.HasPrefix(message, "TEXT:") || strings.HasPrefix(message, "CTRL:"):
 		broadcastOrBufferMessage(message)
 	case strings.HasPrefix(message, fileStartPrefix):
 		return handleFileTransfer(input, output, message[len(fileStartPrefix):], fullBuffer)

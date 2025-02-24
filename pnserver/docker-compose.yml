@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  apn-server:
+    image: cylonix/tailchat-pnserver:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - APN_KEY_ID=your_key_id
+      - APN_TEAM_ID=your_team_id
+      - APN_BUNDLE_ID=your.bundle.id
+      - APN_KEY_PATH=/apn_key.p8
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=your_redis_password
+    ports:
+      - "9000:9000"
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    environment:
+      - REDIS_PASSWORD=your_redis_password
+
+volumes:
+  redis_data:
