@@ -10,7 +10,7 @@ docker:
 	docker build -t cylonix/tailchat-pnserver .
 
 docker-up:
-	docker-compose up -d
+	docker compose up -d
 
 docker-down:
-	docker-compose down
+	docker compose down

@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 COPY . .
@@ -7,6 +7,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /pnserver
 
 FROM alpine:3.18
 COPY --from=builder /pnserver /pnserver
-COPY apn_key.p8 /apn_key.p8
+
+# Create directory for APN key
+RUN mkdir -p /etc/apn && chmod 700 /etc/apn
 
 ENTRYPOINT ["/pnserver"]

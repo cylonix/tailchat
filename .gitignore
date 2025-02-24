@@ -57,3 +57,7 @@ linux/packaging/debian/tailchat.substvars
 
 # Pnserver
 /pnserver/pnserver
+/pnserver/.env
+/pnserver/certs
+/pnserver/*.cer
+/pnserver/*.p8

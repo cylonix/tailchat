@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/sideshow/apns2"
+	"github.com/sideshow/apns2/certificate"
 	"github.com/sideshow/apns2/token"
 )
 
@@ -26,23 +27,37 @@ func main() {
 	})
 
 	// Setup APN client
-	authKey, err := token.AuthKeyFromFile(os.Getenv("APN_KEY_PATH"))
-	if err != nil {
-		log.Fatalf("Failed to load APN key: %v", err)
-	}
+	var client *apns2.Client
 
-	token := &token.Token{
-		AuthKey: authKey,
-		KeyID:   os.Getenv("APN_KEY_ID"),
-		TeamID:  os.Getenv("APN_TEAM_ID"),
-	}
+    authType := os.Getenv("APN_AUTH_TYPE")
+    if authType == "certificate" {
+        cert, err := certificate.FromPemFile(
+            os.Getenv("APN_CERT_PATH"),
+            os.Getenv("APN_CERT_PASSWORD"),
+        )
+        if err != nil {
+            log.Fatalf("Failed to load certificate: %v", err)
+        }
+        client = apns2.NewClient(cert)
+    } else {
+        // Existing token-based setup
+        authKey, err := token.AuthKeyFromFile(os.Getenv("APN_KEY_PATH"))
+        if err != nil {
+            log.Fatalf("Failed to load APN key: %v", err)
+        }
+        token := &token.Token{
+            AuthKey: authKey,
+            KeyID:   os.Getenv("APN_KEY_ID"),
+            TeamID:  os.Getenv("APN_TEAM_ID"),
+        }
+        client = apns2.NewTokenClient(token)
+    }
 
-	client := apns2.NewTokenClient(token)
-	if os.Getenv("APN_DEVELOPMENT") == "true" {
-		client = client.Development()
-	} else {
-		client = client.Production()
-	}
+    if os.Getenv("APN_DEVELOPMENT") == "true" {
+        client = client.Development()
+    } else {
+        client = client.Production()
+    }
 
 	server := &PNServer{
 		redis:       rdb,
