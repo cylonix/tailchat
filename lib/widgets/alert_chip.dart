@@ -12,6 +12,7 @@ class AlertChip extends Card {
     Color? backgroundColor,
     double? fontSize,
     double? width,
+    List<Widget>? trailing,
   }) : super(
           margin: EdgeInsets.all(0),
           color: backgroundColor ?? alert.background,
@@ -29,10 +30,22 @@ class AlertChip extends Card {
                       style: TextStyle(color: alert.color, fontSize: fontSize),
                     ),
                   ),
-            trailing: onDeleted != null
-                ? IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: onDeleted,
+            trailing: trailing != null
+                ? Row(
+                    spacing: 8,
+                    children: [
+                      ...trailing,
+                      if (onDeleted != null)
+                        IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: onDeleted,
+                        ),
+                    ],
+                  )
+                : onDeleted != null
+                    ? IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: onDeleted,
                   )
                 : null,
           ),

@@ -29,6 +29,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
   static final _logger = Logger(tag: 'NetworkMonitor');
   StreamSubscription<ChatReceiveNetworkConfigEvent>? _networkConfigEventSub;
   Alert? _alert;
+  List<Widget>? _actions;
   static final hostnameChangeDialogRouteName = "HostnameChangeDialog";
 
   @override
@@ -42,6 +43,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
                 _alert = null;
               });
             },
+            trailing: _actions,
           )
         : Container();
   }
@@ -86,6 +88,87 @@ class _ContactsPageState extends State<NetworkMonitor> {
     if (showingHostnameChangeDialog) {
       _logger.d("HostnameChangeDialog is showing. Pop it.");
       Navigator.of(context).pop();
+    }
+  }
+
+  void _showUpdateSelfDeviceDialog(String currentDevice, String currentAddress,
+      String address, String hostname) async {
+    final update = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      routeSettings: RouteSettings(name: hostnameChangeDialogRouteName),
+      builder: (context) {
+        return AlertDialog.adaptive(
+          title: Text("Hostname changed"),
+          content: Text(
+            "Hostname changed from $currentDevice to $hostname "
+            "for $currentAddress",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("Ignore"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text("Update"),
+            ),
+          ],
+        );
+      },
+    );
+    if (update ?? false) {
+      final selfDevice = Pst.selfDevice!;
+      final newDevice = Device(
+        userID: selfDevice.userID,
+        address: address,
+        hostname: hostname,
+        port: selfDevice.port,
+      );
+      try {
+        await addDevice(newDevice);
+        await deleteDevice(selfDevice.id);
+        await Pst.saveSelfDevice(newDevice);
+      } catch (e) {
+        _logger.e("Failed to update device $hostname");
+        if (mounted) {
+          setState(() {
+            _alert = Alert(
+              "Failed to update device hostname to "
+              "$hostname: $e",
+            );
+          });
+        }
+      }
+    }
+  }
+
+  void _showAddNewDeviceDialog(Contact selfContact, Device newDevice) async {
+    final contact = await showDialog<Contact>(
+      context: context,
+      barrierDismissible: false,
+      routeSettings: RouteSettings(name: hostnameChangeDialogRouteName),
+      builder: (context) => HostnameChangeDialog(
+        currentContact: selfContact,
+        currentDevice: Pst.selfDevice!,
+        newDevice: newDevice,
+      ),
+    );
+    if (contact == null) {
+      _logger.e("Not adding self contact is not expected");
+      return;
+    }
+    try {
+      newDevice.userID = contact.id;
+      Pst.saveSelfDevice(newDevice);
+      Pst.saveSelfUser(contact);
+    } catch (e) {
+      _logger.e("Failed to save contact ${contact.username}: $e");
+      if (mounted) {
+        setState(() {
+          _alert = Alert("Failed to save contact ${contact.username}: $e");
+        });
+      }
     }
   }
 
@@ -201,69 +284,46 @@ class _ContactsPageState extends State<NetworkMonitor> {
       if (contact != null && contact.id != selfContactID) {
         if (mounted) {
           setState(() {
-            _alert = Alert('Address conflict: ${contact?.username} '
+            _alert = Alert('Address conflict: ${contact.username} '
                 'has $hostname with the same $address.');
           });
-          return;
-        }
-      }
-      _logger.d("Hostname changed for the same address.");
-      if (mounted) {
-        final update = await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          routeSettings: RouteSettings(name: hostnameChangeDialogRouteName),
-          builder: (context) {
-            return AlertDialog.adaptive(
-              title: Text("Hostname changed"),
-              content: Text(
-                "Hostname changed from $currentDevice to $hostname "
-                "for $currentAddress",
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text("Ignore"),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: Text("Update"),
-                ),
-              ],
-            );
-          },
-        );
-        if (update ?? false) {
-          device = Pst.selfDevice!;
-          final newDevice = Device(
-            userID: device.userID,
-            address: address,
-            hostname: hostname,
-            port: device.port,
-          );
-          try {
-            await addDevice(newDevice);
-            await deleteDevice(device.id);
-            await Pst.saveSelfDevice(device);
-          } catch (e) {
-            _logger.e("Failed to update device $hostname");
-            if (mounted) {
-              setState(() {
-                _alert = Alert(
-                  "Failed to update device hostname to " "$hostname: $e",
-                );
-              });
-            }
-          }
         }
         return;
       }
+      _logger.d("Hostname changed for the same address.");
+      if (mounted) {
+        setState(() {
+          _alert = Alert(
+            "Hostname changed from $currentDevice to $hostname",
+          );
+          _actions = [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _alert = null;
+                });
+              },
+              child: Text("Ignore"),
+            ),
+            TextButton(
+              onPressed: () => _showUpdateSelfDeviceDialog(
+                currentDevice,
+                currentAddress,
+                address,
+                hostname,
+              ),
+              child: Text("Update"),
+            ),
+          ];
+        });
+      }
+      return;
     }
 
     // Self device changed and its not currently ours. Confirm with user if the
     // user also changed.
     if (contact == null) {
-      _logger.d('New device. hostname is not known to be ours');
+      _logger.d('New address. hostname is not known to be ours');
       final newDevice = Device(
         userID: "",
         address: address,
@@ -271,35 +331,33 @@ class _ContactsPageState extends State<NetworkMonitor> {
         port: event.port ?? 50311,
       );
       if (mounted) {
-        contact = await showDialog<Contact>(
-          context: context,
-          barrierDismissible: false,
-          routeSettings: RouteSettings(name: hostnameChangeDialogRouteName),
-          builder: (context) => HostnameChangeDialog(
-            currentContact: selfContact!,
-            currentDevice: Pst.selfDevice!,
-            newDevice: newDevice,
-          ),
-        );
-        if (contact == null) {
-          _logger.e("Not adding self contact is not expected");
-          return;
-        }
-        try {
-          newDevice.userID = contact.id;
-          Pst.saveSelfDevice(newDevice);
-          Pst.saveSelfUser(contact);
-        } catch (e) {
-          _logger.e("Failed to save contact ${contact.username}: $e");
-          if (mounted) {
-            setState(() {
-              _alert = Alert("Failed to save contact ${contact?.username}: $e");
-            });
-          }
-        }
+        setState(() {
+          _alert = Alert(
+            "Hostname changed from $currentDevice to $hostname and"
+            "address changed from $currentAddress to $address.",
+          );
+          _actions = [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _alert = null;
+                });
+              },
+              child: Text("Ignore"),
+            ),
+            TextButton(
+              onPressed: () => _showAddNewDeviceDialog(
+                selfContact!,
+                newDevice,
+              ),
+              child: Text("Add a new device"),
+            ),
+          ];
+        });
       }
       return;
     }
+
     if (contact.id == selfContactID) {
       _logger.d('switch device to known device: $hostname.');
       await Pst.saveSelfDevice(device);
