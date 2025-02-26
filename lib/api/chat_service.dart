@@ -119,6 +119,10 @@ class ChatService {
     }
   }
 
+  bool get isConnected {
+    return _socket != null;
+  }
+
   Future<void> sendMessage(String message) async {
     try {
       final id = Uuid().v4();

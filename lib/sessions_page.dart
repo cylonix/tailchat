@@ -378,6 +378,7 @@ class SessionsPageState extends State<SessionsPage>
           if (peerID == selfDevice.id) {
             peerID = machines[1];
           }
+          _logger.d("Peer ID: $peerID. Self ID: ${selfDevice.id}");
           peer = await getDevice(peerID);
           if (peer == null) {
             _logger.d("Failed to get peer from storage. Try the known devices");

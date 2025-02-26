@@ -785,7 +785,9 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         if eventSink != nil {
             logger.i("EventSink set")
             updateNetworkConfig()
-            sendApnInfo()
+            #if os(iOS)
+                sendApnInfo()
+            #endif
         } else {
             logger.i("EventSink unset")
         }

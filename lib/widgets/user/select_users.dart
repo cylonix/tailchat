@@ -229,19 +229,20 @@ class _SelectUsersState extends State<SelectUsers> {
     if (filteredPeers.isEmpty) {
       return null;
     }
-    return MenuAnchor(
-      alignmentOffset: const Offset(0, 50),
-      menuChildren: filteredPeers.map((peer) {
-        return MenuItemButton(
+    return PopupMenuButton<Device>(
+      position: PopupMenuPosition.under,
+      itemBuilder: (context) => filteredPeers.map((peer) {
+        return PopupMenuItem<Device>(
+          value: peer,
           child: Text(peer.hostname),
-          onPressed: () {
-            _flipSelectedState(index, peer);
-            if (_simpleSelect) {
-              _handleSelectOnlyOneUser();
-            }
-          },
         );
       }).toList(),
+      onSelected: (peer) {
+        _flipSelectedState(index, peer);
+        if (_simpleSelect) {
+          _handleSelectOnlyOneUser();
+        }
+      },
       child: child ??
           Tooltip(
             message: tr.selectADeviceText,
@@ -252,21 +253,23 @@ class _SelectUsersState extends State<SelectUsers> {
 
   Widget? _getUserChild(int index, Contact user, {Device? device}) {
     device ??= (_groupValue == index) ? _selectedDevice : null;
+    final threeLine = device != null && !isMediumScreen(context);
+    final subtitle = device != null
+        ? isMediumScreen(context)
+            ? Row(children: [
+                Expanded(child: Text(device.hostname)),
+                Text(device.address),
+              ])
+            : Text('${device.hostname}\n${device.address}')
+        : _groupValue == index && widget.chooseOnlyOneDevice
+            ? Text(AppLocalizations.of(context).pleaseSelectOneDeviceText)
+            : null;
     final child = ListTile(
       contentPadding: widget.enableScroll ? null : const EdgeInsets.all(0),
       selected: _groupValue == index,
       title: Text(user.name),
-      isThreeLine: true,
-      subtitle: device != null
-          ? isMediumScreen(context)
-              ? Row(children: [
-                  Expanded(child: Text(device.hostname)),
-                  Text(device.address),
-                ])
-              : Text('${device.hostname}\n${device.address}')
-          : _groupValue == index && widget.chooseOnlyOneDevice
-              ? Text(AppLocalizations.of(context).pleaseSelectOneDeviceText)
-              : null,
+      isThreeLine: threeLine,
+      subtitle: subtitle,
     );
     if (widget.chooseOnlyOneDevice &&
         widget.chooseOnlyOneUser &&

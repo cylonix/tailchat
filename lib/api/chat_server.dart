@@ -7,6 +7,8 @@ import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
+import 'package:http/http.dart' as http;
+
 import '../api/notification.dart';
 import '../models/chat/chat_event.dart';
 import '../models/chat/chat_id.dart';
@@ -128,6 +130,36 @@ class ChatServer {
     ));
   }
 
+  static Future<bool> sendPushNotificationToken(
+    String uuid,
+    String token,
+  ) async {
+    try {
+      final result = await http.put(
+        Uri.parse("https://cylonix.io/apn/tailchat"),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          "id": uuid,
+          "token": token,
+          "platform": Platform.isIOS
+              ? "apple"
+              : Platform.isAndroid
+                  ? "android"
+                  : "unknown",
+        }),
+      );
+      if (result.statusCode != 200) {
+        throw "${result.statusCode} ${result.body}";
+      }
+      return true;
+    } catch (e) {
+      _logger.e("Failed to send push notification id: $e");
+    }
+    return false;
+  }
+
   /// Handle flutter event channel events.
   static void _handleEvent(dynamic event) async {
     _logger.d("Received event from chat service: $event");
@@ -140,8 +172,14 @@ class ChatServer {
         case "pn_info":
           _logger.d("Received push notification info: $event");
           final uuid = event['uuid'];
-          if (uuid != null) {
-            await Pst.savePushNotificationUUID(uuid);
+          final token = event['token'];
+          if (uuid != null && token != null) {
+            await sendPushNotificationToken(uuid, token);
+            if (uuid != Pst.pushNotificationUUID ||
+                token != Pst.pushNotificationToken) {
+              await Pst.savePushNotificationUUID(uuid);
+              await Pst.savePushNotificationToken(token);
+            }
           }
           break;
         case "file_receive":

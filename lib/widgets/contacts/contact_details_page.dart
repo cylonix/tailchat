@@ -20,12 +20,12 @@ import 'user_profile_header.dart';
 
 class ContactDetailsPage extends StatefulWidget {
   final Contact contact;
-  final bool popOnDelete;
+  final Function()? onDelete;
 
   const ContactDetailsPage({
     super.key,
     required this.contact,
-    this.popOnDelete = true,
+    this.onDelete,
   });
 
   @override
@@ -260,9 +260,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
         await deleteContact(_contact.id);
         if (mounted) {
           toast(context, "Contact ${_contact.name} is deleted.");
-          if (widget.popOnDelete) {
-            Navigator.pop(context, 'delete'); // Pop with delete result
-          }
+          widget.onDelete?.call();
         }
       } catch (e) {
         if (mounted) {

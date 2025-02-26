@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
+import 'package:http/http.dart' as http;
 
 import '../models/api/status.dart';
 import '../models/chat/chat_send_peers_result.dart';
@@ -42,6 +43,27 @@ ChatService _getChatServiceForDevice(Device device) {
 Future<Status> sendPingToPeer(Device peer) async {
   try {
     final s = _getChatServiceForDevice(peer);
+    if (!s.isConnected && peer.pnUUID != null) {
+      _logger.d(
+        "sending push notification to: ${peer.hostname} ${peer.pnUUID}",
+      );
+      final result = await http.post(
+        Uri.parse("https://cylonix.io/apn/tailchat"),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          "sender": Pst.selfUser?.name,
+          "sender_id": Pst.selfDevice?.pnUUID,
+          "sender_hostname": Pst.selfDevice?.hostname,
+          "receiver_id": peer.pnUUID,
+          "receiver_hostname": peer.hostname,
+          "message_type": "connection_request",
+          "message": "ping",
+        }),
+      );
+      _logger.d("result: ${result.statusCode} ${result.body}");
+    }
     await s.sendPing();
     return Status.ok;
   } catch (e) {

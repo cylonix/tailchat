@@ -13,8 +13,8 @@ import (
 )
 
 func isValidUUID(id string) bool {
-    _, err := uuid.Parse(id)
-    return err == nil
+	_, err := uuid.Parse(id)
+	return err == nil
 }
 
 func (s *PNServer) validateAppleToken(_ context.Context, token string) error {
@@ -144,7 +144,6 @@ func (s *PNServer) sendAndroidPush(_ context.Context, _ *PushRequest, _ *TokenIn
 	// Future Android push notification implementation
 	return fmt.Errorf("android push not implemented yet")
 }
-
 func (s *PNServer) sendApplePush(ctx context.Context, req *PushRequest, receiverToken *TokenInfo) error {
 	if req.MessageType != "connection_request" {
 		return fmt.Errorf("unsupported message type: %s", req.MessageType)
@@ -153,13 +152,21 @@ func (s *PNServer) sendApplePush(ctx context.Context, req *PushRequest, receiver
 	notification := &apns2.Notification{
 		DeviceToken: receiverToken.Token,
 		Topic:       s.apnBundleID,
+		Priority:    apns2.PriorityHigh, // Set high priority
 		Payload: map[string]interface{}{
 			"aps": map[string]interface{}{
 				"alert": map[string]interface{}{
 					"title": "Tailchat Connection Request",
 					"body":  body,
 				},
-				"sound": "default",
+                "sound": map[string]interface{}{
+                    "critical": 1,
+                    "name": "default",
+                    "volume": 1.0,
+                },
+				"interruption-level": "time-sensitive", // Make it time sensitive
+				"relevance-score":    1.0,              // Highest relevance
+				"critical":           1,                // Mark as critical
 			},
 			// Custom data
 			"sender_hostname": req.SenderHostname,
@@ -330,7 +337,7 @@ func (s *PNServer) handlePushRequest(w http.ResponseWriter, r *http.Request) {
 	if senderValid {
 		limit = 3
 	}
-	if int (now-tokenInfo.LastPushSent) < limit {
+	if int(now-tokenInfo.LastPushSent) < limit {
 		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 		return
 	}

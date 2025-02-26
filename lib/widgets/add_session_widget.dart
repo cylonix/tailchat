@@ -129,7 +129,10 @@ class AddSessionWidget extends StatelessWidget {
         return MenuItem(
           child: a.enabled
               ? Text(a.label)
-              : Text('${a.label} [Not supported yet]'),
+              : Text(
+                  '🔜 ${a.label}',
+                  style: TextStyle(color: Colors.grey),
+                ),
           leadingIcon: a.icon,
           onPressed: () => a.enabled ? a.action.call(context) : {},
         );
