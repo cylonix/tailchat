@@ -38,7 +38,7 @@ class LogFile {
     }
     final result = await FilePicker.platform.saveFile(
       dialogTitle: "Choose the file to be saved",
-      type: FileType.any,
+      type: FileType.custom,
       fileName: _fileName,
       allowedExtensions: ["txt"],
     );
@@ -59,7 +59,7 @@ class LogFile {
     final fileName = _fileName;
     try {
       final dir = await getApplicationDocumentsDirectory();
-      final path = p.join(dir.path, 'cylonix-logs', fileName);
+      final path = p.join(dir.path, 'tailchat-logs', fileName);
       return _saveToPath(path);
     } catch (e) {
       return Status(false, '$e');
@@ -106,10 +106,6 @@ class LogFile {
   }
 
   static get appLogFile {
-    return LogFile(logs: Global.getAppBufferLogs(), name: "cylonix_app");
-  }
-
-  static get cylonixdLogFile {
-    return LogFile(logs: [], name: "cylonixd");
+    return LogFile(logs: Global.getAppBufferLogs(), name: "tailchat_app");
   }
 }

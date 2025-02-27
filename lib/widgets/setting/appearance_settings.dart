@@ -27,7 +27,7 @@ class AppearanceSettings extends StatelessWidget {
           ? SettingAppBar(context, tr.appearanceSettingsTitle)
           : null,
       body: ListView(
-        padding: EdgeInsets.all(8),
+        padding: EdgeInsets.all(4),
         children: [
           if (showThemeSetting)
             Card(

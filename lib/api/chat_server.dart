@@ -162,7 +162,10 @@ class ChatServer {
 
   /// Handle flutter event channel events.
   static void _handleEvent(dynamic event) async {
-    _logger.d("Received event from chat service: $event");
+    _logger.d(
+      "Received event from chat service: "
+      "${event.toString().shortString(100)}",
+    );
     if (event is Map<dynamic, dynamic>) {
       switch (event['type']) {
         case "network_config":

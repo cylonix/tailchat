@@ -96,6 +96,13 @@ class _LogConsoleState extends State<LogConsole> {
   List<RenderedEvent> _filteredBuffer = [];
   final _logContentFocusNode = FocusNode();
   var _savedPosition = Offset(100, 100);
+  static const int _pageSize = 1000;
+  List<OutputEvent> _allEvents = [];
+  int _currentPage = 0;
+  bool _isLoadingMore = false;
+  bool _isLoadingPrevious = false;
+  bool _hasMorePrevious = true;
+  bool _hasMoreNext = true;
 
   final _scrollController = ScrollController();
   final _filterController = TextEditingController();
@@ -104,7 +111,6 @@ class _LogConsoleState extends State<LogConsole> {
   double _logFontSize = 14;
 
   var _currentId = 0;
-  bool _scrollListenerEnabled = true;
   bool _followBottom = true;
   bool _isLoading = false;
 
@@ -113,11 +119,25 @@ class _LogConsoleState extends State<LogConsole> {
     super.initState();
 
     _scrollController.addListener(() {
-      if (!_scrollListenerEnabled) return;
+      // Handle scroll position changes
+      if (_scrollController.offset <= 0 &&
+          !_isLoadingPrevious &&
+          _hasMorePrevious) {
+        _loadPreviousLogs();
+      }
+
+      if (_scrollController.offset >=
+              _scrollController.position.maxScrollExtent &&
+          !_isLoadingMore &&
+          _hasMoreNext) {
+        _loadNextLogs();
+      }
+
+      // Handle follow bottom
       var scrolledToBottom = _scrollController.offset >=
-          _scrollController.position.maxScrollExtent;
+          (_scrollController.position.maxScrollExtent - 20);
       setState(() {
-        _followBottom = scrolledToBottom;
+        _followBottom = !scrolledToBottom;
       });
     });
 
@@ -140,25 +160,151 @@ class _LogConsoleState extends State<LogConsole> {
   @override
   void didChangeDependencies() async {
     super.didChangeDependencies();
-    late ListQueue<OutputEvent> events;
-    final getEventsF = widget.getLogOutputEvents;
+    setState(() {
+      _isLoading = true;
+    });
 
-    _renderedBuffer.clear();
-    if (getEventsF != null) {
-      setState(() {
-        _isLoading = true;
-      });
-      events = await getEventsF();
+    try {
+      final getEventsF = widget.getLogOutputEvents;
+      if (getEventsF != null) {
+        final events = await getEventsF();
+        _allEvents = events.toList();
+      } else {
+        _allEvents = _outputEventBuffer.toList();
+      }
+      _loadCurrentPage();
+    } finally {
       setState(() {
         _isLoading = false;
       });
-    } else {
-      events = _outputEventBuffer;
     }
-    for (var event in events) {
+  }
+
+  void _loadCurrentPage() {
+    final startIndex = _currentPage * _pageSize;
+    final endIndex = startIndex + _pageSize;
+
+    if (startIndex >= _allEvents.length) {
+      _hasMoreNext = false;
+      return;
+    }
+
+    final pageEvents = _allEvents.sublist(startIndex,
+        endIndex > _allEvents.length ? _allEvents.length : endIndex);
+
+    _renderedBuffer.clear();
+    for (var event in pageEvents) {
       _renderedBuffer.add(_renderEvent(event));
     }
+
+    _hasMorePrevious = startIndex > 0;
+    _hasMoreNext = endIndex < _allEvents.length;
+
     _refreshFilter();
+  }
+
+  Future<void> _loadNextLogs() async {
+    if (_isLoadingMore || !_hasMoreNext) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      _currentPage++;
+      final currentOffset = _scrollController.offset;
+      _loadCurrentPage();
+
+      // Maintain scroll position
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.jumpTo(currentOffset);
+      });
+    } finally {
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  Future<void> _loadPreviousLogs() async {
+    if (_isLoadingPrevious || !_hasMorePrevious) return;
+
+    setState(() {
+      _isLoadingPrevious = true;
+    });
+
+    try {
+      _currentPage--;
+      final currentOffset = _scrollController.offset;
+      _loadCurrentPage();
+
+      // Maintain relative scroll position
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.jumpTo(currentOffset + 200.0);
+      });
+    } finally {
+      setState(() {
+        _isLoadingPrevious = false;
+      });
+    }
+  }
+
+  // Update the NotificationListener in _buildLogContent
+  Widget _buildLogContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Container(
+      color: widget.dark ? Colors.black : Colors.grey[150],
+      child: ListView.builder(
+        shrinkWrap: false,
+        padding: const EdgeInsets.only(left: 10),
+        controller: _scrollController,
+        cacheExtent: 500,
+        itemBuilder: (context, index) {
+          if (index >= _filteredBuffer.length) return null;
+
+          // Show loading indicators at top and bottom
+          if (index == 0 && _isLoadingPrevious) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+          if (index == _filteredBuffer.length - 1 && _isLoadingMore) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+
+          var logEntry = _filteredBuffer[index];
+          return RepaintBoundary(
+            child: GestureDetector(
+              child: SelectableText.rich(
+                logEntry.span,
+                key: Key(logEntry.id.toString()),
+                style: TextStyle(
+                  fontSize: _logFontSize,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                  height: 1.2,
+                ),
+                maxLines: null,
+              ),
+              onTapDown: (tapDownDetails) {
+                _savedPosition = tapDownDetails.globalPosition;
+              },
+            ),
+          );
+        },
+        itemCount: _filteredBuffer.length,
+      ),
+    );
   }
 
   void _refreshFilter() {
@@ -196,7 +342,7 @@ class _LogConsoleState extends State<LogConsole> {
         ),
       ),
       floatingActionButton: AnimatedOpacity(
-        opacity: _followBottom ? 0 : 1,
+        opacity: _followBottom ? 1 : 0,
         duration: Duration(milliseconds: 150),
         child: Padding(
           padding: EdgeInsets.only(bottom: 60),
@@ -210,37 +356,6 @@ class _LogConsoleState extends State<LogConsole> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildLogContent() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    return Container(
-      color: widget.dark ? Colors.black : Colors.grey[150],
-      child: ListView.builder(
-        shrinkWrap: true,
-        padding: EdgeInsets.only(left: 10),
-        controller: _scrollController,
-        itemBuilder: (context, index) {
-          var logEntry = _filteredBuffer[index];
-          return GestureDetector(
-            child: SelectableText.rich(
-              logEntry.span,
-              key: Key(logEntry.id.toString()),
-              style: TextStyle(
-                fontSize: _logFontSize,
-                fontFeatures: [FontFeature.tabularFigures()],
-              ),
-            ),
-            onTapDown: (tapDownDetails) {
-              _savedPosition = tapDownDetails.globalPosition;
-            },
-          );
-        },
-        itemCount: _filteredBuffer.length,
       ),
     );
   }
@@ -414,12 +529,12 @@ class _LogConsoleState extends State<LogConsole> {
         ),
         if (!isMobile)
           IconButton(
-            icon: Icon(Icons.arrow_upward),
+            icon: Icon(Icons.keyboard_arrow_up),
             onPressed: _scrollUp,
           ),
         if (!isMobile)
           IconButton(
-            icon: Icon(Icons.arrow_downward),
+            icon: Icon(Icons.keyboard_arrow_down),
             onPressed: _scrollDown,
           ),
         if (isMobile) _popupMenu,
@@ -480,24 +595,20 @@ class _LogConsoleState extends State<LogConsole> {
   }
 
   void _scrollToBottom() async {
-    _scrollListenerEnabled = false;
-
     setState(() {
       _followBottom = true;
     });
 
     var scrollPosition = _scrollController.position;
     await _scrollController.animateTo(
-      scrollPosition.maxScrollExtent,
+      scrollPosition.maxScrollExtent - 2,
       duration: Duration(milliseconds: 400),
       curve: Curves.easeOut,
     );
-
-    _scrollListenerEnabled = true;
-  }
+}
 
   RenderedEvent _renderEvent(OutputEvent event) {
-    var parser = AnsiParser(widget.dark);
+    var parser = AnsiParser(widget.dark, level: event.level);
     var text = event.lines.join('\n');
     parser.parse(text);
     return RenderedEvent(
