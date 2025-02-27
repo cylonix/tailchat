@@ -171,6 +171,7 @@ func (s *PNServer) sendApplePush(ctx context.Context, req *PushRequest, receiver
 			// Custom data
 			"sender_hostname": req.SenderHostname,
 			"type":            "connection_request",
+			"message":         req.Message,
 		},
 	}
 
@@ -201,7 +202,7 @@ func (s *PNServer) sendApplePush(ctx context.Context, req *PushRequest, receiver
 	case http.StatusOK:
 		// Update last push time and count
 		now := time.Now().Unix()
-		return s.updatePushStats(ctx, req.SenderHostname, now)
+		return s.updatePushStats(ctx, req.ReceiverID, now)
 
 	default:
 		return fmt.Errorf("unexpected status code: %d, reason: %s", res.StatusCode, res.Reason)

@@ -55,7 +55,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
   @override
   void didUpdateWidget(ContactDetailsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.contact.id != widget.contact.id) {
+    if (_contact.id != widget.contact.id) {
       _contact = widget.contact;
     }
   }
@@ -106,13 +106,13 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
 
   Widget _buildHeader() {
     return UserProfileHeader(
-      user: widget.contact,
+      user: _contact,
       heroTag: 'contact-${_contact.id}',
     );
   }
 
   Widget _buildInfoCard() {
-    final lastSeen = widget.contact.lastSeen;
+    final lastSeen = _contact.lastSeen;
     final lastSeenMsg = lastSeen != null ? timeago.format(lastSeen) : "never";
     return Card(
       margin: const EdgeInsets.all(16),
@@ -218,7 +218,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
   }
 
   void _editContact() async {
-    final result = await showDialog(
+    final result = await showDialog<Contact>(
       context: context,
       builder: (context) => ContactDialog(contact: _contact),
     );
@@ -226,6 +226,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
       return;
     }
     if (mounted) {
+      _logger.d("setting state with new contact: $result");
       setState(() {
         _contact = result;
       });

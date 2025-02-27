@@ -111,7 +111,7 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
     return ListTile(
       title: Text(tr.showDaemonLog),
       subtitle: const Text("Show chat service diagnostic logs"),
-      leading: getIcon(Icons.wysiwyg_rounded, darkTheme: isDarkMode(context)),
+      leading: getIcon(Icons.terminal_rounded, darkTheme: isDarkMode(context)),
       trailing: _isServiceLogConsoleSupported
           ? _arrowForward
           : Text("Not supported yet"),

@@ -262,7 +262,7 @@ class _SelectUsersState extends State<SelectUsers> {
               ])
             : Text('${device.hostname}\n${device.address}')
         : _groupValue == index && widget.chooseOnlyOneDevice
-            ? Text(AppLocalizations.of(context).pleaseSelectOneDeviceText)
+            ? const Text("Please click to select a device.")
             : null;
     final child = ListTile(
       contentPadding: widget.enableScroll ? null : const EdgeInsets.all(0),

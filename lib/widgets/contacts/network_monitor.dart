@@ -414,6 +414,20 @@ class _ContactsPageState extends State<NetworkMonitor> {
 
   void _subscribeToNetworkConfigEvents() {
     _logger.d("Subscribing to the network events");
+    final currentHostname = ChatServer.hostname;
+    final currentAddress = ChatServer.address;
+    if (currentHostname != null && currentAddress != null) {
+      Future.microtask(
+        () => _handleNetworkConfig(
+          ChatReceiveNetworkConfigEvent(
+            hostname: currentHostname,
+            address: currentAddress,
+            port: ChatServer.port,
+            subscriberPort: ChatServer.subscriberPort,
+          ),
+        ),
+      );
+    }
     _networkConfigEventSub = ChatServer.getChatEventBus()
         .on<ChatReceiveNetworkConfigEvent>()
         .listen((event) => _handleNetworkConfig(event));

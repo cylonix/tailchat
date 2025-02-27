@@ -284,7 +284,7 @@ class ChatServer {
           _logger.d("Received control message: $line");
           break;
         case "TEXT":
-          _handleReceiveChatMessage(line.replaceFirst("TEXT:$id:", ""));
+          handleReceiveChatMessage(line.replaceFirst("TEXT:$id:", ""));
           break;
         case "FILE_END":
           _logger.d("Received file ${line.replaceFirst("FILE_END:$id", "")}");
@@ -374,7 +374,7 @@ class ChatServer {
   }
 
   static Future<void> _handleReceiveSenderInformation(String sender) async {
-    _logger.d("Receive sender information: $sender");
+    _logger.d("Received sender information: $sender");
     try {
       final json = jsonDecode(sender);
       final user = UserProfile.fromJson(json['profile']);
@@ -405,10 +405,42 @@ class ChatServer {
     }
   }
 
-  static void _handleReceiveChatMessage(String m) async {
+  static Future<void> _handleReceivePNInfo(String pnInfo) async {
+    _logger.d("Received push notification information: $pnInfo");
+    try {
+      final parts = pnInfo.split(" ");
+      if (parts.length != 2) {
+        throw "invalid format: $pnInfo";
+      }
+      final hostname = parts[0];
+      final pnUUID = parts[1];
+      final device = await getDevice(Device.generateID(hostname));
+      if (device == null) {
+        throw "failed to get device for $hostname";
+      }
+      if (device.pnUUID == pnUUID) {
+        _logger.d("push notification information is the same. skip...");
+        return;
+      }
+      device.isAvailable = true;
+      device.lastSeen = DateTime.now();
+      device.isOnline = true;
+      device.pnUUID = pnUUID;
+      await updateDevice(device);
+    } catch (e) {
+      _logger.e("Failed to process push notificatin information: $e");
+    }
+  }
+
+  static void handleReceiveChatMessage(String m) async {
     if (m.startsWith("SENDER:")) {
       final sender = m.replaceFirst("SENDER:", "");
       await _handleReceiveSenderInformation(sender);
+      return;
+    }
+    if (m.startsWith("PN_INFO:")) {
+      final pnInfo = m.replaceFirst("PN_INFO:", "");
+      await _handleReceivePNInfo(pnInfo);
       return;
     }
 

@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:uuid/uuid.dart';
 import '../models/chat/chat_event.dart';
 import '../utils/logger.dart';
+import 'chat_server.dart';
 
 class ChatService {
   static final _logger = Logger(tag: "ChatService");
@@ -337,6 +338,16 @@ class ChatService {
         final line = _buf.sublist(0, index);
         _buf = _buf.sublist(index + 1);
         var s = utf8.decode(line);
+        if (s.startsWith("TEXT:")) {
+          final parts = s.split(":");
+          if (parts.length < 3) {
+            _logger.e("Invalid TEXT message: $s");
+            continue;
+          }
+          final id = parts[1];
+          ChatServer.handleReceiveChatMessage(s.replaceFirst("TEXT:$id:", ""));
+          continue;
+        }
         _lines.add(s);
         i++;
       }
@@ -492,11 +503,10 @@ class ChatService {
   int _serviceSocketRetryCount = 0;
 
   Future<void> _connectServiceSocketWithRetry() async {
-    _logger.d("_connectServiceSocketWithRetry 1");
     if (_isServiceSocketConnecting) {
       return;
     }
-    _logger.d("_connectServiceSocketWithRetry 2");
+    _logger.d("_connectServiceSocketWithRetry");
     _isServiceSocketConnecting = true;
     _eventBus.fire(ChatServiceStateEvent(
       from: this,
@@ -504,10 +514,7 @@ class ChatService {
       isSelfDevice: true,
     ));
     try {
-      _logger.d("_connectServiceSocketWithRetry 3");
       await _connectServiceSocket();
-      _logger.d("_connectServiceSocketWithRetry 4");
-
       _serviceSocketRetryCount = 0;
       _isServiceSocketConnecting = false;
     } catch (e) {
@@ -518,12 +525,16 @@ class ChatService {
         final delay = _initialRetryDelay * (1 << _serviceSocketRetryCount);
         _serviceSocketRetryCount++;
         _logger.i(
-            'Retrying service socket connection in ${delay.inSeconds} seconds...');
+          'Retrying service socket connection in ${delay.inSeconds} '
+          'seconds...',
+        );
         await Future.delayed(delay);
         await _connectServiceSocketWithRetry();
       } else {
         _logger.e(
-            'Max service socket retries reached. Connection failed permanently.');
+          'Max service socket retries reached. '
+          'Connection failed.',
+        );
         _closeServiceSocket();
       }
     }

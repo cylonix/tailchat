@@ -27,21 +27,26 @@ AppBar getAppBar(BuildContext context, String title) {
     centerTitle: true,
   );
 }
-
 const appleLightThemeIconBackgroundColors = [
-  CupertinoColors.activeOrange,
-  CupertinoColors.lightBackgroundGray,
-  CupertinoColors.systemCyan,
-  CupertinoColors.systemTeal,
-  CupertinoColors.systemGrey2,
+  CupertinoColors.systemGreen, // Fresh green
+  CupertinoColors.systemOrange, // Warm orange
+  CupertinoColors.systemPink, // Vibrant pink
+  CupertinoColors.systemPurple, // Royal purple
+  CupertinoColors.systemTeal, // Cool teal
+  Color(0xFFE9F3FF), // Light blue
+  Color(0xFFE8FCE9), // Light mint
+  Color(0xFFFFF3E0), // Light orange
 ];
 
 const appleDarkThemeIconBackgroundColors = [
-  CupertinoColors.activeBlue,
-  CupertinoColors.darkBackgroundGray,
-  CupertinoColors.systemCyan,
-  CupertinoColors.systemTeal,
-  CupertinoColors.systemGrey,
+  CupertinoColors.activeBlue, // Vivid blue
+  CupertinoColors.systemPurple, // Bright purple
+  CupertinoColors.systemPink, // Deep pink
+  CupertinoColors.systemIndigo, // Deep indigo
+  CupertinoColors.systemTeal, // Deep teal
+  Color(0xFF1C4A7E), // Dark navy
+  Color(0xFF1E4D3E), // Dark forest
+  Color(0xFF4A3123), // Dark burgundy
 ];
 
 /// Common icon style
