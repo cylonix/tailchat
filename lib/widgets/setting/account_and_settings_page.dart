@@ -8,6 +8,7 @@ import '../../gen/l10n/app_localizations.dart';
 import '../../utils/utils.dart';
 import '../contacts/user_profile_header.dart';
 import '../main_app_bar.dart';
+import '../top_row.dart';
 import 'settings_widget.dart';
 
 class AccountAndSettingsPage extends StatelessWidget {
@@ -31,8 +32,7 @@ class AccountAndSettingsPage extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 8),
-        Container(
-          constraints: const BoxConstraints(minHeight: 200),
+        TopRow(
           child: UserProfileHeader(user: Pst.selfUser),
         ),
         const Divider(height: 1),

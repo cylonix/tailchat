@@ -16,6 +16,7 @@ import 'sessions_icon.dart';
 import 'setting/settings_page.dart';
 import 'setting/theme_setting_widget.dart';
 import 'status_widget.dart';
+import 'top_row.dart';
 
 class MainDrawer extends StatefulWidget {
   const MainDrawer({super.key});
@@ -79,8 +80,7 @@ class _MainDrawerState extends State<MainDrawer> {
           shrinkWrap: true,
           padding: const EdgeInsets.all(0),
           children: <Widget>[
-            ConstrainedBox(
-              constraints: BoxConstraints(minHeight: _isAR ? 100 : 200.0),
+            TopRow(
               child: UserProfileHeader(
                 user: Pst.selfUser,
               ),

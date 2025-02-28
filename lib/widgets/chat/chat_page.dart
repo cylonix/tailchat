@@ -124,6 +124,7 @@ class _ChatPageState extends State<ChatPage>
   bool _isActive = true;
   Timer? _tryToConnectPeersTimer;
   int _tryToConnectAttempts = 0;
+  static final int _maxTryToConnectAttempts = 3;
   final _initalTryToConnectBackoff = 1; // seconds
   final _maxTryToConnectBackoff = 1800; // 30 mins in seconds
 
@@ -1770,6 +1771,10 @@ class _ChatPageState extends State<ChatPage>
     }
     _logger.d("Failed to connect to peers: ${result.failureMsg}");
     _tryToConnectAttempts++;
+    if (_tryToConnectAttempts >= _maxTryToConnectAttempts) {
+      _logger.d("Max try to connect attempts reached.");
+      return;
+    }
     var backoff = _initalTryToConnectBackoff << _tryToConnectAttempts;
     if (backoff >= _maxTryToConnectBackoff) {
       backoff = _maxTryToConnectBackoff;

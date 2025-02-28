@@ -482,10 +482,14 @@ class _HomePageState extends State<HomePage>
     return useNavigationRail(context) && !_enableTV
         ? Row(
             children: [
-              MainNavigationRail(
-                onSelected: _selectPage,
+              SafeArea(
+                child: MainNavigationRail(
+                  onSelected: _selectPage,
+                ),
               ),
-              const VerticalDivider(thickness: 1, width: 1),
+              SafeArea(
+                child: VerticalDivider(thickness: 1, width: 1),
+              ),
               Expanded(child: SafeArea(child: _pages(showDrawer: false))),
             ],
           )

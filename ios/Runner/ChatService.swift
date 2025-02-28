@@ -104,7 +104,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
 
             // Schedule task end after 30 seconds
             DispatchQueue.global().asyncAfter(deadline: .now() + 30) { [weak self] in
-                self?.endBackgroundTask()
+                self?.stopService()
             }
         }
 
@@ -145,7 +145,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
 
         private func endBackgroundTask() {
-            logger.i("Entering endBackgroundTask. Stopping timer.")
+            logger.i("Ending background task. Stop service.")
 
             // Remove any pending notifications
             UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
@@ -258,7 +258,10 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                 listener = try NWListener(using: parameters, on: content)
                 listener?.stateUpdateHandler = handleStateUpdate
                 listener?.newConnectionHandler = { [weak self] connection in
-                    guard let self = self else { return }
+                    guard let self = self else {
+                        Logger(tag: "ChatService").e("Self is nil. Returning.")
+                        return
+                    }
                     let connectionQueue = DispatchQueue(label: "connectionQueue-\(connection.endpoint)")
                     connectionQueue.async {
                         self.handleConnection(connection: connection)

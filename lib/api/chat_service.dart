@@ -504,9 +504,10 @@ class ChatService {
 
   Future<void> _connectServiceSocketWithRetry() async {
     if (_isServiceSocketConnecting) {
+      _logger.d("Service socket is connecting. Skip.");
       return;
     }
-    _logger.d("_connectServiceSocketWithRetry");
+    _logger.d("Connecting to service socket");
     _isServiceSocketConnecting = true;
     _eventBus.fire(ChatServiceStateEvent(
       from: this,
@@ -519,7 +520,9 @@ class ChatService {
       _isServiceSocketConnecting = false;
     } catch (e) {
       _logger.e(
-          'Failed to connect to service port $port (retry $_serviceSocketRetryCount): $e');
+        'Failed to connect to service socket port $port '
+        '(retry $_serviceSocketRetryCount): $e',
+      );
       _isServiceSocketConnecting = false;
       if (_serviceSocketRetryCount < _maxRetries) {
         final delay = _initialRetryDelay * (1 << _serviceSocketRetryCount);
@@ -542,10 +545,10 @@ class ChatService {
 
   Future<void> _connectServiceSocket() async {
     try {
-      _logger.d("Trying to connect to service socket");
+      _logger.d("Trying to connect to service socket port $port");
       _serviceSocket = await Socket.connect("127.0.0.1", port);
       isServiceSocketConnected = true;
-      _logger.i("Service socket connected");
+      _logger.i("Service socket is now connected");
       _eventBus.fire(ChatServiceStateEvent(
         from: this,
         state: ChatServiceState.connected,

@@ -232,7 +232,6 @@ class _ContactListState extends State<ContactList> {
   Widget get _contactList {
     return Column(children: [
       _topRow,
-      const Divider(height: 1),
       const SizedBox(height: 4),
       ListTile(
         leading: Text("Users: $_contactCount"),

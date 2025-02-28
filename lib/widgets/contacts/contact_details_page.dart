@@ -14,6 +14,7 @@ import '../../models/contacts/device.dart';
 import '../../utils/logger.dart';
 import '../../utils/utils.dart';
 import '../alert_chip.dart';
+import '../top_row.dart';
 import 'contact_dialog.dart';
 import 'device_dialog.dart';
 import 'user_profile_header.dart';
@@ -105,9 +106,11 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
   }
 
   Widget _buildHeader() {
-    return UserProfileHeader(
-      user: _contact,
-      heroTag: 'contact-${_contact.id}',
+    return TopRow(
+      child: UserProfileHeader(
+        user: _contact,
+        heroTag: 'contact-${_contact.id}',
+      ),
     );
   }
 

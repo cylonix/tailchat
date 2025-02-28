@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import 'package:flutter/material.dart';
+import '../../api/config.dart';
 import '../../models/contacts/user_profile.dart';
 import 'user_avatar.dart';
 
@@ -20,15 +21,19 @@ class UserProfileHeader extends StatelessWidget {
     this.avatarRadius = 48,
     this.nameSize,
     this.nameStyle,
-    this.padding = const EdgeInsets.all(16.0),
+    this.padding = const EdgeInsets.all(8.0),
   });
 
   @override
   Widget build(BuildContext context) {
+    final isSelf = (user?.id == Pst.selfUser?.id && Pst.selfUser?.id != null);
+    final hostname = isSelf ? Pst.selfDevice?.hostname : null;
+    final address = isSelf ? Pst.selfDevice?.address : null;
     return Center(
       child: Padding(
         padding: padding,
         child: Column(
+          spacing: 4,
           children: [
             UserAvatar(
               user: user,
@@ -44,6 +49,8 @@ class UserProfileHeader extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
             ),
+            if (hostname != null) Text(hostname),
+            if (address != null && hostname != address) Text(address),
           ],
         ),
       ),

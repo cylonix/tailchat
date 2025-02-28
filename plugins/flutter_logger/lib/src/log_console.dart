@@ -405,11 +405,7 @@ class _LogConsoleState extends State<LogConsole> {
   }
 
   Color? get _buttonColor {
-    final isMobile = (Platform.isAndroid || Platform.isIOS);
-    if (!isMobile) {
-      return null;
-    }
-    return widget.dark ? Colors.white : Colors.grey;
+    return null;
   }
 
   Widget get _refresh {
@@ -507,6 +503,7 @@ class _LogConsoleState extends State<LogConsole> {
   PreferredSizeWidget _buildTopBar() {
     final title = widget.title ?? _titleText;
     final isMobile = (Platform.isAndroid || Platform.isIOS);
+    final isSmallScren = MediaQuery.of(context).size.width < 600;
     return AppBar(
       title: Text(title),
       centerTitle: true,
@@ -537,11 +534,12 @@ class _LogConsoleState extends State<LogConsole> {
             icon: Icon(Icons.keyboard_arrow_down),
             onPressed: _scrollDown,
           ),
-        if (isMobile) _popupMenu,
-        if (!isMobile && widget.showRefreshButton) _refresh,
-        if (!isMobile && widget.saveFile != null) _saveAsFile,
-        if (!isMobile && widget.shareFile != null) _shareAsFile,
-        if (!isMobile && widget.showCloseButton) _close,
+        if (isSmallScren) _popupMenu,
+        if (!isSmallScren && widget.showRefreshButton) _refresh,
+        if (!isSmallScren && widget.saveFile != null) _saveAsFile,
+        if (!isSmallScren && widget.shareFile != null) _shareAsFile,
+        if (!isSmallScren && widget.showCloseButton) _close,
+        const SizedBox(width: 8),
       ],
     );
   }
