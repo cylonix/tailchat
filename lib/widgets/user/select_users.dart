@@ -1,7 +1,10 @@
 // Copyright (c) EZBLOCK Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:pull_down_button/pull_down_button.dart';
 import 'package:tailchat/utils/utils.dart';
 
 import '../../api/config.dart';
@@ -229,6 +232,38 @@ class _SelectUsersState extends State<SelectUsers> {
     if (filteredPeers.isEmpty) {
       return null;
     }
+
+    if (Platform.isIOS || Platform.isMacOS) {
+      return PullDownButton(
+        itemBuilder: (context) => filteredPeers.map((peer) {
+          return PullDownMenuItem(
+            onTap: () {
+              Navigator.of(context).pop();
+              _flipSelectedState(index, peer);
+              if (_simpleSelect) {
+                _handleSelectOnlyOneUser();
+              }
+            },
+            icon: getOsIconData(peer.os),
+            title: peer.hostname.split('.').first,
+            subtitle: peer.hostname.replaceFirst(
+              peer.hostname.split('.').first,
+              '',
+            ),
+          );
+        }).toList(),
+        buttonBuilder: (context, showMenu) => CupertinoButton(
+          onPressed: showMenu,
+          child: child ??
+              Tooltip(
+                message: tr.selectADeviceText,
+                child: Icon(Icons.more_vert_rounded),
+              ),
+        ),
+      );
+    }
+
+    // Fallback to PopupMenuButton for other platforms
     return PopupMenuButton<Device>(
       position: PopupMenuPosition.under,
       itemBuilder: (context) => filteredPeers.map((peer) {
@@ -264,13 +299,19 @@ class _SelectUsersState extends State<SelectUsers> {
         : _groupValue == index && widget.chooseOnlyOneDevice
             ? const Text("Please click to select a device.")
             : null;
-    final child = ListTile(
-      contentPadding: widget.enableScroll ? null : const EdgeInsets.all(0),
-      selected: _groupValue == index,
-      title: Text(user.name),
-      isThreeLine: threeLine,
-      subtitle: subtitle,
-    );
+    final child = isApple()
+        ? CupertinoListTile(
+            title: Text(user.name),
+            subtitle: subtitle,
+          )
+        : ListTile(
+            contentPadding:
+                widget.enableScroll ? null : const EdgeInsets.all(0),
+            selected: _groupValue == index,
+            title: Text(user.name),
+            isThreeLine: threeLine,
+            subtitle: subtitle,
+          );
     if (widget.chooseOnlyOneDevice &&
         widget.chooseOnlyOneUser &&
         device == null) {

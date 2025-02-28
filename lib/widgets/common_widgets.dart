@@ -69,9 +69,9 @@ Widget getIcon(
       color: appleBackgroundColor ?? set[colorIndex],
       clipBehavior: Clip.antiAlias,
       child: SizedBox(
-        height: size ?? 24,
-        width: size ?? 24,
-        child: Icon(icon, color: color, size: size != null ? size - 8 : 16),
+        height: (size ?? 24) + 8,
+        width: (size ?? 24) + 8,
+        child: Icon(icon, color: color, size: size),
       ),
     );
   }
@@ -94,22 +94,25 @@ Widget getOsOnlineIcon(String os, bool online, {double? size}) {
   return getOsIcon(os.toLowerCase(), color: onlineColor, size: size);
 }
 
-Widget getOsIcon(String os, {Color? color, double? size}) {
+IconData getOsIconData(String os) {
   switch (os) {
     case "android":
-      return Icon(Icons.android, size: size, color: color);
+      return Icons.android;
     case "ios":
-      return Icon(Icons.phone_iphone, size: size, color: color);
+      return Icons.phone_iphone;
     case "linux":
-      // TODO: check finer details among varies distros.
-      return FaIcon(FontAwesomeIcons.linux, size: size, color: color);
+      return FontAwesomeIcons.linux;
     case "macos":
-      return Icon(Icons.laptop_mac, size: size, color: color);
+      return Icons.laptop_mac;
     case "windows":
-      return Icon(Icons.laptop_windows, size: size, color: color);
+      return Icons.laptop_windows;
     default:
-      return Icon(Icons.devices, size: size, color: color);
+      return Icons.devices;
   }
+}
+
+Widget getOsIcon(String os, {Color? color, double? size}) {
+  return getIcon(getOsIconData(os), color: color, size: size);
 }
 
 Widget loadingWidget() {

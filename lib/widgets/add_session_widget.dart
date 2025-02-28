@@ -1,7 +1,10 @@
 // Copyright (c) EZBLOCK Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:pull_down_button/pull_down_button.dart';
+import 'package:tailchat/utils/utils.dart';
 import '../gen/l10n/app_localizations.dart';
 import '../models/chat/chat_session.dart';
 import 'chat/add_group_chat.dart';
@@ -103,6 +106,26 @@ class AddSessionWidget extends StatelessWidget {
           ),
           const SizedBox(height: 32),
         ],
+      );
+    }
+
+    if (isApple()) {
+      return PullDownButton(
+        itemBuilder: (context) => options.map<PullDownMenuItem>((a) {
+          return PullDownMenuItem(
+            title: a.label,
+            subtitle: a.enabled ? null : '🔜',
+            icon: a.icon.icon,
+            enabled: a.enabled,
+            onTap: () => a.enabled ? a.action.call(context) : null,
+          );
+        }).toList(),
+        buttonBuilder: (context, showMenu) => CupertinoButton(
+          minSize: iconSize,
+          onPressed: showMenu,
+          padding: EdgeInsets.zero,
+          child: const Icon(CupertinoIcons.plus),
+        ),
       );
     }
 
