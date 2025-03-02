@@ -387,7 +387,7 @@ class SessionWidgetState extends State<SessionWidget> {
         }
         if (!(await showAlertDialog(context, tr.confirmDialogTitle,
                 tr.confirmSessionDeleteMessageText,
-                okText: tr.yesButton, showCancel: true) ??
+                okText: tr.yesButton) ??
             false)) {
           // User cancelled deletion
           return;

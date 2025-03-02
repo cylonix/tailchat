@@ -48,7 +48,6 @@ class UrlLink extends StatelessWidget {
           context,
           tr.prompt,
           "${tr.cannotLaunchUrlText}: $urlString $e",
-          showCancel: false,
         );
       }
     }

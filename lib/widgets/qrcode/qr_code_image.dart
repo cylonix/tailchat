@@ -127,7 +127,6 @@ class QrCodeImage extends StatelessWidget {
               tr.confirmDialogTitle,
               tr.confirmToOverwriteFileText,
               okText: tr.yesButton,
-              showCancel: true,
             ) ??
             false)) {
           return;
@@ -147,7 +146,6 @@ class QrCodeImage extends StatelessWidget {
           context,
           tr.prompt,
           '${tr.errSavingImageText}: $e',
-          showCancel: false,
         );
       }
     }
@@ -183,7 +181,6 @@ class QrCodeImage extends StatelessWidget {
           context,
           tr.prompt,
           '${tr.errSavingImageText}: $e',
-          showCancel: false,
         );
       }
     }

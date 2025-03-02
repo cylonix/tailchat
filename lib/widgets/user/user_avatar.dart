@@ -198,7 +198,7 @@ class _UserAvatarState extends State<UserAvatar> {
         await showAlertDialog(
           context,
           tr.prompt,
-          status.error(context),
+          status.error(context) ?? "",
         );
       }
     }

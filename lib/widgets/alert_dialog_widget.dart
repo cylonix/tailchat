@@ -2,43 +2,42 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import 'package:flutter/material.dart';
-import '../gen/l10n/app_localizations.dart';
 import '../utils/utils.dart';
 import 'dialog_action.dart';
+
+class Action {
+  final String title;
+  final void Function() onPressed;
+
+  Action({
+    required this.title,
+    required this.onPressed,
+  });
+}
+
+class Content {
+  final String content;
+  final TextStyle? style;
+
+  Content({
+    required this.content,
+    this.style,
+  });
+}
 
 /// A dialog that returns a bool result
 class AlertDialogWidget extends StatelessWidget {
   final String title;
-  final String? content;
-  final String? additionalAskTitle;
-  final String? successSubtitle;
-  final String? successMsg;
-  final String? failureSubtitle;
-  final String? failureMsg;
-  final Widget? otherActions;
-  final String? okText;
-  final String? cancelText;
-  final void Function()? onAdditionalAskPressed;
-  final void Function()? onCancel;
-  final void Function()? onOK;
-  final bool showOK;
+  final List<Content> contents;
+  final List<Action> actions;
+  final Widget? child;
 
   const AlertDialogWidget({
-    required this.title,
-    this.content,
     super.key,
-    this.additionalAskTitle,
-    this.otherActions,
-    this.successSubtitle,
-    this.successMsg,
-    this.failureSubtitle,
-    this.failureMsg,
-    this.cancelText,
-    this.okText,
-    this.onAdditionalAskPressed,
-    this.onCancel,
-    this.onOK,
-    this.showOK = true,
+    required this.title,
+    required this.contents,
+    required this.actions,
+    this.child,
   });
 
   Future<bool?> show(BuildContext context) async {
@@ -55,10 +54,6 @@ class AlertDialogWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tr = AppLocalizations.of(context);
-    const red = TextStyle(color: Colors.red);
-    const green = TextStyle(color: Colors.green);
-
     return AlertDialog.adaptive(
       key: key,
       title: Text(title, textAlign: TextAlign.center),
@@ -79,16 +74,10 @@ class AlertDialogWidget extends StatelessWidget {
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  spacing: 8,
                   children: [
-                    if (content != null) Text(content!),
-                    if (successMsg != null) const SizedBox(height: 8),
-                    if (successSubtitle != null) Text(successSubtitle!),
-                    if (successMsg != null) Text(successMsg!, style: green),
-                    if (failureMsg != null) const SizedBox(height: 8),
-                    if (failureSubtitle != null) Text(failureSubtitle!),
-                    if (failureMsg != null) Text(failureMsg!, style: red),
-                    if (otherActions != null) const SizedBox(height: 8),
-                    if (otherActions != null) otherActions!,
+                    ...contents.map((c) => Text(c.content, style: c.style)),
+                    if (child != null) child!,
                   ],
                 ),
               ),
@@ -97,33 +86,14 @@ class AlertDialogWidget extends StatelessWidget {
           ),
         ),
       ),
-      actions: <Widget>[
-        if (additionalAskTitle != null)
-          _action(
-            child: Text(additionalAskTitle!, textAlign: TextAlign.center),
-            onPressed: () {
-              onAdditionalAskPressed?.call();
-              Navigator.of(context).pop(true);
-            },
-          ),
-        if (onCancel != null)
-          _action(
-            child: Text(
-              cancelText ?? tr.cancelButton,
-              textAlign: TextAlign.center,
+      actions: actions
+          .map(
+            (a) => _action(
+              child: Text(a.title, textAlign: TextAlign.center),
+              onPressed: a.onPressed,
             ),
-            onPressed: () => Navigator.of(context).pop(false),
-          ),
-        if (showOK)
-          _action(
-            //autofocus: true,
-            child: Text(okText ?? tr.ok, textAlign: TextAlign.center),
-            onPressed: () {
-              Navigator.of(context).pop(true);
-              onOK?.call();
-            },
-          ),
-      ],
+          )
+          .toList(),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(32.0)),
       ),

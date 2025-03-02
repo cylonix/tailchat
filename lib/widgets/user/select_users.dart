@@ -299,19 +299,13 @@ class _SelectUsersState extends State<SelectUsers> {
         : _groupValue == index && widget.chooseOnlyOneDevice
             ? const Text("Please click to select a device.")
             : null;
-    final child = isApple()
-        ? CupertinoListTile(
-            title: Text(user.name),
-            subtitle: subtitle,
-          )
-        : ListTile(
-            contentPadding:
-                widget.enableScroll ? null : const EdgeInsets.all(0),
-            selected: _groupValue == index,
-            title: Text(user.name),
-            isThreeLine: threeLine,
-            subtitle: subtitle,
-          );
+    final child = ListTile(
+      contentPadding: widget.enableScroll ? null : const EdgeInsets.all(0),
+      selected: _groupValue == index,
+      title: Text(user.name),
+      isThreeLine: threeLine,
+      subtitle: subtitle,
+    );
     if (widget.chooseOnlyOneDevice &&
         widget.chooseOnlyOneUser &&
         device == null) {

@@ -36,7 +36,6 @@ class _ChatSimpleUIState extends State<ChatSimpleUI> {
           context,
           tr.prompt,
           tr.failedToSaveChangeText,
-          showCancel: false,
         );
       }
     }

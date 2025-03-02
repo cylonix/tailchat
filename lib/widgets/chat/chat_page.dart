@@ -44,7 +44,7 @@ import '../../utils/global.dart';
 import '../../utils/logger.dart';
 import '../../utils/utils.dart' as utils;
 import '../alert_chip.dart';
-import '../alert_dialog_widget.dart';
+import '../alert_dialog_widget.dart' as ad;
 import '../common_widgets.dart';
 import '../snackbar_widget.dart';
 import '../tv/return_button.dart';
@@ -196,8 +196,6 @@ class _ChatPageState extends State<ChatPage>
   void _onAcive() {
     _logger.d("-> Active");
     _isActive = true;
-    _tryToConnectAttempts = 0;
-    _onTryToConnect();
     ChatServer.setIsOnFront(_chatID.id, true);
   }
 
@@ -621,9 +619,7 @@ class _ChatPageState extends State<ChatPage>
 
   Future<bool?> _showSendResultDialog(
     ChatSendPeersResult? r, {
-    String? additionalAskTitle,
-    void Function()? onAdditionalAskPressed,
-    Widget? otherActions,
+    List<ad.Action> actions = const [],
   }) async {
     if (!mounted) {
       return null;
@@ -642,15 +638,34 @@ class _ChatPageState extends State<ChatPage>
       ft = r.failureMsg != null ? "${tr.failureDeviceCountText} ($f):" : null;
     }
 
-    return AlertDialogWidget(
+    return ad.AlertDialogWidget(
       title: tr.messageSendResultsText,
-      additionalAskTitle: additionalAskTitle,
-      successSubtitle: st,
-      failureSubtitle: ft,
-      successMsg: r?.successMsg,
-      failureMsg: r?.failureMsg,
-      onAdditionalAskPressed: onAdditionalAskPressed,
-      otherActions: otherActions,
+      contents: [
+        if (st != null)
+          ad.Content(
+            content: st,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        if (r != null && r.successMsg != null)
+          ad.Content(
+            content: r.successMsg!,
+            style: const TextStyle(color: Colors.green),
+          ),
+        if (ft != null)
+          ad.Content(
+            content: ft,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        if (r != null && r.failureMsg != null)
+          ad.Content(
+            content: r.failureMsg!,
+            style: const TextStyle(color: Colors.red),
+          ),
+      ],
+      actions: [
+        ...actions,
+        ad.Action(title: tr.ok, onPressed: () => Navigator.pop(context, true)),
+      ],
     ).show(context);
   }
 
@@ -747,6 +762,9 @@ class _ChatPageState extends State<ChatPage>
         status: types.Status.toretry,
       );
     }
+    if (!_hasPeersReady) {
+      await _onTryToConnect();
+    }
     if (message.expireAt == null &&
         message.createdAt != null &&
         _session.messageExpireInMs != null) {
@@ -777,10 +795,15 @@ class _ChatPageState extends State<ChatPage>
       if (_showSendResult && mounted) {
         await _showSendResultDialog(
           r,
-          additionalAskTitle: tr.dontShowAgainText,
-          onAdditionalAskPressed: () {
-            _showSendResult = false;
-          },
+          actions: [
+            ad.Action(
+              title: tr.dontShowAgainText,
+              onPressed: () {
+                Navigator.of(context).pop(false);
+                _showSendResult = false;
+              },
+            ),
+          ],
         );
       }
       final sent = r.failureCnt <= 0;
@@ -1337,25 +1360,30 @@ class _ChatPageState extends State<ChatPage>
     final tr = AppLocalizations.of(context);
     await _showSendResultDialog(
       result,
-      additionalAskTitle: result.success
-          ? tr.sendAgainText
-          : tr.retrySendingToFailedDevicesText,
-      onAdditionalAskPressed: () async {
-        if (result.success) {
-          _addMessage(message.copyWith(id: ChatMessage.newMessageID()));
-          return;
-        }
-        message = message.copyWith(status: types.Status.sending);
-        _logger.d("${message.id} send from long pressed retry");
-        await _sendMessage(message);
-      },
-      otherActions: TextButton(
-        onPressed: () async {
-          Navigator.of(context).pop(true);
-          await _deleteMessage(message);
-        },
-        child: Text(tr.deleteText),
-      ),
+      actions: [
+        ad.Action(
+          title: result.success
+              ? tr.sendAgainText
+              : tr.retrySendingToFailedDevicesText,
+          onPressed: () async {
+            Navigator.of(context).pop(true);
+            if (result.success) {
+              _addMessage(message.copyWith(id: ChatMessage.newMessageID()));
+              return;
+            }
+            message = message.copyWith(status: types.Status.sending);
+            _logger.d("${message.id} send from long pressed retry");
+            await _sendMessage(message);
+          },
+        ),
+        ad.Action(
+          title: "Delete message",
+          onPressed: () async {
+            Navigator.of(context).pop(true);
+            await _deleteMessage(message);
+          },
+        ),
+      ],
     );
   }
 
@@ -1675,7 +1703,6 @@ class _ChatPageState extends State<ChatPage>
           context,
           tr.prompt,
           '${tr.deleteAllChatMessagesFailedText}: ${result.error(context)}',
-          showCancel: false,
         );
       }
       // Make an empty message to clear the last chats.
@@ -1846,7 +1873,7 @@ class _ChatPageState extends State<ChatPage>
     return const SizedBox();
   }
 
-  void _onTryToConnect() async {
+  Future<void> _onTryToConnect() async {
     _tryToConnectPeersTimer?.cancel();
     if (_hasPeersReady) {
       _logger.d("Already can send. Skip trying to connect.");

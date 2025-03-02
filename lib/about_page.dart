@@ -229,11 +229,10 @@ class _AboutPageState extends State<AboutPage> {
       );
     } catch (e) {
       if (mounted) {
-        showAlertDialog(
+        await showAlertDialog(
           context,
           tr.prompt,
           "${tr.cannotLaunchUrlText}: $urlString $e",
-          showCancel: false,
         );
       }
     }

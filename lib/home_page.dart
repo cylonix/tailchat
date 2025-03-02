@@ -172,7 +172,6 @@ class _HomePageState extends State<HomePage>
         context,
         title,
         errMessage,
-        showCancel: false,
       );
     });
   }
