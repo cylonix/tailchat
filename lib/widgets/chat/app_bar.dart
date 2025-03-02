@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import 'package:flutter/material.dart';
+import 'package:tailchat/widgets/alert_dialog_widget.dart' as ad;
 import '../../gen/l10n/app_localizations.dart';
-import '../../utils/utils.dart';
 import '../common_widgets.dart';
 import '../main_app_bar.dart';
 import '../tv/icon_button.dart';
@@ -108,17 +108,30 @@ class ChatAppBarPopupMenuButtonState extends State<ChatAppBarPopupMenuButton> {
             return;
           case 'delete-all-messages':
             final tr = AppLocalizations.of(context);
-            await showAlertDialog(
-              context,
-              tr.confirmText,
-              tr.confirmDeleteAllChatMessagesText,
-              otherActions: DeleteFromAllSwitchListTile(
+            await ad.AlertDialogWidget(
+              title: tr.confirmText,
+              contents: [
+                ad.Content(
+                  content: tr.confirmDeleteAllChatMessagesText,
+                )
+              ],
+              actions: [
+                ad.Action(
+                  title: tr.cancelButton,
+                  onPressed: () => Navigator.of(context).pop(false),
+                ),
+                ad.Action(
+                  title: tr.ok,
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                    widget.onDeleteAllPressed?.call(_deleteFromAllPeers);
+                  },
+                ),
+              ],
+              child: DeleteFromAllSwitchListTile(
                 onChanged: (value) => _deleteFromAllPeers = value,
               ),
-              showCancel: true,
-              onPressOK: () =>
-                  widget.onDeleteAllPressed?.call(_deleteFromAllPeers),
-            );
+            ).show(context);
             return;
           default:
             return;
@@ -220,6 +233,7 @@ class _DeleteFromAllSwitchListTileState
   Widget build(BuildContext context) {
     final tr = AppLocalizations.of(context);
     return SwitchListTile.adaptive(
+      contentPadding: const EdgeInsets.all(0),
       value: _deleteFromAllPeers,
       onChanged: (value) {
         widget.onChanged?.call(value);

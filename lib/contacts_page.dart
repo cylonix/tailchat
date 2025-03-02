@@ -89,6 +89,10 @@ class _ContactsPageState extends State<ContactsPage>
           });
           return;
         }
+        if (selectedWidget == null) {
+          Navigator.of(context).pop();
+          return;
+        }
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => selectedWidget,

@@ -14,18 +14,19 @@ import '../../models/contacts/device.dart';
 import '../../utils/logger.dart';
 import '../../utils/utils.dart';
 import '../alert_chip.dart';
+import '../top_row.dart';
 import 'contact_dialog.dart';
 import 'device_dialog.dart';
 import 'user_profile_header.dart';
 
 class ContactDetailsPage extends StatefulWidget {
   final Contact contact;
-  final bool popOnDelete;
+  final Function()? onDelete;
 
   const ContactDetailsPage({
     super.key,
     required this.contact,
-    this.popOnDelete = true,
+    this.onDelete,
   });
 
   @override
@@ -55,7 +56,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
   @override
   void didUpdateWidget(ContactDetailsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.contact.id != widget.contact.id) {
+    if (_contact.id != widget.contact.id) {
       _contact = widget.contact;
     }
   }
@@ -105,14 +106,16 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
   }
 
   Widget _buildHeader() {
-    return UserProfileHeader(
-      user: widget.contact,
-      heroTag: 'contact-${_contact.id}',
+    return TopRow(
+      child: UserProfileHeader(
+        user: _contact,
+        heroTag: 'contact-${_contact.id}',
+      ),
     );
   }
 
   Widget _buildInfoCard() {
-    final lastSeen = widget.contact.lastSeen;
+    final lastSeen = _contact.lastSeen;
     final lastSeenMsg = lastSeen != null ? timeago.format(lastSeen) : "never";
     return Card(
       margin: const EdgeInsets.all(16),
@@ -218,7 +221,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
   }
 
   void _editContact() async {
-    final result = await showDialog(
+    final result = await showDialog<Contact>(
       context: context,
       builder: (context) => ContactDialog(contact: _contact),
     );
@@ -226,6 +229,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
       return;
     }
     if (mounted) {
+      _logger.d("setting state with new contact: $result");
       setState(() {
         _contact = result;
       });
@@ -260,9 +264,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
         await deleteContact(_contact.id);
         if (mounted) {
           toast(context, "Contact ${_contact.name} is deleted.");
-          if (widget.popOnDelete) {
-            Navigator.pop(context, 'delete'); // Pop with delete result
-          }
+          widget.onDelete?.call();
         }
       } catch (e) {
         if (mounted) {

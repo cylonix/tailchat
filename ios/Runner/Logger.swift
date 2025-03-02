@@ -31,6 +31,10 @@ public class Logger {
         log(level: "INFO", message: message)
     }
 
+    func w(_ message: String) {
+        log(level: "WARN", message: message)
+    }
+
     func e(_ message: String) {
         log(level: "ERROR", message: message)
     }

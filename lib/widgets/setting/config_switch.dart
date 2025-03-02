@@ -74,7 +74,6 @@ class _ConfigSwitchState extends State<ConfigSwitch> {
           context,
           tr.alertErrorMessage,
           msg,
-          showCancel: false,
         );
       }
     }

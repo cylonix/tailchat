@@ -56,6 +56,7 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
 
         override func applicationWillEnterForeground(_: UIApplication) {
             isAppInBackground = false
+            startChatService()
             chatService?.setAppActive(true)
         }
     #endif
@@ -293,9 +294,8 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
         ) {
             logger.i("Received remote notification: \(userInfo)")
 
+            startChatService()
             if let peerID = userInfo["peer_id"] as? String {
-                // Start chat service if needed
-                startChatService()
                 chatService?.handleIncomingConnection(fromPeerID: peerID)
             }
 

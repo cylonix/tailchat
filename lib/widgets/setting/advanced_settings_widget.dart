@@ -31,13 +31,14 @@ class AdvancedSettingsWidget extends StatefulWidget {
 
 class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
   static final _logger = log.Logger(tag: "AdvancedSetting");
+  List<String> _serviceLogs = [];
 
   LogFile get _appLogFile {
     return LogFile.appLogFile;
   }
 
-  LogFile get _cylonixdLogFile {
-    return LogFile.cylonixdLogFile;
+  LogFile get _serviceLogFile {
+    return LogFile(logs: _serviceLogs, name: "tailchat_service.log");
   }
 
   void _save(LogFile logFile) async {
@@ -111,7 +112,7 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
     return ListTile(
       title: Text(tr.showDaemonLog),
       subtitle: const Text("Show chat service diagnostic logs"),
-      leading: getIcon(Icons.wysiwyg_rounded, darkTheme: isDarkMode(context)),
+      leading: getIcon(Icons.terminal_rounded, darkTheme: isDarkMode(context)),
       trailing: _isServiceLogConsoleSupported
           ? _arrowForward
           : Text("Not supported yet"),
@@ -124,9 +125,9 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
                     title: tr.daemonLogConsoleTitleText,
                     showRefreshButton: true,
                     getLogOutputEvents: _getChatServiceLogs,
-                    saveFile: () => _save(_cylonixdLogFile),
+                    saveFile: () => _save(_serviceLogFile),
                     shareFile:
-                        _canShareFile ? () => _share(_cylonixdLogFile) : null,
+                        _canShareFile ? () => _share(_serviceLogFile) : null,
                   );
                 }),
               );
@@ -137,11 +138,67 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
 
   Future<ListQueue<OutputEvent>> _getChatServiceLogs() async {
     ListQueue<OutputEvent> events = ListQueue();
+    final timestampRegex = RegExp(r'^\[([\d\-]+T[\d:\.]+Z)\]');
+
     try {
       final logs = await ChatService.getLogs();
-      for (var line in logs.split('\n')) {
-        final event = OutputEvent(LogEvent(Level.info, ""), [line]);
-        events.add(event);
+      _serviceLogs = logs.split('\n');
+
+      LogEvent? currentLogEvent;
+      List<String> currentLines = [];
+
+      for (var line in _serviceLogs) {
+        line = line.trim();
+        if (line.isEmpty) continue;
+
+        final timestampMatch = timestampRegex.firstMatch(line);
+
+        if (timestampMatch != null) {
+          // New log entry starts
+          if (currentLogEvent != null) {
+            // Add previous log entry
+            events.add(OutputEvent(currentLogEvent, currentLines));
+            currentLines = [];
+          }
+
+          // Extract timestamp
+          final timestamp = timestampMatch.group(1)!;
+          //line = line.substring(timestampMatch.end).trim();
+
+          // Determine log level and clean up line
+          var level = Level.info;
+          if (line.contains("[FATAL]")) {
+            level = Level.fatal;
+            line = line.replaceAll("[FATAL]", "");
+          } else if (line.contains("[ERROR]")) {
+            level = Level.error;
+            line = line.replaceAll("[ERROR]", "");
+          } else if (line.contains("[WARNING]")) {
+            level = Level.warning;
+            line = line.replaceAll("[WARNING]", "");
+          } else if (line.contains("[DEBUG]")) {
+            level = Level.debug;
+            line = line.replaceAll("[DEBUG]", "");
+          } else {
+            line = line.replaceAll("[INFO]", "");
+          }
+
+          // Create new log event
+          currentLogEvent = LogEvent(
+            level,
+            "",
+            time: DateTime.parse(timestamp),
+          );
+          currentLines.add(line.trim());
+        } else if (currentLogEvent != null) {
+          // Continue previous log entry
+          currentLines.add(line);
+        }
+      }
+
+      // Add the last log entry
+      if (currentLogEvent != null && currentLines.isNotEmpty) {
+        events.add(OutputEvent(currentLogEvent, currentLines));
       }
     } catch (e) {
       _logger.e("Failed to get logs: $e");

@@ -20,7 +20,7 @@ import 'contact_details_page.dart';
 import 'contact_dialog.dart';
 
 class ContactList extends StatefulWidget {
-  final void Function(Widget) onSelected;
+  final void Function(Widget?) onSelected;
   final bool showSideBySide;
   final bool isTV;
   const ContactList({
@@ -223,7 +223,7 @@ class _ContactListState extends State<ContactList> {
         subtitle: Text(subtitle),
         onTap: () => widget.onSelected(ContactDetailsPage(
           contact: contact,
-          popOnDelete: showSideBySide(context),
+          onDelete: () => widget.onSelected(null),
         )),
       ),
     );
@@ -232,7 +232,6 @@ class _ContactListState extends State<ContactList> {
   Widget get _contactList {
     return Column(children: [
       _topRow,
-      const Divider(height: 1),
       const SizedBox(height: 4),
       ListTile(
         leading: Text("Users: $_contactCount"),

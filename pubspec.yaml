@@ -85,6 +85,7 @@ dependencies:
   path_provider: ^2.0.2
   platform: ^3.1.0
   provider: ^6.0.1
+  pull_down_button: ^0.10.2
   qr_flutter: ^4.1.0
   random_color: ^1.0.6-nullsafety
   receive_sharing_intent:

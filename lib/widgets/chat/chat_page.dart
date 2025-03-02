@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:downloadsfolder/downloadsfolder.dart' as sse;
 import 'package:duration/duration.dart';
 import 'package:file_picker/file_picker.dart';
@@ -16,6 +17,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart' as pp;
+import 'package:pull_down_button/pull_down_button.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../api/chat_service.dart';
 import '../../api/chat_server.dart';
@@ -42,7 +44,7 @@ import '../../utils/global.dart';
 import '../../utils/logger.dart';
 import '../../utils/utils.dart' as utils;
 import '../alert_chip.dart';
-import '../alert_dialog_widget.dart';
+import '../alert_dialog_widget.dart' as ad;
 import '../common_widgets.dart';
 import '../snackbar_widget.dart';
 import '../tv/return_button.dart';
@@ -124,6 +126,7 @@ class _ChatPageState extends State<ChatPage>
   bool _isActive = true;
   Timer? _tryToConnectPeersTimer;
   int _tryToConnectAttempts = 0;
+  static final int _maxTryToConnectAttempts = 3;
   final _initalTryToConnectBackoff = 1; // seconds
   final _maxTryToConnectBackoff = 1800; // 30 mins in seconds
 
@@ -193,8 +196,6 @@ class _ChatPageState extends State<ChatPage>
   void _onAcive() {
     _logger.d("-> Active");
     _isActive = true;
-    _tryToConnectAttempts = 0;
-    _onTryToConnect();
     ChatServer.setIsOnFront(_chatID.id, true);
   }
 
@@ -618,9 +619,7 @@ class _ChatPageState extends State<ChatPage>
 
   Future<bool?> _showSendResultDialog(
     ChatSendPeersResult? r, {
-    String? additionalAskTitle,
-    void Function()? onAdditionalAskPressed,
-    Widget? otherActions,
+    List<ad.Action> actions = const [],
   }) async {
     if (!mounted) {
       return null;
@@ -639,15 +638,34 @@ class _ChatPageState extends State<ChatPage>
       ft = r.failureMsg != null ? "${tr.failureDeviceCountText} ($f):" : null;
     }
 
-    return AlertDialogWidget(
+    return ad.AlertDialogWidget(
       title: tr.messageSendResultsText,
-      additionalAskTitle: additionalAskTitle,
-      successSubtitle: st,
-      failureSubtitle: ft,
-      successMsg: r?.successMsg,
-      failureMsg: r?.failureMsg,
-      onAdditionalAskPressed: onAdditionalAskPressed,
-      otherActions: otherActions,
+      contents: [
+        if (st != null)
+          ad.Content(
+            content: st,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        if (r != null && r.successMsg != null)
+          ad.Content(
+            content: r.successMsg!,
+            style: const TextStyle(color: Colors.green),
+          ),
+        if (ft != null)
+          ad.Content(
+            content: ft,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        if (r != null && r.failureMsg != null)
+          ad.Content(
+            content: r.failureMsg!,
+            style: const TextStyle(color: Colors.red),
+          ),
+      ],
+      actions: [
+        ...actions,
+        ad.Action(title: tr.ok, onPressed: () => Navigator.pop(context, true)),
+      ],
     ).show(context);
   }
 
@@ -744,6 +762,9 @@ class _ChatPageState extends State<ChatPage>
         status: types.Status.toretry,
       );
     }
+    if (!_hasPeersReady) {
+      await _onTryToConnect();
+    }
     if (message.expireAt == null &&
         message.createdAt != null &&
         _session.messageExpireInMs != null) {
@@ -774,10 +795,15 @@ class _ChatPageState extends State<ChatPage>
       if (_showSendResult && mounted) {
         await _showSendResultDialog(
           r,
-          additionalAskTitle: tr.dontShowAgainText,
-          onAdditionalAskPressed: () {
-            _showSendResult = false;
-          },
+          actions: [
+            ad.Action(
+              title: tr.dontShowAgainText,
+              onPressed: () {
+                Navigator.of(context).pop(false);
+                _showSendResult = false;
+              },
+            ),
+          ],
         );
       }
       final sent = r.failureCnt <= 0;
@@ -1230,6 +1256,102 @@ class _ChatPageState extends State<ChatPage>
     );
   }
 
+  PullDownMenuItem _copyMessageTextAppleMenuItem(types.Message message) {
+    final tr = AppLocalizations.of(context);
+    return PullDownMenuItem(
+      onTap: () => _copyMessageText(message),
+      title: tr.copyText,
+      icon: CupertinoIcons.doc_on_doc,
+    );
+  }
+
+  PullDownMenuItem _forwardMessageAppleMenuItem(types.Message message) {
+    final tr = AppLocalizations.of(context);
+    return PullDownMenuItem(
+      onTap: () => _forwardMessage(message),
+      title: tr.forwardText,
+      icon: CupertinoIcons.arrowshape_turn_up_right,
+    );
+  }
+
+  PullDownMenuItem _deleteMessageAppleMenuItem(types.Message message) {
+    final tr = AppLocalizations.of(context);
+    return PullDownMenuItem(
+      onTap: () => _deleteMessage(message),
+      title: tr.deleteText,
+      icon: CupertinoIcons.delete,
+    );
+  }
+
+  PullDownMenuItem _deleteMessageForAllAppleMenuItem(types.Message message) {
+    final tr = AppLocalizations.of(context);
+    return PullDownMenuItem(
+      onTap: () => _deleteMessage(message, forAll: true),
+      title: tr.deleteFromAllPeersText,
+      icon: CupertinoIcons.delete_solid,
+    );
+  }
+
+  PullDownMenuItem _replyMessageAppleMenuItem(types.Message message) {
+    final tr = AppLocalizations.of(context);
+    return PullDownMenuItem(
+      onTap: () => _setReplyMessage(message),
+      title: tr.replyText,
+      icon: CupertinoIcons.reply,
+    );
+  }
+
+  PullDownMenuItem _sendMessageAgainAppleMenuItem(
+      types.Message message, bool fromMe) {
+    final tr = AppLocalizations.of(context);
+    return PullDownMenuItem(
+      onTap: () {
+        final m = ChatMessage.copyFrom(_chatID.id, message, user: _user);
+        _addMessage(m.message);
+      },
+      title: fromMe ? tr.sendAgainText : tr.sendText,
+      icon: fromMe
+          ? CupertinoIcons.arrow_up_circle
+          : CupertinoIcons.refresh_circled,
+    );
+  }
+
+  PullDownMenuItem _saveToAppStorageAppleMenuItem(types.Message message) {
+    final tr = AppLocalizations.of(context);
+    return PullDownMenuItem(
+      onTap: () => _saveFile(message, sharedStorage: false),
+      title: tr.saveToAppStorageText,
+      icon: CupertinoIcons.arrow_down_doc,
+    );
+  }
+
+  PullDownMenuItem _saveToGalleryAppleMenuItem(types.Message message) {
+    final tr = AppLocalizations.of(context);
+    return PullDownMenuItem(
+      onTap: () => _saveToGallery(message),
+      title: tr.saveToGalleryText,
+      icon: CupertinoIcons.photo,
+    );
+  }
+
+  PullDownMenuItem _saveMessageAppleMenuItem(types.Message message) {
+    final tr = AppLocalizations.of(context);
+    return PullDownMenuItem(
+      onTap: () => _saveFile(message, sharedStorage: false),
+      title: tr.saveText,
+      icon: CupertinoIcons.arrow_down_doc,
+    );
+  }
+
+  PullDownMenuItem _shareMessageAppleMenuItem(types.Message message) {
+    final tr = AppLocalizations.of(context);
+    return PullDownMenuItem(
+      onTap: () => _shareMessage(message),
+      title: tr.shareText,
+      icon: CupertinoIcons.share,
+    );
+  }
+
   /// Exception will be thrown if retry fails.
   void _handleMessageLongPressedRetry(
     types.Message message,
@@ -1238,25 +1360,30 @@ class _ChatPageState extends State<ChatPage>
     final tr = AppLocalizations.of(context);
     await _showSendResultDialog(
       result,
-      additionalAskTitle: result.success
-          ? tr.sendAgainText
-          : tr.retrySendingToFailedDevicesText,
-      onAdditionalAskPressed: () async {
-        if (result.success) {
-          _addMessage(message.copyWith(id: ChatMessage.newMessageID()));
-          return;
-        }
-        message = message.copyWith(status: types.Status.sending);
-        _logger.d("${message.id} send from long pressed retry");
-        await _sendMessage(message);
-      },
-      otherActions: TextButton(
-        onPressed: () async {
-          Navigator.of(context).pop(true);
-          await _deleteMessage(message);
-        },
-        child: Text(tr.deleteText),
-      ),
+      actions: [
+        ad.Action(
+          title: result.success
+              ? tr.sendAgainText
+              : tr.retrySendingToFailedDevicesText,
+          onPressed: () async {
+            Navigator.of(context).pop(true);
+            if (result.success) {
+              _addMessage(message.copyWith(id: ChatMessage.newMessageID()));
+              return;
+            }
+            message = message.copyWith(status: types.Status.sending);
+            _logger.d("${message.id} send from long pressed retry");
+            await _sendMessage(message);
+          },
+        ),
+        ad.Action(
+          title: "Delete message",
+          onPressed: () async {
+            Navigator.of(context).pop(true);
+            await _deleteMessage(message);
+          },
+        ),
+      ],
     );
   }
 
@@ -1281,6 +1408,28 @@ class _ChatPageState extends State<ChatPage>
     final canDeleteForAll = message.status == types.Status.sent;
     final received = message.status == types.Status.received;
     final fromMe = message.author.id == _user!.id && !received;
+
+    if (utils.isApple()) {
+      await showPullDownMenu(
+        context: context,
+        items: <PullDownMenuEntry>[
+          if (canCopy) _copyMessageTextAppleMenuItem(message),
+          _forwardMessageAppleMenuItem(message),
+          _deleteMessageAppleMenuItem(message),
+          if (canDeleteForAll) _deleteMessageForAllAppleMenuItem(message),
+          _replyMessageAppleMenuItem(message),
+          if (canShare) _shareMessageAppleMenuItem(message),
+          if (canSave && utils.isMobile()) _saveToGalleryAppleMenuItem(message),
+          if (canSave && utils.isMobile())
+            _saveToAppStorageAppleMenuItem(message),
+          if (canSave && utils.isDesktop()) _saveMessageAppleMenuItem(message),
+          _sendMessageAgainAppleMenuItem(message, fromMe),
+        ],
+        position: savedTapPosition & const Size(40, 40),
+      );
+      return;
+    }
+
     final action = await showMenu(
       shape: commonShapeBorder(),
       context: context,
@@ -1554,7 +1703,6 @@ class _ChatPageState extends State<ChatPage>
           context,
           tr.prompt,
           '${tr.deleteAllChatMessagesFailedText}: ${result.error(context)}',
-          showCancel: false,
         );
       }
       // Make an empty message to clear the last chats.
@@ -1725,7 +1873,7 @@ class _ChatPageState extends State<ChatPage>
     return const SizedBox();
   }
 
-  void _onTryToConnect() async {
+  Future<void> _onTryToConnect() async {
     _tryToConnectPeersTimer?.cancel();
     if (_hasPeersReady) {
       _logger.d("Already can send. Skip trying to connect.");
@@ -1770,6 +1918,10 @@ class _ChatPageState extends State<ChatPage>
     }
     _logger.d("Failed to connect to peers: ${result.failureMsg}");
     _tryToConnectAttempts++;
+    if (_tryToConnectAttempts >= _maxTryToConnectAttempts) {
+      _logger.d("Max try to connect attempts reached.");
+      return;
+    }
     var backoff = _initalTryToConnectBackoff << _tryToConnectAttempts;
     if (backoff >= _maxTryToConnectBackoff) {
       backoff = _maxTryToConnectBackoff;

@@ -43,7 +43,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
                 _alert = null;
               });
             },
-            trailing: _actions,
+            actions: _actions,
           )
         : Container();
   }
@@ -91,8 +91,17 @@ class _ContactsPageState extends State<NetworkMonitor> {
     }
   }
 
-  void _showUpdateSelfDeviceDialog(String currentDevice, String currentAddress,
-      String address, String hostname) async {
+  void _showUpdateSelfDeviceDialog(
+    String currentDevice,
+    String currentAddress,
+    String address,
+    String hostname,
+  ) async {
+    setState(() {
+      _alert = null;
+      _actions = null;
+    });
+
     final update = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -144,6 +153,10 @@ class _ContactsPageState extends State<NetworkMonitor> {
   }
 
   void _showAddNewDeviceDialog(Contact selfContact, Device newDevice) async {
+    setState(() {
+      _alert = null;
+      _actions = null;
+    });
     final contact = await showDialog<Contact>(
       context: context,
       barrierDismissible: false,
@@ -188,8 +201,11 @@ class _ContactsPageState extends State<NetworkMonitor> {
         if (_alert == null) {
           if (mounted) {
             setState(() {
+              _actions = null;
               _alert = Alert(
-                  "Cannot detect tailnet hostname and address. Is Tailscale running?");
+                "Cannot detect tailnet hostname and address. "
+                "Is Tailscale running?",
+              );
             });
           }
         }
@@ -238,6 +254,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
       if (mounted) {
         setState(() {
           _alert = Alert("Is Tailscale down?");
+          _actions = null;
         });
       }
       return;
@@ -331,6 +348,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
         port: event.port ?? 50311,
       );
       if (mounted) {
+        _logger.d("Change alert to add new device");
         setState(() {
           _alert = Alert(
             "Hostname changed from $currentDevice to $hostname and"
@@ -396,6 +414,20 @@ class _ContactsPageState extends State<NetworkMonitor> {
 
   void _subscribeToNetworkConfigEvents() {
     _logger.d("Subscribing to the network events");
+    final currentHostname = ChatServer.hostname;
+    final currentAddress = ChatServer.address;
+    if (currentHostname != null && currentAddress != null) {
+      Future.microtask(
+        () => _handleNetworkConfig(
+          ChatReceiveNetworkConfigEvent(
+            hostname: currentHostname,
+            address: currentAddress,
+            port: ChatServer.port,
+            subscriberPort: ChatServer.subscriberPort,
+          ),
+        ),
+      );
+    }
     _networkConfigEventSub = ChatServer.getChatEventBus()
         .on<ChatReceiveNetworkConfigEvent>()
         .listen((event) => _handleNetworkConfig(event));

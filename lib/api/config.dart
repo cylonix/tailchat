@@ -78,6 +78,7 @@ class Pst {
   static const _spEnableAR = "enable_ar";
   static const _spEnableTV = "enable_tv";
   static const _spPushNotificationUUID = "push_notification_uuid";
+  static const _spPushNotificationToken = "push_notification_token";
   static const _spQrData = "qr_data";
   static const _spSkipIntro = "skip_intro";
   static const _spThemeIndex = "theme_index";
@@ -92,6 +93,7 @@ class Pst {
   static bool? enableTV;
   static final eventBus = EventBus();
   static String? pushNotificationUUID;
+  static String? pushNotificationToken;
   static String? qrData;
   static Device? selfDevice;
   static UserProfile? selfUser;
@@ -307,6 +309,25 @@ class Pst {
   static Future<bool> removeSavedPushNoitificationUUID() async {
     pushNotificationUUID = null;
     return removeWithKey(_spPushNotificationUUID);
+  }
+
+  static Future<String?> getSavedPushNotificationToken() async {
+    final sp = await SharedPreferences.getInstance();
+    return _getSavedPushNotificationToken(sp);
+  }
+
+  static String? _getSavedPushNotificationToken(SharedPreferences sp) {
+    return sp.getString(_spPushNotificationToken);
+  }
+
+  static Future<bool> savePushNotificationToken(String token) async {
+    pushNotificationToken = token;
+    return setStringWithKey(_spPushNotificationToken, token);
+  }
+
+  static Future<bool> removeSavedPushNoitificationToken() async {
+    pushNotificationToken = null;
+    return removeWithKey(_spPushNotificationToken);
   }
 
   /// Get saved user/self qr data

@@ -19,6 +19,7 @@ import 'main_bottom_bar.dart';
 import 'sessions_icon.dart';
 import 'status_widget.dart';
 import 'setting/theme_setting_widget.dart';
+import 'top_row.dart';
 
 class MainNavigationRail extends StatefulWidget {
   final void Function(int)? onSelected;
@@ -31,7 +32,6 @@ class MainNavigationRail extends StatefulWidget {
 class _MainNavigationRailState extends State<MainNavigationRail> {
   int _selectedIndex = 0;
   bool _extended = false;
-  static const double _userWidgetHeight = 200;
   StreamSubscription<ConfigChangeEvent>? _configSub;
   late final FocusNode _contractFocus, _expandFocus, _infoFocus;
   bool _isTV = Pst.enableTV ?? false;
@@ -167,8 +167,7 @@ class _MainNavigationRailState extends State<MainNavigationRail> {
   Widget get _userCard {
     return Column(
       children: [
-        ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: _userWidgetHeight),
+        TopRow(
           child: UserProfileHeader(user: Pst.selfUser),
         ),
         const Divider(height: 1),

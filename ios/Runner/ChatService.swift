@@ -97,24 +97,19 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             }
 
             // Schedule notification and task end after 30 seconds
-            DispatchQueue.global().asyncAfter(deadline: .now() + 20) { [weak self] in
+            DispatchQueue.global().asyncAfter(deadline: .now() + 25) { [weak self] in
                 // Show notification 10 seconds before expiration
                 self?.showBackgroundTaskExpirationNotification()
             }
 
             // Schedule task end after 30 seconds
             DispatchQueue.global().asyncAfter(deadline: .now() + 30) { [weak self] in
-                self?.endBackgroundTask()
+                self?.stopService()
             }
         }
 
-        private var notificationTimer: Timer?
         private func showBackgroundTaskExpirationNotification() {
             logger.i("Preparing to show background expiration notification")
-
-            // Stop any existing notification timer
-            notificationTimer?.invalidate()
-            notificationTimer = nil
             if backgroundTask == .invalid || isAppActive() {
                 logger.i("Background task is already invalid or App is active. Not showing notification.")
                 return
@@ -145,31 +140,12 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                     self?.logger.e("Failed to schedule notification: \(error)")
                 } else {
                     self?.logger.i("Background expiration notification scheduled successfully")
-
-                    // Start repeating timer to show notification every 3 seconds
-                    // Create timer on main queue
-                    DispatchQueue.main.async {
-                        self?.notificationTimer = Timer.scheduledTimer(
-                            withTimeInterval: 5.0,
-                            repeats: true
-                        ) { [weak self] _ in
-                            self?.logger.i("Timer fired - showing notification again")
-                            self?.showBackgroundTaskExpirationNotification()
-                        }
-
-                        // Make sure timer runs in background
-                        self?.notificationTimer?.tolerance = 0.1
-                        RunLoop.current.add(self?.notificationTimer ?? Timer(), forMode: .common)
-                    }
                 }
             }
         }
 
         private func endBackgroundTask() {
-            logger.i("Entering endBackgroundTask. Stopping timer.")
-            // Stop notification timer
-            notificationTimer?.invalidate()
-            notificationTimer = nil
+            logger.i("Ending background task. Stop service.")
 
             // Remove any pending notifications
             UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
@@ -187,11 +163,37 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         networkMonitor?.start()
     }
 
+    private var localHostname: String?
+    private let hostnameKey = "io.cylonix.tailchat.hostname"
+
+    // Add after NetworkMonitorDelegate methods
+    private func updateLocalHostname(devices: [Device]) {
+        // Try to get saved hostname first
+        if let saved = UserDefaults.standard.string(forKey: hostnameKey) {
+            localHostname = saved
+            logger.i("Using saved hostname: \(saved)")
+            return
+        }
+
+        // Find our device in the network config
+        if let device = devices.first(where: { device in
+            device.isLocal
+        }) {
+            localHostname = device.hostname
+            // Save for future use
+            UserDefaults.standard.set(device.hostname, forKey: hostnameKey)
+            logger.i("Set local hostname from network config: \(device.hostname)")
+        } else {
+            logger.w("Could not determine local hostname from network config")
+        }
+    }
+
     // MARK: - NetworkMonitorDelegate
 
     private var networkConfig: [Device]?
     func didUpdateNetworkConfig(devices: [Device]) {
         networkConfig = devices
+        updateLocalHostname(devices: devices)
         updateNetworkConfig()
     }
 
@@ -256,7 +258,10 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                 listener = try NWListener(using: parameters, on: content)
                 listener?.stateUpdateHandler = handleStateUpdate
                 listener?.newConnectionHandler = { [weak self] connection in
-                    guard let self = self else { return }
+                    guard let self = self else {
+                        Logger(tag: "ChatService").e("Self is nil. Returning.")
+                        return
+                    }
                     let connectionQueue = DispatchQueue(label: "connectionQueue-\(connection.endpoint)")
                     connectionQueue.async {
                         self.handleConnection(connection: connection)
@@ -331,6 +336,11 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         defer {
             connection.cancel()
         }
+        #if os(iOS)
+            if let uuid = apnUUID, let hostname = localHostname {
+                sendApnInfo(connection: connection, hostname: hostname, uuid: uuid)
+            }
+        #endif
         receiveMessages(connection: connection, messageHandler: handleMessage)
     }
 
@@ -642,6 +652,27 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         return receivedError
     }
 
+    private func sendApnInfo(connection: NWConnection, hostname: String, uuid: String) -> Error? {
+        let message = "TEXT:NULL_ID:PN_INFO:\(hostname) \(uuid)\n"
+        let semaphore = DispatchSemaphore(value: 0)
+        var receivedError: Error?
+
+        connection.send(
+            content: message.data(using: .utf8),
+            completion: .contentProcessed { sendError in
+                if let sendError = sendError {
+                    self.logger.e("Failed to send apn info: \(sendError)")
+                    receivedError = sendError
+                } else {
+                    self.logger.d("APN info sent: \(hostname) \(uuid)")
+                }
+                semaphore.signal()
+            }
+        )
+        semaphore.wait()
+        return receivedError
+    }
+
     private func showNotification(title: String, body: String) {
         DispatchQueue.main.async {
             let content = UNMutableNotificationContent()
@@ -785,7 +816,9 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         if eventSink != nil {
             logger.i("EventSink set")
             updateNetworkConfig()
-            sendApnInfo()
+            #if os(iOS)
+                sendApnInfo()
+            #endif
         } else {
             logger.i("EventSink unset")
         }

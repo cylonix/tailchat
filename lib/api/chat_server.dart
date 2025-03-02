@@ -7,6 +7,8 @@ import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
+import 'package:http/http.dart' as http;
+
 import '../api/notification.dart';
 import '../models/chat/chat_event.dart';
 import '../models/chat/chat_id.dart';
@@ -128,9 +130,42 @@ class ChatServer {
     ));
   }
 
+  static Future<bool> sendPushNotificationToken(
+    String uuid,
+    String token,
+  ) async {
+    try {
+      final result = await http.put(
+        Uri.parse("https://cylonix.io/apn/tailchat"),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          "id": uuid,
+          "token": token,
+          "platform": Platform.isIOS
+              ? "apple"
+              : Platform.isAndroid
+                  ? "android"
+                  : "unknown",
+        }),
+      );
+      if (result.statusCode != 200) {
+        throw "${result.statusCode} ${result.body}";
+      }
+      return true;
+    } catch (e) {
+      _logger.e("Failed to send push notification id: $e");
+    }
+    return false;
+  }
+
   /// Handle flutter event channel events.
   static void _handleEvent(dynamic event) async {
-    _logger.d("Received event from chat service: $event");
+    _logger.d(
+      "Received event from chat service: "
+      "${event.toString().shortString(100)}",
+    );
     if (event is Map<dynamic, dynamic>) {
       switch (event['type']) {
         case "network_config":
@@ -140,8 +175,14 @@ class ChatServer {
         case "pn_info":
           _logger.d("Received push notification info: $event");
           final uuid = event['uuid'];
-          if (uuid != null) {
-            await Pst.savePushNotificationUUID(uuid);
+          final token = event['token'];
+          if (uuid != null && token != null) {
+            await sendPushNotificationToken(uuid, token);
+            if (uuid != Pst.pushNotificationUUID ||
+                token != Pst.pushNotificationToken) {
+              await Pst.savePushNotificationUUID(uuid);
+              await Pst.savePushNotificationToken(token);
+            }
           }
           break;
         case "file_receive":
@@ -246,7 +287,7 @@ class ChatServer {
           _logger.d("Received control message: $line");
           break;
         case "TEXT":
-          _handleReceiveChatMessage(line.replaceFirst("TEXT:$id:", ""));
+          handleReceiveChatMessage(line.replaceFirst("TEXT:$id:", ""));
           break;
         case "FILE_END":
           _logger.d("Received file ${line.replaceFirst("FILE_END:$id", "")}");
@@ -336,7 +377,7 @@ class ChatServer {
   }
 
   static Future<void> _handleReceiveSenderInformation(String sender) async {
-    _logger.d("Receive sender information: $sender");
+    _logger.d("Received sender information: $sender");
     try {
       final json = jsonDecode(sender);
       final user = UserProfile.fromJson(json['profile']);
@@ -367,10 +408,42 @@ class ChatServer {
     }
   }
 
-  static void _handleReceiveChatMessage(String m) async {
+  static Future<void> _handleReceivePNInfo(String pnInfo) async {
+    _logger.d("Received push notification information: $pnInfo");
+    try {
+      final parts = pnInfo.split(" ");
+      if (parts.length != 2) {
+        throw "invalid format: $pnInfo";
+      }
+      final hostname = parts[0];
+      final pnUUID = parts[1];
+      final device = await getDevice(Device.generateID(hostname));
+      if (device == null) {
+        throw "failed to get device for $hostname";
+      }
+      if (device.pnUUID == pnUUID) {
+        _logger.d("push notification information is the same. skip...");
+        return;
+      }
+      device.isAvailable = true;
+      device.lastSeen = DateTime.now();
+      device.isOnline = true;
+      device.pnUUID = pnUUID;
+      await updateDevice(device);
+    } catch (e) {
+      _logger.e("Failed to process push notificatin information: $e");
+    }
+  }
+
+  static void handleReceiveChatMessage(String m) async {
     if (m.startsWith("SENDER:")) {
       final sender = m.replaceFirst("SENDER:", "");
       await _handleReceiveSenderInformation(sender);
+      return;
+    }
+    if (m.startsWith("PN_INFO:")) {
+      final pnInfo = m.replaceFirst("PN_INFO:", "");
+      await _handleReceivePNInfo(pnInfo);
       return;
     }
 

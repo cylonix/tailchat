@@ -27,21 +27,26 @@ AppBar getAppBar(BuildContext context, String title) {
     centerTitle: true,
   );
 }
-
 const appleLightThemeIconBackgroundColors = [
-  CupertinoColors.activeOrange,
-  CupertinoColors.lightBackgroundGray,
-  CupertinoColors.systemCyan,
-  CupertinoColors.systemTeal,
-  CupertinoColors.systemGrey2,
+  CupertinoColors.systemGreen, // Fresh green
+  CupertinoColors.systemOrange, // Warm orange
+  CupertinoColors.systemPink, // Vibrant pink
+  CupertinoColors.systemPurple, // Royal purple
+  CupertinoColors.systemTeal, // Cool teal
+  Color(0xFFE9F3FF), // Light blue
+  Color(0xFFE8FCE9), // Light mint
+  Color(0xFFFFF3E0), // Light orange
 ];
 
 const appleDarkThemeIconBackgroundColors = [
-  CupertinoColors.activeBlue,
-  CupertinoColors.darkBackgroundGray,
-  CupertinoColors.systemCyan,
-  CupertinoColors.systemTeal,
-  CupertinoColors.systemGrey,
+  CupertinoColors.activeBlue, // Vivid blue
+  CupertinoColors.systemPurple, // Bright purple
+  CupertinoColors.systemPink, // Deep pink
+  CupertinoColors.systemIndigo, // Deep indigo
+  CupertinoColors.systemTeal, // Deep teal
+  Color(0xFF1C4A7E), // Dark navy
+  Color(0xFF1E4D3E), // Dark forest
+  Color(0xFF4A3123), // Dark burgundy
 ];
 
 /// Common icon style
@@ -64,9 +69,9 @@ Widget getIcon(
       color: appleBackgroundColor ?? set[colorIndex],
       clipBehavior: Clip.antiAlias,
       child: SizedBox(
-        height: size ?? 24,
-        width: size ?? 24,
-        child: Icon(icon, color: color, size: size != null ? size - 8 : 16),
+        height: (size ?? 24) + 8,
+        width: (size ?? 24) + 8,
+        child: Icon(icon, color: color, size: size),
       ),
     );
   }
@@ -89,26 +94,29 @@ Widget getOsOnlineIcon(String os, bool online, {double? size}) {
   return getOsIcon(os.toLowerCase(), color: onlineColor, size: size);
 }
 
-Widget getOsIcon(String os, {Color? color, double? size}) {
+IconData getOsIconData(String os) {
   switch (os) {
     case "android":
-      return Icon(Icons.android, size: size, color: color);
+      return Icons.android;
     case "ios":
-      return Icon(Icons.phone_iphone, size: size, color: color);
+      return Icons.phone_iphone;
     case "linux":
-      // TODO: check finer details among varies distros.
-      return FaIcon(FontAwesomeIcons.linux, size: size, color: color);
+      return FontAwesomeIcons.linux;
     case "macos":
-      return Icon(Icons.laptop_mac, size: size, color: color);
+      return Icons.laptop_mac;
     case "windows":
-      return Icon(Icons.laptop_windows, size: size, color: color);
+      return Icons.laptop_windows;
     default:
-      return Icon(Icons.devices, size: size, color: color);
+      return Icons.devices;
   }
 }
 
+Widget getOsIcon(String os, {Color? color, double? size}) {
+  return getIcon(getOsIconData(os), color: color, size: size);
+}
+
 Widget loadingWidget() {
-  return const Center(child: CircularProgressIndicator());
+  return Center(child: CircularProgressIndicator.adaptive());
 }
 
 ShapeBorder commonShapeBorder() {

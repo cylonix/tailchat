@@ -11,7 +11,7 @@ import 'package:random_color/random_color.dart';
 
 import '../api/config.dart';
 import '../gen/l10n/app_localizations.dart';
-import '../widgets/alert_dialog_widget.dart';
+import '../widgets/alert_dialog_widget.dart' as ad;
 import 'global.dart';
 
 const double baseHeight = 480;
@@ -83,33 +83,26 @@ Offset getPopupMenuOffset() {
 Future<bool?> showAlertDialog(
   BuildContext context,
   String title,
-  String? content, {
-  String? additionalAskTitle,
-  String? successSubtitle,
-  String? successMsg,
-  String? failureSubtitle,
-  String? failureMsg,
+  String content, {
   String? okText,
-  String? cancelText,
-  Widget? otherActions,
-  bool showCancel = false,
-  void Function()? onPressOK,
-  void Function()? onAdditionalAskedPressed,
+  List<ad.Content> contents = const [],
+  List<ad.Action> actions = const [],
 }) {
-  return AlertDialogWidget(
+  return ad.AlertDialogWidget(
     title: title,
-    content: content,
-    additionalAskTitle: additionalAskTitle,
-    successSubtitle: successSubtitle,
-    successMsg: successMsg,
-    failureSubtitle: failureSubtitle,
-    failureMsg: failureMsg,
-    cancelText: cancelText,
-    okText: okText,
-    otherActions: otherActions,
-    onCancel: showCancel ? () => {} : null,
-    onOK: onPressOK,
-    onAdditionalAskPressed: onAdditionalAskedPressed,
+    contents: [
+      ad.Content(content: content),
+      ...contents,
+    ],
+    actions: [
+      ad.Action(
+        title: okText ?? AppLocalizations.of(context).ok,
+        onPressed: () {
+          Navigator.of(context).pop(true);
+        },
+      ),
+      ...actions,
+    ],
   ).show(context);
 }
 
