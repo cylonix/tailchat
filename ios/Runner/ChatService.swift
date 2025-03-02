@@ -29,7 +29,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     private let subscriberMutex = DispatchQueue(label: "io.cylonix.tailchat.subscriberMutex")
 
     func startService() {
-        logger.i("Starting service")
+        logger.i("Starting service if not yet running.")
         if !isRunning {
             logger.i("Service is not yet running. Starting it.")
             isRunning = true
@@ -63,7 +63,15 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
 
         private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+        private var isAppStateNotificationsRegistered = false
+
         private func registerForAppStateNotifications() {
+            // Check if already registered
+            if isAppStateNotificationsRegistered {
+                logger.d("App state notifications already registered")
+                return
+            }
+
             NotificationCenter.default.addObserver(
                 self,
                 selector: #selector(appDidEnterBackground),
@@ -76,6 +84,17 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                 name: UIApplication.willEnterForegroundNotification,
                 object: nil
             )
+
+            isAppStateNotificationsRegistered = true
+            logger.i("Registered for app state notifications")
+        }
+
+        // Add cleanup method for notifications
+        deinit {
+            if isAppStateNotificationsRegistered {
+                NotificationCenter.default.removeObserver(self)
+                logger.i("Removed app state notifications")
+            }
         }
 
         @objc private func appDidEnterBackground() {
@@ -85,26 +104,73 @@ class ChatService: NSObject, NetworkMonitorDelegate {
 
         @objc private func appWillEnterForeground() {
             logger.i("App will enter foreground")
-            endBackgroundTask()
+            endBackgroundTask(stopService: false)
+            startService()
         }
 
+        private var endBackgroundWorkItem: DispatchWorkItem?
+        private var notificationWorkItem: DispatchWorkItem?
+
         private func startBackgroundTask() {
+            // Check if there's already a valid background task
+            if backgroundTask != .invalid {
+                logger.i("Background task already running with identifier: \(backgroundTask)")
+                return
+            }
+
             let taskIdentifier = "io.cylonix.tailchat.chatServiceTask"
             backgroundTask = UIApplication.shared.beginBackgroundTask(
                 withName: taskIdentifier
             ) { [weak self] in
-                self?.endBackgroundTask()
+                // This is called by the system when background time is about to expire
+                self?.logger.i("Background task expiring by system")
+                self?.endBackgroundTask(stopService: true, bySystem: true)
             }
 
-            // Schedule notification and task end after 30 seconds
-            DispatchQueue.global().asyncAfter(deadline: .now() + 25) { [weak self] in
-                // Show notification 10 seconds before expiration
-                self?.showBackgroundTaskExpirationNotification()
+            // Log the new task
+            logger.i("Started background task with identifier: \(backgroundTask)")
+
+            // Schedule notification
+            notificationWorkItem = DispatchWorkItem { [weak self] in
+                guard let self = self else { return }
+                if self.backgroundTask != .invalid {
+                    self.showBackgroundTaskExpirationNotification()
+                }
             }
 
-            // Schedule task end after 30 seconds
-            DispatchQueue.global().asyncAfter(deadline: .now() + 30) { [weak self] in
-                self?.stopService()
+            // Schedule task end
+            endBackgroundWorkItem = DispatchWorkItem { [weak self] in
+                guard let self = self else { return }
+                if self.backgroundTask != .invalid {
+                    self.endBackgroundTask(stopService: true)
+                } else {
+                    self.logger.e("End background task work item is still valid. Not expected.")
+                }
+            }
+
+            if let notificationItem = notificationWorkItem {
+                DispatchQueue.global().asyncAfter(deadline: .now() + 20, execute: notificationItem)
+            }
+
+            if let endItem = endBackgroundWorkItem {
+                DispatchQueue.global().asyncAfter(deadline: .now() + 30, execute: endItem)
+            }
+        }
+
+        private func endBackgroundTask(stopService endService: Bool, bySystem: Bool = false) {
+            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+            if backgroundTask != .invalid {
+                logger.i("Ending background task. Stop service: \(endService), by system: \(bySystem)")
+                notificationWorkItem?.cancel()
+                endBackgroundWorkItem?.cancel()
+                notificationWorkItem = nil
+                endBackgroundWorkItem = nil
+
+                if endService {
+                    stopService()
+                }
+                UIApplication.shared.endBackgroundTask(backgroundTask)
+                backgroundTask = .invalid
             }
         }
 
@@ -141,18 +207,6 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                 } else {
                     self?.logger.i("Background expiration notification scheduled successfully")
                 }
-            }
-        }
-
-        private func endBackgroundTask() {
-            logger.i("Ending background task. Stop service.")
-
-            // Remove any pending notifications
-            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-
-            if backgroundTask != .invalid {
-                UIApplication.shared.endBackgroundTask(backgroundTask)
-                backgroundTask = .invalid
             }
         }
 
@@ -799,16 +853,12 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     }
 
     func stopService() {
-        #if os(iOS)
-            endBackgroundTask()
-        #endif
         listener?.cancel()
         subscriberListener?.cancel()
         isRunning = false
         isServerStarted = false
         subscribers.removeAll()
         logger.i("Service stopped")
-        eventSink = nil
     }
 
     func setEventSink(eventSink: FlutterEventSink?) {
