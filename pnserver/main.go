@@ -31,12 +31,13 @@ func main() {
 
     authType := os.Getenv("APN_AUTH_TYPE")
     if authType == "certificate" {
+		file := os.Getenv("APN_CERT_PATH")
         cert, err := certificate.FromPemFile(
-            os.Getenv("APN_CERT_PATH"),
+            file,
             os.Getenv("APN_CERT_PASSWORD"),
         )
         if err != nil {
-            log.Fatalf("Failed to load certificate: %v", err)
+            log.Fatalf("Failed to load certificate at %v: %v", file, err)
         }
         client = apns2.NewClient(cert)
     } else {

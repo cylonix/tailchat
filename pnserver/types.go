@@ -49,7 +49,7 @@ type PushRequest struct {
 }
 
 const (
-	tokenUpdateInterval = 30 * time.Minute
+	tokenUpdateInterval = 1 * time.Minute
 	pushRateLimit       = 10 * time.Second
 )
 

@@ -68,7 +68,7 @@ func (s *PNServer) updateToken(ctx context.Context, id, token string, platform P
 		}
 		lastUpdate := parseInt64(parts[2])
 		if now-lastUpdate < int64(tokenUpdateInterval.Seconds()) {
-			return fmt.Errorf("token update too frequent")
+			return fmt.Errorf("token update too frequent: last update %v seconds ago", now - lastUpdate)
 		}
 	}
 
@@ -264,6 +264,7 @@ func (s *PNServer) handleTokenUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.updateToken(r.Context(), update.ID, update.Token, update.Platform); err != nil {
+		s.logger.Printf("Failed to update token id=%v token=%v: %v\n", update.ID, update.Token, err)
 		http.Error(w, err.Error(), http.StatusTooManyRequests)
 		return
 	}
