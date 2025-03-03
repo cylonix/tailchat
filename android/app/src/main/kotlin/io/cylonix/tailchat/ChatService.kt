@@ -210,6 +210,13 @@ class ChatService : Service(), NetworkMonitorDelegate {
         }
     }
 
+    private fun truncateMessage(message: String): String {
+        if (message.length > 256) {
+            return "${message.take(256)}..."
+        }
+        return message
+    }
+
     private fun handleClient(clientSocket: Socket) {
         val remote = clientSocket.getRemoteSocketAddress()
         try {
@@ -231,7 +238,7 @@ class ChatService : Service(), NetworkMonitorDelegate {
                     }
                     var extractedMessage = String(fullBuffer, 0, messageIndex, StandardCharsets.UTF_8);
                     fullBuffer = fullBuffer.copyOfRange(messageIndex + 1, fullBuffer.size);
-                    logger.d("Received message: $extractedMessage")
+                    logger.d("Received message: ${truncateMessage(extractedMessage)}")
                     val parts = extractedMessage.split(":")
                     if (parts.size < 2) {
                         throw Exception("Bad message format $extractedMessage")
@@ -250,7 +257,7 @@ class ChatService : Service(), NetworkMonitorDelegate {
                         }
                         type == "PING" -> {
                             logger.d("Receiving PING")
-                            // PONG will be responsed in ACK.
+                            // PONG will be responded in ACK.
                         }
                         else -> {
                             if (extractedMessage.length > 20) {
@@ -359,10 +366,10 @@ class ChatService : Service(), NetworkMonitorDelegate {
         logger.d("broadcast or buffer message")
         val isFlutterRunning = getFlutterAppRunningStatus()
         if (isFlutterRunning) {
-            logger.d("Flutter app is running, broadcasting message $message")
+            logger.d("Flutter app is running, broadcasting message ${truncateMessage(message)}")
             sendMessage(message)
         } else {
-            logger.d("Flutter app is not running, buffering message $message")
+            logger.d("Flutter app is not running, buffering message ${truncateMessage(message)}")
             appendMessageToBufferFile(message + "\n")
         }
         isAppInForeground = getAppState()
@@ -377,7 +384,7 @@ class ChatService : Service(), NetworkMonitorDelegate {
             val output = Files.newOutputStream(bufferFilePath, StandardOpenOption.CREATE, StandardOpenOption.APPEND)
             output.write(message.toByteArray())
             output.close()
-             logger.d("Message appended to buffer file $message")
+            logger.d("Message appended to buffer file ${truncateMessage(message)}")
         } catch (e: Throwable) {
             throw Exception("Error saving message in buffer file: ${e::class.simpleName} ${e.message}")
         }
@@ -399,7 +406,7 @@ class ChatService : Service(), NetworkMonitorDelegate {
                 var message: String?
                 while (input.readLine().also { message = it } != null) {
                     sendMessage(message!!)
-                    logger.d("Sent buffered message: $message")
+                    logger.d("Sent buffered message: ${truncateMessage(message!!)}")
                     count++
                 }
                 input.close()

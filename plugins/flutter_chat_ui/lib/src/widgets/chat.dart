@@ -275,7 +275,7 @@ class Chat extends StatefulWidget {
   final void Function({String? d, String? i, String? w, String? e})? logger;
 
   @override
-  _ChatState createState() => _ChatState();
+  State<Chat> createState() => _ChatState();
 }
 
 /// [Chat] widget state

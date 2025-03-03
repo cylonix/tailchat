@@ -117,7 +117,7 @@ class Global {
       infoText: tr.infoText,
       warningText: tr.warningText,
       errorText: tr.errorText,
-      wtfText: tr.wtfText,
+      wtfText: "Fatal",
       refreshText: tr.refreshText,
       saveText: tr.saveText,
       shareText: tr.shareText,

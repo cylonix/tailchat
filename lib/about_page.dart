@@ -343,7 +343,19 @@ class _AboutPageState extends State<AboutPage> {
         if (!_isTV) const SizedBox(height: 4),
         _title,
         _spacer,
-        Text(tr.introWords, textAlign: TextAlign.center),
+        Center(
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.all(16),
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: Text(
+              tr.introWords,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge,
+              overflow: TextOverflow.visible,
+            ),
+          ),
+        ),
         _spacer,
         Text(tr.version, textAlign: TextAlign.center),
         _version,

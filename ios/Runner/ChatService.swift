@@ -324,6 +324,16 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                 listener?.start(queue: DispatchQueue.global(qos: .background))
                 logger.i("Server started on port \(port)")
 
+                DispatchQueue.global().asyncAfter(deadline: .now() + 10) { [weak self] in
+                    guard let self = self else { return }
+                    if self.listener?.state != .ready {
+                        self.logger.e("Listener did not become ready within timeout period")
+                        if (isServerStarted) {
+                            self.restartService()
+                        }
+                    }
+                }
+
                 let subscriberParameters = NWParameters.tcp
                 subscriberParameters.allowLocalEndpointReuse = true
                 let subscriberContent = NWEndpoint.Port(rawValue: subscriberPort)!
@@ -338,9 +348,29 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                 }
                 subscriberListener?.start(queue: DispatchQueue.global(qos: .background))
                 logger.i("Subscriber Server started on port \(subscriberPort)")
+
+                DispatchQueue.global().asyncAfter(deadline: .now() + 10) { [weak self] in
+                    guard let self = self else { return }
+                    if self.subscriberListener?.state != .ready {
+                        self.logger.e("Subscriber listener did not become ready within timeout period")
+                        if (isServerStarted) {
+                            self.restartService()
+                        }
+                    }
+                }
             } catch {
-                logger.e("Failed to start server: \(error)")
+                logger.e("Failed to start server: \(error). Try to restart.")
+                restartService()
             }
+        }
+    }
+
+    private func restartService() {
+        logger.i("Stop service now and restart service in 5 seconds.")
+        stopService()
+        DispatchQueue.global().asyncAfter(deadline: .now() + 5) { [weak self] in
+            guard let self = self else { return }
+            self.startService()
         }
     }
 
@@ -352,10 +382,12 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             logger.i("Listener setup")
         case let .waiting(error):
             logger.e("Listener waiting with error: \(error)")
+            stopService()
         case .ready:
             logger.i("Listener ready")
         case let .failed(error):
             logger.e("Listener failed with error: \(error)")
+            stopService()
         case .cancelled:
             logger.i("Listener cancelled")
         default:
@@ -376,6 +408,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             logger.i("Subscriber listener ready")
         case let .failed(error):
             logger.e("Subscriber listener failed with error: \(error)")
+            stopService()
         case .cancelled:
             logger.i("Subscriber listener cancelled")
         default:
@@ -854,7 +887,9 @@ class ChatService: NSObject, NetworkMonitorDelegate {
 
     func stopService() {
         listener?.cancel()
+        listener = nil
         subscriberListener?.cancel()
+        subscriberListener = nil
         isRunning = false
         isServerStarted = false
         subscribers.removeAll()

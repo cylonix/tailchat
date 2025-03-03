@@ -41,7 +41,7 @@ class ChatCaption extends Text {
         );
 }
 
-/// A [Padding] class exension that shows the username.
+/// A [Padding] class extension that shows the username.
 class Username extends Padding {
   Username(String name, ChatTheme theme, Color color, {Key? key})
       : super(

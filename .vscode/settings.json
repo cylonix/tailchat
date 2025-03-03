@@ -1,10 +1,16 @@
 {
     "java.configuration.updateBuildConfiguration": "interactive",
     "cSpell.words": [
+        "CGNAT",
         "Cupertino",
         "cylonix",
         "EZBLOCK",
+        "Iface",
+        "neterr",
+        "netlink",
         "prefs",
-        "Schyler"
+        "Schyler",
+        "Tailchat",
+        "tailchatd"
     ]
 }

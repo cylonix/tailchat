@@ -122,7 +122,8 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
                 MaterialPageRoute(builder: (context) {
                   return log.LogConsole(
                     dark: _isDarkTheme,
-                    title: tr.daemonLogConsoleTitleText,
+                    title: "Service",
+                    subtitle: "Tailchat service log",
                     showRefreshButton: true,
                     getLogOutputEvents: _getChatServiceLogs,
                     saveFile: () => _save(_serviceLogFile),
@@ -153,7 +154,7 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
 
         final timestampMatch = timestampRegex.firstMatch(line);
 
-        if (timestampMatch != null) {
+        if (Platform.isLinux || timestampMatch != null) {
           // New log entry starts
           if (currentLogEvent != null) {
             // Add previous log entry
@@ -162,7 +163,7 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
           }
 
           // Extract timestamp
-          final timestamp = timestampMatch.group(1)!;
+          final timestamp = timestampMatch?.group(1)!;
           //line = line.substring(timestampMatch.end).trim();
 
           // Determine log level and clean up line
@@ -187,7 +188,7 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
           currentLogEvent = LogEvent(
             level,
             "",
-            time: DateTime.parse(timestamp),
+            time: timestamp != null ? DateTime.parse(timestamp) : null,
           );
           currentLines.add(line.trim());
         } else if (currentLogEvent != null) {

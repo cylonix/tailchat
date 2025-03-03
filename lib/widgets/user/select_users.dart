@@ -15,8 +15,10 @@ import '../../models/contacts/device.dart';
 import '../../models/contacts/user_profile.dart';
 import '../base_input/button.dart';
 import '../common_widgets.dart';
+import '../contacts/contact_dialog.dart';
 import '../paged_list.dart';
 import '../snackbar_widget.dart';
+import '../tv/caption.dart';
 import 'user_card.dart';
 
 /// Provide a list of users to select from. Parent widget must be expandable.
@@ -75,7 +77,7 @@ class _SelectUsersState extends State<SelectUsers> {
     super.dispose();
   }
 
-  void _setUsers() async {
+  Future<void> _setUsers() async {
     var users = await getContacts(
             idList: widget.inputUsers?.map((e) => e.id).toList()) ??
         [];
@@ -364,12 +366,56 @@ class _SelectUsersState extends State<SelectUsers> {
   }
 
   Widget get _noUserOrDeviceAvailable {
-    return ListTile(
-      title: const Text(
-        "No User or Device Available",
-        textAlign: TextAlign.center,
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      spacing: 24,
+      children: [
+        Caption(context, "No user or device is available."),
+        const Text(
+          "Please add a contact or add a device to yourself so that you can "
+          "begin chatting to a peer on a different device.",
+        ),
+        const SizedBox(height: 24),
+        ElevatedButton(
+          onPressed: _showAddContactDialog,
+          child: Text("Add Contact"),
+        ),
+        ElevatedButton(
+          onPressed: _showAddDeviceDialog,
+          child: Text("Add Device"),
+        ),
+      ],
     );
+  }
+
+  void _showAddContactDialog() async {
+    final contact = await showDialog<Contact>(
+      context: context,
+      builder: (context) => ContactDialog(),
+    );
+    {
+      if (contact == null) {
+        return;
+      }
+      await _setUsers();
+    }
+  }
+
+  void _showAddDeviceDialog() async {
+    final self = await getContact(Pst.selfUser?.id);
+    if (!mounted) {
+      return;
+    }
+    final contact = await showDialog<Contact>(
+      context: context,
+      builder: (context) => ContactDialog(contact: self),
+    );
+    {
+      if (contact == null) {
+        return;
+      }
+      await _setUsers();
+    }
   }
 
   Widget? _getUserDeviceCards(Contact user) {

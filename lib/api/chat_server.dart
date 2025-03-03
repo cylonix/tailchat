@@ -100,7 +100,6 @@ class ChatServer {
   }
 
   static void _handleChatServiceMessage(dynamic message) {
-    _logger.d("Received message from chat service: $message");
     if (message is String) {
       _handleMessage(message);
       return;
@@ -269,7 +268,7 @@ class ChatServer {
   }
 
   static void _handleMessage(String message) async {
-    _logger.d("Got message $message");
+    _logger.d("Got message ${message.shortString(256)}...");
     final lines = message.split("\n");
     for (var line in lines) {
       line = line.trim();
@@ -419,6 +418,9 @@ class ChatServer {
       final pnUUID = parts[1];
       final device = await getDevice(Device.generateID(hostname));
       if (device == null) {
+        final contacts = await getContacts();
+        _logger.i(
+            "failed to get device to update push notification: contacts=$contacts");
         throw "failed to get device for $hostname";
       }
       if (device.pnUUID == pnUUID) {
@@ -448,7 +450,7 @@ class ChatServer {
     }
 
     try {
-      _logger.d("handle received chat message $m");
+      _logger.d("handle received chat message ${m.shortString(256)}...");
       final json = jsonDecode(m);
       if ((json['room_message'] as bool?) ?? false) {
         _handleRoomMessage(json);

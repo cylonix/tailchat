@@ -133,6 +133,13 @@ func main() {
 
 }
 
+func messageShortString(message string) string {
+	if len(message) <= 256 {
+		return message
+	}
+	return message[:256]+"..."
+}
+
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	remote := conn.RemoteAddr()
@@ -164,7 +171,7 @@ func handleConnection(conn net.Conn) {
 				logger.Println("Error handling message:", err)
 				break
 			}
-			logger.Println("DONE handling one message:", message)
+			logger.Println("DONE handling one message:", messageShortString(message))
 			if _, err := output.Write([]byte("ACK:" + id + ":DONE\n")); err != nil {
 				logger.Println("Failed to write ACK:", err)
 				break
@@ -258,7 +265,7 @@ const (
 
 func handleMessage(input *bufio.Reader, output *bufio.Writer, message string, fullBuffer []byte) ([]byte, error) {
 	message = strings.TrimSuffix(message, "\n")
-	logger.Println("Received message:", message)
+	logger.Println("Received message:", messageShortString(message))
 	switch {
 	case strings.HasPrefix(message, "TEXT:") || strings.HasPrefix(message, "CTRL:"):
 		broadcastOrBufferMessage(message)
@@ -390,7 +397,7 @@ func broadcastMessage(message string) {
 	if len(subscribers) <= 0 {
 		return
 	}
-	logger.Println("There are subscribers. Broadcasting message", message)
+	logger.Println("There are subscribers. Broadcasting message", messageShortString(message))
 	for conn, stopCh := range subscribers {
 		_, err := conn.Write([]byte(message + "\n"))
 		if err != nil {
@@ -407,7 +414,7 @@ func broadcastOrBufferMessage(message string) {
 	if len(subscribers) > 0 {
 		broadcastMessage(message)
 	} else {
-		logger.Println("No subscriber, buffering message", message)
+		logger.Println("No subscriber, buffering message", messageShortString(message))
 		bufferMutex.Lock()
 		appendMessagesToBufferFileLocked([]string{message})
 		bufferMutex.Unlock()
@@ -425,7 +432,7 @@ func sendBufferedMessages(conn net.Conn) error {
 			failedMessages = messages[index:]
 			break
 		}
-		logger.Println("Sending buffered message to", remote, message)
+		logger.Println("Sending buffered message to", remote, messageShortString(message))
 	}
 	bufferMutex.Lock()
 	defer bufferMutex.Unlock()

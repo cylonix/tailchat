@@ -19,7 +19,12 @@ class ChatMessageReceiver(private val context: Context) : EventChannel.StreamHan
         override fun onReceive(context: Context?, intent: Intent?) {
             logger.d("Received intent");
             val message = intent?.getStringExtra("message")
-            logger.d("Received Message: $message")
+            val truncatedMessage = if ((message?.length ?: 0) > 256) {
+                "${message!!.take(256)}..."
+            } else {
+                message
+            }
+            logger.d("Received Message: $truncatedMessage")
             message?.let { eventSink?.success(it) }
         }
     }

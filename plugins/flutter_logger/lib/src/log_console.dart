@@ -16,7 +16,7 @@ String _filterText = "Filter log message";
 String _infoText = "Info";
 String _warningText = "Warning";
 String _errorText = "Error";
-String _wtfText = "Fault";
+String _wtfText = "Fatal";
 String _refreshText = "Refresh";
 String _saveText = "Save";
 String _shareText = "Share";
@@ -26,6 +26,7 @@ class LogConsole extends StatefulWidget {
   final bool showCloseButton;
   final bool showRefreshButton;
   final String? title;
+  final String? subtitle;
   final Future<ListQueue<OutputEvent>> Function()? getLogOutputEvents;
   final void Function(void Function())? listenToUpdateTrigger;
   final void Function()? saveFile;
@@ -35,6 +36,7 @@ class LogConsole extends StatefulWidget {
     super.key,
     this.dark = false,
     this.title,
+    this.subtitle,
     this.showCloseButton = false,
     this.showRefreshButton = false,
     this.getLogOutputEvents,
@@ -103,6 +105,8 @@ class _LogConsoleState extends State<LogConsole> {
   bool _isLoadingPrevious = false;
   bool _hasMorePrevious = true;
   bool _hasMoreNext = true;
+  bool _isSelectionMode = false;
+  final Set<int> _selectedLogIds = {};
 
   final _scrollController = ScrollController();
   final _filterController = TextEditingController();
@@ -284,21 +288,47 @@ class _LogConsoleState extends State<LogConsole> {
           }
 
           var logEntry = _filteredBuffer[index];
+          bool isSelected = _selectedLogIds.contains(logEntry.id);
           return RepaintBoundary(
             child: GestureDetector(
-              child: SelectableText.rich(
-                logEntry.span,
-                key: Key(logEntry.id.toString()),
-                style: TextStyle(
-                  fontSize: _logFontSize,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                  height: 1.2,
-                ),
-                maxLines: null,
-              ),
               onTapDown: (tapDownDetails) {
                 _savedPosition = tapDownDetails.globalPosition;
               },
+              onLongPress: () {
+                setState(() {
+                  if (isSelected) {
+                    _selectedLogIds.remove(logEntry.id);
+                  } else {
+                    _selectedLogIds.add(logEntry.id);
+                  }
+                  _isSelectionMode = _selectedLogIds.isNotEmpty;
+                });
+              },
+              onDoubleTap: () {
+                setState(() {
+                  if (isSelected) {
+                    _selectedLogIds.remove(logEntry.id);
+                  } else {
+                    _selectedLogIds.add(logEntry.id);
+                  }
+                  _isSelectionMode = _selectedLogIds.isNotEmpty;
+                });
+              },
+              child: Container(
+                color: isSelected
+                    ? Colors.blue.withValues(alpha: 0.3)
+                    : Colors.transparent,
+                child: SelectableText.rich(
+                  logEntry.span,
+                  key: Key(logEntry.id.toString()),
+                  style: TextStyle(
+                    fontSize: _logFontSize,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    height: 1.2,
+                  ),
+                  maxLines: null,
+                ),
+              ),
             ),
           );
         },
@@ -455,14 +485,34 @@ class _LogConsoleState extends State<LogConsole> {
 
   List<PopupMenuEntry<String>> get _popupMenuEntries {
     return [
+      if (_isSelectionMode) ...[
+        PopupMenuItem<String>(
+          value: "copy selection",
+          onTap: _copySelection,
+          child: Row(
+            children: [
+              _copySelectionButton,
+              const Text("Copy selection"),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: "clear selection",
+          onTap: _clearSelection,
+          child: Row(children: [
+            _clearSelectionButton,
+            const Text("Clear selection"),
+          ]),
+        ),
+      ],
       if (widget.showRefreshButton)
         PopupMenuItem<String>(
           value: "refresh",
-          child: Row(children: [_refresh, Text(_refreshText)]),
           onTap: () {
             _followBottom = true;
             didChangeDependencies();
           },
+          child: Row(children: [_refresh, Text(_refreshText)]),
         ),
       if (widget.saveFile != null)
         PopupMenuItem<String>(
@@ -479,8 +529,8 @@ class _LogConsoleState extends State<LogConsole> {
       if (widget.showCloseButton)
         PopupMenuItem<String>(
           value: "close log view",
-          child: _close,
           onTap: () => Navigator.pop(context),
+          child: _close,
         ),
     ];
   }
@@ -500,12 +550,62 @@ class _LogConsoleState extends State<LogConsole> {
     );
   }
 
+  String _getSelectedLogsText() {
+    final selectedLogs = _filteredBuffer
+        .where((log) => _selectedLogIds.contains(log.id))
+        .map((log) => log.lowerCaseText)
+        .join('\n');
+    return selectedLogs;
+  }
+
+  void _copySelection() {
+    final text = _getSelectedLogsText();
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Copied to clipboard'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectedLogIds.clear();
+      _isSelectionMode = false;
+    });
+  }
+
+  Widget get _copySelectionButton {
+    return IconButton(
+      icon: const Icon(Icons.copy),
+      onPressed: _copySelection,
+    );
+  }
+
+  Widget get _clearSelectionButton {
+    return IconButton(
+      icon: const Icon(Icons.clear_all),
+      onPressed: _clearSelection,
+    );
+  }
+
+  List<Widget> get _selectionButtons {
+    return [
+      _copySelectionButton,
+      _clearSelectionButton,
+    ];
+  }
+
   PreferredSizeWidget _buildTopBar() {
     final title = widget.title ?? _titleText;
     final isMobile = (Platform.isAndroid || Platform.isIOS);
-    final isSmallScren = MediaQuery.of(context).size.width < 600;
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
     return AppBar(
-      title: Text(title),
+      title: ListTile(
+        title: Text(title),
+        subtitle: widget.subtitle != null ? Text(widget.subtitle!) : null,
+      ),
       centerTitle: true,
       actions: <Widget>[
         IconButton(
@@ -534,11 +634,12 @@ class _LogConsoleState extends State<LogConsole> {
             icon: Icon(Icons.keyboard_arrow_down),
             onPressed: _scrollDown,
           ),
-        if (isSmallScren) _popupMenu,
-        if (!isSmallScren && widget.showRefreshButton) _refresh,
-        if (!isSmallScren && widget.saveFile != null) _saveAsFile,
-        if (!isSmallScren && widget.shareFile != null) _shareAsFile,
-        if (!isSmallScren && widget.showCloseButton) _close,
+        if (isSmallScreen) _popupMenu,
+        if (!isSmallScreen && _isSelectionMode) ..._selectionButtons,
+        if (!isSmallScreen && widget.showRefreshButton) _refresh,
+        if (!isSmallScreen && widget.saveFile != null) _saveAsFile,
+        if (!isSmallScreen && widget.shareFile != null) _shareAsFile,
+        if (!isSmallScreen && widget.showCloseButton) _close,
         const SizedBox(width: 8),
       ],
     );
@@ -571,6 +672,9 @@ class _LogConsoleState extends State<LogConsole> {
           ),
           SizedBox(width: 20),
           DropdownButton(
+            underline: Container(),
+            elevation: 0,
+            padding: const EdgeInsets.all(8),
             value: _filterLevel,
             items: [
               DropdownMenuItem(value: Level.trace, child: Text(_verboseText)),
@@ -593,6 +697,9 @@ class _LogConsoleState extends State<LogConsole> {
   }
 
   void _scrollToBottom() async {
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _followBottom = true;
     });
@@ -603,7 +710,7 @@ class _LogConsoleState extends State<LogConsole> {
       duration: Duration(milliseconds: 400),
       curve: Curves.easeOut,
     );
-}
+  }
 
   RenderedEvent _renderEvent(OutputEvent event) {
     var parser = AnsiParser(widget.dark, level: event.level);

@@ -1,11 +1,12 @@
 // Copyright (c) EZBLOCK Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-import 'package:event_bus/event_bus.dart';
-import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:event_bus/event_bus.dart';
+import 'package:flutter/services.dart';
+import 'package:tailchat/utils/utils.dart';
 import 'package:uuid/uuid.dart';
 import '../models/chat/chat_event.dart';
 import '../utils/logger.dart';
@@ -69,6 +70,29 @@ class ChatService {
 
   static Completer<String>? logCompleter;
   static Future<String> getLogs() async {
+    if (Platform.isLinux) {
+      try {
+        _logger.d("Starting shell cmd");
+        final result = await Process.run(
+          'sh',
+          ['-c', 'grep tailchatd /var/log/syslog | tail -n 1000'],
+          stdoutEncoding: utf8,
+          stderrEncoding: utf8,
+        );
+        if (result.exitCode != 0) {
+          throw "${result.stderr}";
+        }
+        _logger.d("Got results from shell: ${result.stdout.length} bytes");
+        return result.stdout;
+      } catch (e) {
+        final msg = "Failed to get logs: $e";
+        _logger.e(msg);
+        return msg;
+      }
+    }
+    if (Platform.isAndroid) {
+      return await platform.invokeMethod('logs');
+    }
     logCompleter = Completer<String>();
     await platform.invokeMethod('logs');
     return await logCompleter!.future.timeout(Duration(seconds: 5));
@@ -127,14 +151,18 @@ class ChatService {
   Future<void> sendMessage(String message) async {
     try {
       final id = Uuid().v4();
-      _logger
-          .d("send message: make sure socket is connected. message=$message");
+      _logger.d(
+        "send message: make sure socket is connected. "
+        "message=${message.shortString(256)}...",
+      );
       await _ensureSocketConnected();
       _socket?.write("TEXT:$id:$message\n");
       await _socket?.flush();
       _logger.d("wait for ack of $id");
       await _waitForAck(id);
-      _logger.d("send message to peer service done: $message");
+      _logger.d(
+        "send message to peer service done: ${message.shortString(256)}...",
+      );
     } catch (e) {
       _logger.e('Error sending message: $e');
       _closeSocket();
@@ -604,7 +632,7 @@ class ChatService {
         await Future.delayed(delay);
         startServiceStateMonitor();
       }, onDone: () async {
-        _logger.i("Service scoket connection closed");
+        _logger.i("Service socket connection closed");
         _closeServiceSocket();
         await Future.delayed(delay);
         startServiceStateMonitor();

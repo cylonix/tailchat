@@ -204,6 +204,11 @@ func getHostnameWithContext(ctx context.Context, addr string) string {
 			lookupDone <- ""
 			return
 		}
+		// Remove the last character if it is '.'
+		if len(hostname) > 0 && hostname[len(hostname)-1] == '.' {
+			hostname = hostname[:len(hostname)-1]
+		}
+		logger.Printf("Found hostname %v\n", hostname)
 		lookupDone <- hostname
 	}()
 
@@ -255,6 +260,11 @@ func (nm *NetworkMonitor) watchNetworkChanges() {
 			logger.Printf("Address update on interface %v: %v\n", update.LinkIndex, update.NewAddr)
 			nm.updateNetworkInfo()
 		case update := <-nm.routeUpdates:
+			// Filter out empty route updates
+			if update.Dst == nil && update.Src == nil && update.Gw == nil && len(update.ListFlags()) == 0 {
+				continue
+			}
+
 			logger.Printf("Route update: %v\n", update.Route)
 			nm.updateNetworkInfo()
 		case <-nm.done:

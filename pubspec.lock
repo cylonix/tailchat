@@ -578,10 +578,11 @@ packages:
   image_gallery_saver_plus:
     dependency: "direct main"
     description:
-      name: image_gallery_saver_plus
-      sha256: "05a5dfd60b0ecd9f990f578f4ff55fe2b6df57a03bb34e3d0963639584d76153"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: "873edc1dfa4c03cfba4fa85300247f0332cc98dd"
+      resolved-ref: "873edc1dfa4c03cfba4fa85300247f0332cc98dd"
+      url: "https://github.com/shinbin/image_gallery_saver_plus.git"
+    source: git
     version: "3.0.5"
   image_picker:
     dependency: "direct main"

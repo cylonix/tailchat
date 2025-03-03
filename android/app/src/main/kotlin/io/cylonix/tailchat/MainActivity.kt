@@ -47,6 +47,11 @@ class MainActivity: FlutterFragmentActivity() {
                     chatServiceStarted = false
                     result.success("Service Stopped.")
                 }
+                "logs" -> {
+                    logger.i("Fetching logs.")
+                    val logs = getChatServiceLogs()
+                    result.success(logs)
+                }
                 else -> {
                     result.notImplemented()
                 }
@@ -54,6 +59,15 @@ class MainActivity: FlutterFragmentActivity() {
         }
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, EVENT_CHANNEL).
             setStreamHandler(messageReceiver)
+    }
+
+    private fun getChatServiceLogs(): String {
+        val file = logger.logFile()
+        return if (file.exists()) {
+            file.readText()
+        } else {
+            "Log file not found."
+        }
     }
 
     override fun onResume() {
@@ -106,7 +120,7 @@ class MainActivity: FlutterFragmentActivity() {
             shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
                 // Show an explanation to the user why the permission is needed
                 logger.d("Showing permission rationale")
-                // You can show a dialog here and then request the permission again
+                // Show a dialog here and then request the permission again
             }
             else -> {
                 // Directly request for permission

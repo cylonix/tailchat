@@ -127,7 +127,7 @@ class _ChatPageState extends State<ChatPage>
   Timer? _tryToConnectPeersTimer;
   int _tryToConnectAttempts = 0;
   static final int _maxTryToConnectAttempts = 3;
-  final _initalTryToConnectBackoff = 1; // seconds
+  final _initialTryToConnectBackoff = 1; // seconds
   final _maxTryToConnectBackoff = 1800; // 30 mins in seconds
 
   @override
@@ -190,7 +190,7 @@ class _ChatPageState extends State<ChatPage>
   }
 
   Logger get _logger {
-    return Logger(tag: "Chat $_title $_subTitle");
+    return Logger(tag: "Chat $_title $_subtitle");
   }
 
   void _onAcive() {
@@ -1602,7 +1602,7 @@ class _ChatPageState extends State<ChatPage>
     return "";
   }
 
-  String? get _subTitle {
+  String? get _subtitle {
     if (_isGroupChat) {
       return null;
     }
@@ -1834,7 +1834,7 @@ class _ChatPageState extends State<ChatPage>
         OnlineStatusIcon(_hasPeersReady),
         Text(_title),
         const SizedBox(height: 16),
-        if (_subTitle != null) Text(_subTitle!, textAlign: TextAlign.center),
+        if (_subtitle != null) Text(_subtitle!, textAlign: TextAlign.center),
         const SizedBox(height: 16),
         ChatAppBarPopupMenuButton(
           icon: Row(
@@ -1922,7 +1922,7 @@ class _ChatPageState extends State<ChatPage>
       _logger.d("Max try to connect attempts reached.");
       return;
     }
-    var backoff = _initalTryToConnectBackoff << _tryToConnectAttempts;
+    var backoff = _initialTryToConnectBackoff << _tryToConnectAttempts;
     if (backoff >= _maxTryToConnectBackoff) {
       backoff = _maxTryToConnectBackoff;
     }
@@ -1952,13 +1952,13 @@ class _ChatPageState extends State<ChatPage>
     if (_isTV) {
       return null;
     }
-    _logger.d("Update appbar _canSendChecking=$_canSendChecking");
+    _logger.d("Update _canSendChecking=$_canSendChecking");
     return ChatAppBar(
       title: _title,
       canReceive: _canReceive,
       canSend: _hasPeersReady,
       canSendChecking: _canSendChecking,
-      subtitle: _subTitle,
+      subtitle: _subtitle,
       messageExpireInMs: _session.messageExpireInMs,
       onTryToConnect: _onTryToConnect,
       onDeleteAllPressed: _isGroupChat ? null : _onDeleteAllMessagesPressed,

@@ -1,3 +1,5 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -258,7 +260,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get publicKey => 'Public key';
 
   @override
-  String get introWords => 'Tailchat is a truly serverless, secure instant messaging app built on Tailscale\'s WireGuard®-based mesh network. No message storage. No central servers. Just direct, encrypted communication. Tailchat is not affiliated with, endorsed by, or sponsored by Tailscale Inc. Tailscale® and Tailnet are trademarks of Tailscale Inc.';
+  String get introWords => 'Tailchat is a truly serverless, secure instant messaging app built on Tailscale\'s WireGuard®-based mesh network. No message storage. No central message servers. Just direct, encrypted communication. Tailchat is not affiliated with, endorsed by, or sponsored by Tailscale Inc. Tailscale® and Tailnet are trademarks of Tailscale Inc.';
 
   @override
   String get introTitle => 'Welcome to Tailchat';
@@ -492,7 +494,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sendText => 'Send';
 
   @override
-  String get confirmSessionDeleteMessageText => 'Really deleting the session?';
+  String get confirmSessionDeleteMessageText => 'Really delete the session?';
 
   @override
   String get notYetImplementedMessageText => 'Not yet implemented';

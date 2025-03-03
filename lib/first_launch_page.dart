@@ -111,6 +111,7 @@ class _FirstLaunchPageState extends State<FirstLaunchPage> {
         address: ChatServer.address!,
         hostname: ChatServer.hostname!,
         port: ChatServer.port ?? 50311,
+        os: Platform.operatingSystem,
       );
       _logger.d("Current device: $_currentDevice");
     }
@@ -119,7 +120,14 @@ class _FirstLaunchPageState extends State<FirstLaunchPage> {
         .listen((event) async {
       _logger.d('Received network config: ${event.hostname}');
 
-      if (event.hostname == null || event.address == null) return;
+      if (event.hostname == null || event.address == null) {
+        if (mounted) {
+          setState(() {
+            _currentDevice = null;
+          });
+        }
+        return;
+      }
       if (mounted) {
         setState(() {
           _currentDevice = Device(
@@ -127,6 +135,7 @@ class _FirstLaunchPageState extends State<FirstLaunchPage> {
             address: event.address!,
             hostname: event.hostname!,
             port: event.port ?? 50311,
+            os: Platform.operatingSystem,
           );
         });
       }
@@ -213,16 +222,24 @@ class _FirstLaunchPageState extends State<FirstLaunchPage> {
       );
     }
     return ListTile(
-      title: Text("Username: $_systemUsername"),
-      subtitle:
-          Text("Username is to identify yourself to other Tailchat users."),
-      trailing: IconButton(
-        icon: Icon(Icons.edit),
-        onPressed: () {
-          setState(() {
-            _modifyUsername = true;
-          });
-        },
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text("Username: $_systemUsername"),
+          IconButton(
+            icon: Icon(Icons.edit),
+            onPressed: () {
+              setState(() {
+                _modifyUsername = true;
+              });
+            },
+          ),
+        ],
+      ),
+      subtitle: Text(
+        "Username is to identify yourself to other Tailchat users. "
+        "Username of '$_systemUsername' is based on your running environment. "
+        "Please edit it if you prefer a different username.",
       ),
     );
   }

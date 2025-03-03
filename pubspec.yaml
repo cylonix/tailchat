@@ -68,7 +68,10 @@ dependencies:
   http: ^1.2.2
   image: ^4.0.0
   image_picker: ^1.1.2
-  image_gallery_saver_plus: '^3.0.5'
+  image_gallery_saver_plus:
+    git:
+      url: https://github.com/shinbin/image_gallery_saver_plus.git
+      ref: 873edc1dfa4c03cfba4fa85300247f0332cc98dd
   intl: ^0.19.0
   introduction_screen: ^3.1.7
   json_annotation: ^4.8.1

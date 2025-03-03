@@ -74,12 +74,21 @@ class _DeviceDialogState extends State<DeviceDialog> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
-            spacing: 16,
+            spacing: 8,
             children: [
               const SizedBox(height: 16),
               if (_alert != null) AlertChip(_alert!),
-              if (_devicesKnown.isNotEmpty) _devicesDropDownMenu,
-              if (_devicesKnown.isEmpty)
+              if (_devicesKnown.isNotEmpty) ...[
+                const Text(
+                  "Please select a device from the known devices "
+                  "or input its tailnet hostname or IP address:",
+                ),
+                _devicesDropDownMenu,
+              ],
+              if (_devicesKnown.isEmpty) ...[
+                const Text(
+                  "Copy and paste the device's tailnet hostname or IP address:",
+                ),
                 TextFormField(
                   controller: _hostnameController,
                   decoration: InputDecoration(
@@ -93,6 +102,11 @@ class _DeviceDialogState extends State<DeviceDialog> {
                     return null;
                   },
                 ),
+              ],
+              const SizedBox(height: 16),
+              const Text(
+                "Enter port number. Normally just leave it as default:",
+              ),
               TextFormField(
                 controller: _portController,
                 decoration: InputDecoration(

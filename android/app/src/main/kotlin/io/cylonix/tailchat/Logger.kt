@@ -13,7 +13,9 @@ import kotlin.concurrent.withLock
 
 class Logger(private val tag: String) {
     private val lock = ReentrantLock()
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
     private val TAG = "tailchat"
 
     companion object {
@@ -86,9 +88,13 @@ class Logger(private val tag: String) {
 
         // Log to file
         lock.withLock {
-            val logFile = File(logDir, "tailchat.log")
-            logFile.appendText(logMessage)
+            val file = logFile()
+            file.appendText(logMessage)
             rotateLogsIfNeeded()
         }
+    }
+
+    fun logFile(): File {
+        return File(logDir, "tailchat.log")
     }
 }

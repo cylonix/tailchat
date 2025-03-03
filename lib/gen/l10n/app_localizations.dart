@@ -594,7 +594,7 @@ abstract class AppLocalizations {
   /// introduction page words
   ///
   /// In en, this message translates to:
-  /// **'Tailchat is a truly serverless, secure instant messaging app built on Tailscale\'s WireGuard®-based mesh network. No message storage. No central servers. Just direct, encrypted communication. Tailchat is not affiliated with, endorsed by, or sponsored by Tailscale Inc. Tailscale® and Tailnet are trademarks of Tailscale Inc.'**
+  /// **'Tailchat is a truly serverless, secure instant messaging app built on Tailscale\'s WireGuard®-based mesh network. No message storage. No central message servers. Just direct, encrypted communication. Tailchat is not affiliated with, endorsed by, or sponsored by Tailscale Inc. Tailscale® and Tailnet are trademarks of Tailscale Inc.'**
   String get introWords;
 
   /// introduction page title
@@ -1062,7 +1062,7 @@ abstract class AppLocalizations {
   /// confirm deleting a session message text
   ///
   /// In en, this message translates to:
-  /// **'Really deleting the session?'**
+  /// **'Really delete the session?'**
   String get confirmSessionDeleteMessageText;
 
   /// not yet implemented message text

@@ -55,7 +55,7 @@ class AddUserChat extends StatelessWidget {
             : tr.chatWithAUserText);
   }
 
-  String _subTitle(BuildContext context) {
+  String _subtitle(BuildContext context) {
     final tr = AppLocalizations.of(context);
     return chooseOnlyOneDevice
         ? tr.pleaseSelectOneDeviceText
@@ -89,7 +89,7 @@ class AddUserChat extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
-              Text(_subTitle(context), textAlign: TextAlign.center),
+              Text(_subtitle(context), textAlign: TextAlign.center),
             ],
           ),
           const SizedBox(width: 16),

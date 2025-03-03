@@ -107,7 +107,7 @@ class _UserProfileInputState extends State<UserProfileInput> {
           ),
           BaseTextInput(
             controller: _nameController,
-            label: 'Name',
+            label: 'Display Name',
             hint: "Optional display name",
             onChanged: (v) => _notifyChange(),
           ),

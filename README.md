@@ -2,7 +2,7 @@
 
  A truly serverless, secure instant messaging app built on Tailscale's WireGuard®-based mesh network
 
- No message storage off device. No central servers. Just direct, encrypted communication
+ No message storage off device. No central message servers. Just direct, encrypted communication
 
 **Note**: Tailchat is not affiliated with, endorsed by, or sponsored by Tailscale Inc. Tailscale® and Tailnet are trademarks of Tailscale Inc.
 

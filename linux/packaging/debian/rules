@@ -27,3 +27,6 @@ override_dh_auto_install:
 
 override_dh_installsystemd:
 	dh_installsystemd --name=tailchatd
+
+override_dh_dwz:
+    # Disable dh_dwz to avoid errors with .debug_info sections
