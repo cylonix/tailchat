@@ -333,11 +333,11 @@ func (s *PNServer) handlePushRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Rate limit check (10 seconds between pushes. Shorter if sender is valid)
+	// Rate limit check (30 seconds between pushes. Shorter if sender is valid)
 	now := time.Now().Unix()
-	limit := 10
+	limit := 30
 	if senderValid {
-		limit = 3
+		limit = 15
 	}
 	if int(now-tokenInfo.LastPushSent) < limit {
 		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
