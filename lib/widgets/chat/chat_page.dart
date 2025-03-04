@@ -508,6 +508,9 @@ class _ChatPageState extends State<ChatPage>
         setState(() {
           _hasPeersReady = hasPeersReady;
           _onlineUsers = onlineUsers;
+          if (_hasPeersReady) {
+            _retryPendingMessage();
+          }
         });
       }
     }

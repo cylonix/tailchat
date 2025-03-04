@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
@@ -55,12 +56,30 @@ class LogFile {
     return Status(true, path);
   }
 
+  Future<String> _appDocPath(String fileName) async {
+    final dir = await getApplicationDocumentsDirectory();
+    return p.join(dir.path, fileName);
+  }
+
   Future<Status> _saveIOS() async {
     final fileName = _fileName;
     try {
-      final dir = await getApplicationDocumentsDirectory();
-      final path = p.join(dir.path, 'tailchat-logs', fileName);
-      return _saveToPath(path);
+      // Save to app's shared documents directory
+      final path = await _appDocPath(fileName);
+      final status = await _saveToPath(path);
+
+      // Show success message with instructions
+      // Get device type
+      final model = (await DeviceInfoPlugin().iosInfo).model;
+      final deviceType = model.contains('iPhone') ? 'iPhone' : 'iPad';
+      if (status.success) {
+        return Status(
+          true,
+          '$path. '
+          'Access through Files app > On My $deviceType > Tailchat',
+        );
+      }
+      return status;
     } catch (e) {
       return Status(false, '$e');
     }
@@ -70,7 +89,12 @@ class LogFile {
     final fileName = _fileName;
     try {
       final dir = await sse.getDownloadDirectory();
-      final path = p.join(dir.path, 'Cylonix', 'cylonix-logs', fileName);
+      final path = p.join(
+        dir.path,
+        'tailchat',
+        'tailchat-service-logs',
+        fileName,
+      );
       return await _saveToPath(path);
     } catch (e) {
       return Status(false, '$e');
@@ -91,7 +115,8 @@ class LogFile {
     }
     try {
       final size = MediaQuery.of(context).size;
-      final status = await _saveIOS();
+      final path = await _appDocPath(_fileName);
+      final status = await _saveToPath(path);
       if (!status.success) {
         throw Exception(status.msg);
       }

@@ -238,6 +238,7 @@ class _SelectUsersState extends State<SelectUsers> {
     if (Platform.isIOS || Platform.isMacOS) {
       return PullDownButton(
         itemBuilder: (context) => filteredPeers.map((peer) {
+          final subtitles = peer.subtitles;
           return PullDownMenuItem(
             onTap: () {
               Navigator.of(context).pop();
@@ -247,11 +248,8 @@ class _SelectUsersState extends State<SelectUsers> {
               }
             },
             icon: getOsIconData(peer.os),
-            title: peer.hostname.split('.').first,
-            subtitle: peer.hostname.replaceFirst(
-              peer.hostname.split('.').first,
-              '',
-            ),
+            title: peer.title,
+            subtitle: subtitles.isNotEmpty ? subtitles[0] : null,
           );
         }).toList(),
         buttonBuilder: (context, showMenu) => CupertinoButton(
@@ -259,7 +257,7 @@ class _SelectUsersState extends State<SelectUsers> {
           child: child ??
               Tooltip(
                 message: tr.selectADeviceText,
-                child: Icon(Icons.more_vert_rounded),
+                child: Icon(CupertinoIcons.ellipsis_vertical),
               ),
         ),
       );
@@ -343,6 +341,7 @@ class _SelectUsersState extends State<SelectUsers> {
   }
 
   Widget _getDeviceCard(int index, Device device) {
+    final subs = device.subtitles;
     return UserCard(
       noGradient: true,
       avatarChild: getOsOnlineIcon(device.os, device.isOnline),
@@ -353,11 +352,9 @@ class _SelectUsersState extends State<SelectUsers> {
           _confirmFocusNode.requestFocus();
         },
       ),
-      child: Row(
-        children: [
-          Expanded(child: Text(device.hostname)),
-          Text(device.address),
-        ],
+      child: ListTile(
+        title: Text(device.title),
+        subtitle: subs.isNotEmpty ? Text(subs.join("\n")) : null,
       ),
       onTap: () {
         _flipSelectedState(index, device);
@@ -429,8 +426,8 @@ class _SelectUsersState extends State<SelectUsers> {
       itemBuilder: (context, index) {
         if (index == 0) {
           return ListTile(
-            title: Text(user.name),
-            subtitle: Text(user.username),
+            title: Text(user.username),
+            subtitle: user.name != user.username ? Text(user.name) : null,
           );
         }
         final peer = filteredPeers[index - 1];

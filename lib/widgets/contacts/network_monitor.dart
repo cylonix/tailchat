@@ -5,6 +5,8 @@ import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:pull_down_button/pull_down_button.dart';
 import '../../api/chat_server.dart';
 import '../../api/config.dart';
 import '../../api/contacts.dart';
@@ -30,6 +32,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
   StreamSubscription<ChatReceiveNetworkConfigEvent>? _networkConfigEventSub;
   Alert? _alert;
   List<Widget>? _actions;
+  List<PullDownMenuEntry>? _appleActions;
   static final hostnameChangeDialogRouteName = "HostnameChangeDialog";
 
   @override
@@ -44,6 +47,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
               });
             },
             actions: _actions,
+            appleActions: _appleActions,
           )
         : Container();
   }
@@ -100,6 +104,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
     setState(() {
       _alert = null;
       _actions = null;
+      _appleActions = null;
     });
 
     final update = await showDialog<bool>(
@@ -156,6 +161,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
     setState(() {
       _alert = null;
       _actions = null;
+      _appleActions = null;
     });
     final contact = await showDialog<Contact>(
       context: context,
@@ -185,13 +191,44 @@ class _ContactsPageState extends State<NetworkMonitor> {
     }
   }
 
+  void _setActions(List<Action> actions) {
+    if (isApple()) {
+      final appleActions = <PullDownMenuEntry>[];
+      for (var a in actions) {
+        appleActions.add(PullDownMenuItem(
+          onTap: a.action,
+          title: a.label,
+          icon: a.icon,
+          isDestructive: a.destructive,
+        ));
+        if (a.destructive) {
+          appleActions.add(PullDownMenuDivider.large());
+        }
+      }
+      _appleActions = appleActions;
+      return;
+    }
+    _actions = actions
+        .map(
+          (a) => TextButton.icon(
+            onPressed: a.action,
+            label: Text(
+              a.label,
+              style: a.destructive ? TextStyle(color: Colors.red) : null,
+            ),
+            icon: Icon(a.icon),
+          ),
+        )
+        .toList();
+  }
+
   void _handleNetworkConfig(ChatReceiveNetworkConfigEvent event) async {
     final currentDevice = Pst.selfDevice?.hostname ?? "";
     final currentAddress = Pst.selfDevice?.address ?? "";
     final selfContactID = Pst.selfUser?.id ?? "";
     final address = event.address ?? "";
     final hostname = event.hostname ?? "";
-    Contact? selfContact;
+    final Contact? selfContact;
     _logger.d("Network config event $event received");
     _removeCurrentHostnameChangeDialog();
     if (selfContactID.isEmpty) {
@@ -202,6 +239,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
           if (mounted) {
             setState(() {
               _actions = null;
+              _appleActions = null;
               _alert = Alert(
                 "Cannot detect tailnet hostname and address. "
                 "Is Tailscale running?",
@@ -248,6 +286,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
       }
       return;
     }
+    final selfContact2 = selfContact;
 
     _logger.d('New hostname "$hostname"');
     if (hostname.isEmpty) {
@@ -255,6 +294,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
         setState(() {
           _alert = Alert("Is Tailscale down?");
           _actions = null;
+          _appleActions = null;
         });
       }
       return;
@@ -313,25 +353,30 @@ class _ContactsPageState extends State<NetworkMonitor> {
           _alert = Alert(
             "Hostname changed from $currentDevice to $hostname",
           );
-          _actions = [
-            TextButton(
-              onPressed: () {
-                setState(() {
+          _setActions([
+            Action(
+              "Ignore",
+              () => setState(
+                () {
                   _alert = null;
-                });
-              },
-              child: Text("Ignore"),
+                },
+              ),
+              isApple() ? CupertinoIcons.xmark : Icons.close,
+              destructive: true,
             ),
-            TextButton(
-              onPressed: () => _showUpdateSelfDeviceDialog(
+            Action(
+              "Update",
+              () => _showUpdateSelfDeviceDialog(
                 currentDevice,
                 currentAddress,
                 address,
                 hostname,
               ),
-              child: Text("Update"),
+              isApple()
+                  ? CupertinoIcons.arrow_up_right_square
+                  : Icons.sync_rounded,
             ),
-          ];
+          ]);
         });
       }
       return;
@@ -351,26 +396,27 @@ class _ContactsPageState extends State<NetworkMonitor> {
         _logger.d("Change alert to add new device");
         setState(() {
           _alert = Alert(
-            "Hostname changed from $currentDevice to $hostname and"
+            "Hostname changed from $currentDevice to $hostname and "
             "address changed from $currentAddress to $address.",
           );
-          _actions = [
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _alert = null;
-                });
-              },
-              child: Text("Ignore"),
+          _setActions([
+            Action(
+              "Ignore",
+              () => setState(() {
+                _alert = null;
+              }),
+              isApple() ? CupertinoIcons.xmark : Icons.close,
+              destructive: true,
             ),
-            TextButton(
-              onPressed: () => _showAddNewDeviceDialog(
-                selfContact!,
+            Action(
+              "Update to the new device",
+              () => _showAddNewDeviceDialog(
+                selfContact2,
                 newDevice,
               ),
-              child: Text("Add a new device"),
+              isApple() ? CupertinoIcons.add : Icons.add,
             ),
-          ];
+          ]);
         });
       }
       return;
@@ -432,4 +478,12 @@ class _ContactsPageState extends State<NetworkMonitor> {
         .on<ChatReceiveNetworkConfigEvent>()
         .listen((event) => _handleNetworkConfig(event));
   }
+}
+
+class Action {
+  final Function() action;
+  final String label;
+  final IconData icon;
+  final bool destructive;
+  const Action(this.label, this.action, this.icon, {this.destructive = false});
 }

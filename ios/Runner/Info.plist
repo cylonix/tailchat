@@ -63,5 +63,9 @@
     <array>
         <string>io.cylonix.tailchat.chatServiceTask</string>
     </array>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 </dict>
 </plist>

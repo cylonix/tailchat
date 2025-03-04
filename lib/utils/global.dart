@@ -68,14 +68,14 @@ class Global {
   static const maxLogFileSize = 100000; // 100KB
   static const maxLogFileDays = 1; // number of days for log files outstanding
   static Future<void> _rotateLogFile(Directory dir) async {
-    final currentLogFileName = path.join(dir.path, "cylonix_log.txt");
+    final currentLogFileName = path.join(dir.path, "tailchat_log.txt");
     final current = File(currentLogFileName);
     try {
       final size = await current.length();
       logger.d("rotate log file size $size bytes max $maxLogFileSize bytes");
       if (size > maxLogFileSize) {
         final now = DateTime.now().toLocal().toIso8601String();
-        final logDirName = path.join(dir.path, "cylonix-logs");
+        final logDirName = path.join(dir.path, "tailchat-logs");
         final logDir = await Directory(logDirName).create();
         // Check if the log file numbers exceed the limit
         logger.d("log dir ${logDir.path}, date $now");
@@ -91,7 +91,7 @@ class Global {
           }
         }
         final nowFixed = now.replaceAll(":", "_");
-        final newName = path.join(logDir.path, "cylonix_log_$nowFixed.txt");
+        final newName = path.join(logDir.path, "tailchat_log_$nowFixed.txt");
         logger.d("move current log file to $newName");
         await current.rename(newName);
       }
@@ -161,7 +161,7 @@ class Global {
     await _rotateLogFile(_directory);
     logger.d("log file rotation done");
     _loggerPeriodical();
-    _logFile = File(path.join(_directory.path, "cylonix_log.txt"));
+    _logFile = File(path.join(_directory.path, "tailchat_log.txt"));
     final fileOutput = FileOutput(file: _logFile);
     final multiOutputWithFile = MultiOutput([
       fileOutput,

@@ -300,11 +300,44 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
     }
 
+    private func checkNetworkInterfaces() {
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0 else {
+            logger.e("Failed to get network interfaces")
+            return
+        }
+        defer { freeifaddrs(ifaddr) }
+
+        var ptr = ifaddr
+        while ptr != nil {
+            defer { ptr = ptr?.pointee.ifa_next }
+
+            let interface = ptr?.pointee
+            let name = String(cString: (interface?.ifa_name)!)
+            logger.i("Found network interface: \(name)")
+        }
+    }
+
     // Long running service to listen for incoming connections and each connection
     // is handled in a separate queue and run in synchronous mode.
     private func startServer() {
         if !isServerStarted {
+            checkNetworkInterfaces()
             isServerStarted = true
+            if #available(iOS 14.0, *) {
+                let monitor = NWPathMonitor()
+                monitor.pathUpdateHandler = { [weak self] path in
+                    guard let self = self else { return }
+                    if path.status == .satisfied {
+                        self.logger.i("Network access granted")
+                        // Continue with server start
+                    } else {
+                        self.logger.e("Network access denied: \(path.status)")
+                        // Handle network access denial
+                    }
+                }
+                monitor.start(queue: DispatchQueue.global())
+            }
             do {
                 let parameters = NWParameters.tcp
                 parameters.allowLocalEndpointReuse = true
@@ -322,13 +355,13 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                     }
                 }
                 listener?.start(queue: DispatchQueue.global(qos: .background))
-                logger.i("Server started on port \(port)")
+                logger.i("Server listener started on port \(port)")
 
                 DispatchQueue.global().asyncAfter(deadline: .now() + 10) { [weak self] in
                     guard let self = self else { return }
                     if self.listener?.state != .ready {
                         self.logger.e("Listener did not become ready within timeout period")
-                        if (isServerStarted) {
+                        if isServerStarted { 
                             self.restartService()
                         }
                     }
@@ -347,13 +380,13 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                     }
                 }
                 subscriberListener?.start(queue: DispatchQueue.global(qos: .background))
-                logger.i("Subscriber Server started on port \(subscriberPort)")
+                logger.i("Subscriber Server listener started on port \(subscriberPort)")
 
                 DispatchQueue.global().asyncAfter(deadline: .now() + 10) { [weak self] in
                     guard let self = self else { return }
                     if self.subscriberListener?.state != .ready {
                         self.logger.e("Subscriber listener did not become ready within timeout period")
-                        if (isServerStarted) {
+                        if isServerStarted { 
                             self.restartService()
                         }
                     }
@@ -374,24 +407,25 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
     }
 
-    // Connection cancel() is called when the connection is closed.
-    // Service does not stop when connection is closed.
     private func handleStateUpdate(state: NWListener.State) {
         switch state {
         case .setup:
-            logger.i("Listener setup")
+            logger.i("Listener entering setup state")
         case let .waiting(error):
-            logger.e("Listener waiting with error: \(error)")
-            stopService()
+            logger.e("Listener waiting. Error: \(error.localizedDescription)")
+            logger.e("Detailed error: \(String(describing: error))")
         case .ready:
-            logger.i("Listener ready")
+            logger.i("Listener ready on port \(port)")
         case let .failed(error):
-            logger.e("Listener failed with error: \(error)")
-            stopService()
+            logger.e("Listener failed. Error: \(error.localizedDescription)")
+            logger.e("Listener Detailed error: \(String(describing: error))")
+            if let netError = error as? NWError {
+                logger.e("Listener metwork error code: \(netError)")
+            }
         case .cancelled:
             logger.i("Listener cancelled")
-        default:
-            break
+        @unknown default:
+            logger.w("Unknown listener state: \(state)")
         }
     }
 

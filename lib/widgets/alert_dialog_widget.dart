@@ -66,22 +66,20 @@ class AlertDialogWidget extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               if (!isApple()) const Divider(height: 1),
-              const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(
                   vertical: 8,
-                  horizontal: 16,
+                  horizontal: 8,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  spacing: 8,
+                  spacing: 4,
                   children: [
                     ...contents.map((c) => Text(c.content, style: c.style)),
                     if (child != null) child!,
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
             ],
           ),
         ),

@@ -62,4 +62,18 @@ class Device {
   String toString() {
     return jsonEncode(this);
   }
+
+  String get title {
+    if (hostname == address) {
+      return hostname;
+    }
+    return hostname.split('.').first;
+  }
+
+  List<String> get subtitles {
+    if (hostname == address) {
+      return [];
+    }
+    return [hostname.replaceFirst('$title.', ''), address];
+  }
 }

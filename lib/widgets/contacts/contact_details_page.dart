@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../api/config.dart';
@@ -79,7 +80,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
       appBar: AppBar(
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit),
+            icon: Icon(isApple() ? CupertinoIcons.pencil : Icons.edit),
             onPressed: _editContact,
           ),
           if (_contact.id != Pst.selfUser?.id)

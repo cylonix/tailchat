@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:collection/collection.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tailchat/api/dns.dart';
@@ -37,6 +38,7 @@ class _DeviceDialogState extends State<DeviceDialog> {
   List<Device> _devicesKnown = [];
   String? _selectedDevice;
   Alert? _alert;
+  bool _editPort = false;
 
   @override
   void initState() {
@@ -104,29 +106,56 @@ class _DeviceDialogState extends State<DeviceDialog> {
                 ),
               ],
               const SizedBox(height: 16),
-              const Text(
-                "Enter port number. Normally just leave it as default:",
-              ),
-              TextFormField(
-                controller: _portController,
-                decoration: InputDecoration(
-                  constraints: const BoxConstraints(maxWidth: 300),
-                  labelText: 'Port',
-                  hintText: 'Enter port number if is not the default',
+              Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    spacing: 16,
+                    children: [
+                      Text(
+                        "Advanced options:",
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      Icon(
+                        _editPort
+                            ? CupertinoIcons.chevron_up
+                            : CupertinoIcons.chevron_down,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                  onTap: () => setState(() {
+                    _editPort = !_editPort;
+                  }),
                 ),
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter port';
-                  }
-                  final port = int.tryParse(value);
-                  if (port == null || port < 1 || port > 65535) {
-                    return 'Port must be between 1 and 65535';
-                  }
-                  return null;
-                },
               ),
+              if (_editPort) ...[
+                const Text(
+                  "Enter port number. Normally just leave it as default:",
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _portController,
+                  decoration: InputDecoration(
+                    constraints: const BoxConstraints(maxWidth: 300),
+                    labelText: 'Port',
+                    hintText: 'Enter port number if is not the default',
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter port';
+                    }
+                    final port = int.tryParse(value);
+                    if (port == null || port < 1 || port > 65535) {
+                      return 'Port must be between 1 and 65535';
+                    }
+                    return null;
+                  },
+                ),
+              ],
             ],
           ),
         ),

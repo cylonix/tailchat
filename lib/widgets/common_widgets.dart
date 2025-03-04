@@ -112,7 +112,7 @@ IconData getOsIconData(String os) {
 }
 
 Widget getOsIcon(String os, {Color? color, double? size}) {
-  return getIcon(getOsIconData(os), color: color, size: size);
+  return getIcon(getOsIconData(os), color: color, size: size, adaptive: false);
 }
 
 Widget loadingWidget() {

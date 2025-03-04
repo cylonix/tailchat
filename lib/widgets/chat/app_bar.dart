@@ -1,9 +1,12 @@
 // Copyright (c) EZBLOCK Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:pull_down_button/pull_down_button.dart';
 import 'package:tailchat/widgets/alert_dialog_widget.dart' as ad;
 import '../../gen/l10n/app_localizations.dart';
+import '../../utils/utils.dart';
 import '../common_widgets.dart';
 import '../main_app_bar.dart';
 import '../tv/icon_button.dart';
@@ -34,7 +37,7 @@ class ChatAppBar extends MainAppBar {
           ),
           trailing: [
             Icon(
-              Icons.arrow_downward,
+              isApple() ? CupertinoIcons.arrow_down : Icons.arrow_downward,
               color: canReceive ? Colors.green : Colors.grey,
             ),
             const SizedBox(width: 4),
@@ -42,7 +45,7 @@ class ChatAppBar extends MainAppBar {
               icon: canSendChecking
                   ? loadingWidget()
                   : Icon(
-                      Icons.arrow_upward,
+                      isApple() ? CupertinoIcons.arrow_up : Icons.arrow_upward,
                       color: canSend ? Colors.green : Colors.grey,
                     ),
               onPressed: onTryToConnect,
@@ -53,7 +56,11 @@ class ChatAppBar extends MainAppBar {
             const SizedBox(width: 16),
             if (messageExpireInMs != null && showTrailingActions)
               ChatAppBarPopupMenuButton(
-                icon: const Icon(Icons.timelapse_outlined),
+                icon: Icon(
+                  isApple()
+                      ? CupertinoIcons.timelapse
+                      : Icons.timelapse_outlined,
+                ),
                 messageExpireInMs: messageExpireInMs,
                 onSettingMessageExpirationTime: onSettingMessageExpirationTime,
               ),
@@ -95,43 +102,93 @@ class ChatAppBarPopupMenuButton extends StatefulWidget {
 class ChatAppBarPopupMenuButtonState extends State<ChatAppBarPopupMenuButton> {
   bool _deleteFromAllPeers = false;
 
+  void _showDeleteAllDialog() async {
+    final tr = AppLocalizations.of(context);
+    await ad.AlertDialogWidget(
+      title: tr.confirmText,
+      contents: [
+        ad.Content(content: "Please confirm to delete all messages."),
+        ad.Content(
+          content: "Messages will be forever deleted.",
+          style: TextStyle(color: Colors.red),
+        ),
+      ],
+      actions: [
+        ad.Action(
+          title: tr.cancelButton,
+          onPressed: () => Navigator.of(context).pop(false),
+        ),
+        ad.Action(
+          title: tr.ok,
+          onPressed: () {
+            Navigator.of(context).pop(true);
+            widget.onDeleteAllPressed?.call(_deleteFromAllPeers);
+          },
+        ),
+      ],
+      child: DeleteFromAllSwitchListTile(
+        onChanged: (value) => _deleteFromAllPeers = value,
+      ),
+    ).show(context);
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (isApple()) {
+      final tr = AppLocalizations.of(context);
+      final durationItems = _getDurationPullDownMenuItems(context);
+      return PullDownButton(
+        itemBuilder: (context) => [
+          if (widget.onGroupChatManagementPressed != null)
+            PullDownMenuItem(
+              onTap: widget.onGroupChatManagementPressed,
+              title: tr.editText,
+              icon: CupertinoIcons.pencil,
+            ),
+          if (widget.onDeleteAllPressed != null)
+            PullDownMenuItem(
+              onTap: _showDeleteAllDialog,
+              title: tr.deleteAllChatMessagesText,
+              icon: CupertinoIcons.delete,
+              isDestructive: true,
+            ),
+          if (widget.messageExpireInMs != null ||
+              widget.onSettingMessageExpirationTime != null) ...[
+            PullDownMenuDivider.large(),
+            PullDownMenuTitle(
+              title: Text(
+                "${(widget.messageExpireInMs == null ? "Change" : "Set")}"
+                " message expiration time:",
+              ),
+            ),
+            if (widget.messageExpireInMs != null) ...durationItems,
+            if (widget.messageExpireInMs == null) ...[
+              PullDownMenuActionsRow.medium(items: durationItems.sublist(0, 3)),
+              PullDownMenuActionsRow.medium(items: durationItems.sublist(3, 6)),
+            ],
+          ],
+        ],
+        buttonBuilder: (context, showMenu) => CupertinoButton(
+          onPressed: showMenu,
+          padding: EdgeInsets.zero,
+          child: widget.icon ??
+              const Icon(
+                CupertinoIcons.ellipsis_vertical,
+              ),
+        ),
+      );
+    }
     return PopupMenuButton<String>(
       shape: commonShapeBorder(),
       offset: const Offset(0, 50),
       child: widget.icon ?? const Icon(Icons.more_vert_rounded),
-      onSelected: (value) async {
+      onSelected: (value) {
         switch (value) {
           case 'group-chat-management':
             widget.onGroupChatManagementPressed?.call();
             return;
           case 'delete-all-messages':
-            final tr = AppLocalizations.of(context);
-            await ad.AlertDialogWidget(
-              title: tr.confirmText,
-              contents: [
-                ad.Content(
-                  content: tr.confirmDeleteAllChatMessagesText,
-                )
-              ],
-              actions: [
-                ad.Action(
-                  title: tr.cancelButton,
-                  onPressed: () => Navigator.of(context).pop(false),
-                ),
-                ad.Action(
-                  title: tr.ok,
-                  onPressed: () {
-                    Navigator.of(context).pop(true);
-                    widget.onDeleteAllPressed?.call(_deleteFromAllPeers);
-                  },
-                ),
-              ],
-              child: DeleteFromAllSwitchListTile(
-                onChanged: (value) => _deleteFromAllPeers = value,
-              ),
-            ).show(context);
+            _showDeleteAllDialog();
             return;
           default:
             return;
@@ -178,36 +235,85 @@ class ChatAppBarPopupMenuButtonState extends State<ChatAppBarPopupMenuButton> {
     );
   }
 
-  List<Widget> _getDurationEntries(BuildContext context) {
-    final tr = AppLocalizations.of(context);
+  List<PullDownMenuItem> _getDurationPullDownMenuItems(BuildContext context) {
     const durations = [
       Duration(seconds: 15),
       Duration(minutes: 1),
       Duration(hours: 1),
       Duration(days: 1),
+      Duration(days: 7),
       null,
     ];
     final durationsInMs = durations.map((e) => e?.inMilliseconds).toList();
     final durationsText = [
-      tr.fifteenSecondsText,
-      tr.oneMinuteText,
-      tr.oneHourText,
-      tr.oneDayText,
-      tr.noExpirationText,
+      '15 sec',
+      '1 min',
+      '1 hour',
+      '1 day',
+      "1 week",
+      'Never',
     ];
+    final durationsIcon = [
+      CupertinoIcons.time, // 15 seconds
+      CupertinoIcons.clock, // 1 minute
+      CupertinoIcons.clock_fill, // 1 hour
+      CupertinoIcons.calendar, // 1 day
+      CupertinoIcons.calendar_today, // 1 week
+      CupertinoIcons.infinite, // No expiration
+    ];
+
+    return List.generate(durations.length, (i) {
+      final isSelected = durationsInMs[i] == widget.messageExpireInMs;
+      return PullDownMenuItem.selectable(
+        onTap: () {
+          widget.onSettingMessageExpirationTime?.call(durations[i]);
+        },
+        title: durationsText[i],
+        selected: isSelected,
+        icon: durationsIcon[i],
+      );
+    });
+  }
+List<Widget> _getDurationEntries(BuildContext context) {
+    const durations = [
+      Duration(seconds: 15),
+      Duration(minutes: 1),
+      Duration(hours: 1),
+      Duration(days: 1),
+      Duration(days: 7),
+      null,
+    ];
+    final durationsInMs = durations.map((e) => e?.inMilliseconds).toList();
+    final durationsText = [
+      '15 seconds',
+      '1 minute',
+      '1 hour',
+      '1 day',
+      '1 week',
+      'Never',
+    ];
+    final durationsIcon = [
+      Icons.timer_outlined, // 15 seconds
+      Icons.access_time, // 1 minute
+      Icons.access_time_filled, // 1 hour
+      Icons.calendar_today, // 1 day
+      Icons.date_range, // 1 week
+      Icons.all_inclusive, // No expiration
+    ];
+
     final entries = <Widget>[];
     final selected =
         durationsInMs.indexWhere((e) => e == widget.messageExpireInMs);
+
     for (int i = 0; i < durations.length; i++) {
       entries.add(ListTile(
-        leading: i == selected ? const Icon(Icons.check) : const SizedBox(),
+        leading: Icon(durationsIcon[i]),
         selected: i == selected,
+        trailing: i == selected ? const Icon(Icons.check) : null,
         title: Text(durationsText[i]),
         onTap: () {
           Navigator.pop(context);
-          widget.onSettingMessageExpirationTime?.call(
-            durations[i],
-          );
+          widget.onSettingMessageExpirationTime?.call(durations[i]);
         },
       ));
     }
