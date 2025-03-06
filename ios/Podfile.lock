@@ -68,7 +68,7 @@ PODS:
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - receive_sharing_intent (0.0.1):
+  - receive_sharing_intent (1.8.1):
     - Flutter
   - record_darwin (1.0.0):
     - Flutter
@@ -182,7 +182,7 @@ SPEC CHECKSUMS:
   open_file_ios: 5ff7526df64e4394b4fe207636b67a95e83078bb
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
-  receive_sharing_intent: bbbab6c22538c99fa709fa50c34cfe9c90c5cf03
+  receive_sharing_intent: 222384f00ffe7e952bbfabaa9e3967cb87e5fe00
   record_darwin: fb1f375f1d9603714f55b8708a903bbb91ffdb0a
   SDWebImage: 73c6079366fea25fa4bb9640d5fb58f0893facd8
   sensors_plus: 6a11ed0c2e1d0bd0b20b4029d3bad27d96e0c65b
@@ -192,6 +192,6 @@ SPEC CHECKSUMS:
   url_launcher_ios: 694010445543906933d732453a59da0a173ae33d
   video_thumbnail: b637e0ad5f588ca9945f6e2c927f73a69a661140
 
-PODFILE CHECKSUM: 83f6a08c58d4b249cda5d50acce1e33fac59623c
+PODFILE CHECKSUM: 6d391f95b3b13ca5d9f591f4566fe1651d9306cb
 
 COCOAPODS: 1.16.2

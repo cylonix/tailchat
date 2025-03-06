@@ -4,6 +4,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
@@ -123,7 +124,6 @@ class _SharingMediaPreviewScreenState extends State<SharingMediaPreviewScreen> {
   }
 
   Widget _fullMediaPreview() {
-    const filePng = "packages/sase_app_ui/assets/images/ic_file.png";
     return Expanded(
       child: PageView(
         controller: _pageController,
@@ -134,7 +134,12 @@ class _SharingMediaPreviewScreenState extends State<SharingMediaPreviewScreen> {
           final suffix = e.path.split('.').last.toLowerCase();
           final isImage = utils.imageExtensions.contains(suffix);
           final file = File(e.path);
-          return isImage ? Image.file(file) : Image.asset(filePng);
+          return isImage
+              ? Image.file(file)
+              : Icon(
+                  utils.isApple() ? CupertinoIcons.doc : Icons.attach_file,
+                  size: 256,
+                );
         }).toList(),
       ),
     );
@@ -159,7 +164,6 @@ class _SharingMediaPreviewScreenState extends State<SharingMediaPreviewScreen> {
 
   Widget _addCaptionPreview(bool hasPreview, bool hasText) {
     final tr = AppLocalizations.of(context);
-    const sendPng = "packages/sase_app_ui/assets/images/ic_send.png";
     final controller = _galleryItems.isNotEmpty
         ? _galleryItems[_galleryIndex].controller
         : _textController;
@@ -199,7 +203,7 @@ class _SharingMediaPreviewScreenState extends State<SharingMediaPreviewScreen> {
           },
           child: Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Image.asset(sendPng, scale: 2.7),
+            child: const Icon(Icons.send),
           ),
         ),
       ],
@@ -207,7 +211,6 @@ class _SharingMediaPreviewScreenState extends State<SharingMediaPreviewScreen> {
   }
 
   Widget _horizontalMediaFilesView() {
-    const filePng = "packages/sase_app_ui/assets/images/ic_file.png";
     Widget horizontalMediaW = Container(
       height: 60,
       margin: const EdgeInsets.only(left: 15, bottom: 10, top: 5),
@@ -219,7 +222,11 @@ class _SharingMediaPreviewScreenState extends State<SharingMediaPreviewScreen> {
           final ext = item.path.split('.').last.toLowerCase();
           final isImage = utils.imageExtensions.contains(ext);
           final file = File(item.path);
-          final img = isImage ? Image.file(file) : Image.asset(filePng);
+          final img = isImage
+              ? Image.file(file)
+              : Icon(
+                  utils.isApple() ? CupertinoIcons.doc : Icons.attach_file,
+                );
           return GestureDetector(
             onTap: () => _onTapHorizontalMedia(index),
             child: Container(

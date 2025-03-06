@@ -103,6 +103,7 @@ class _DeviceDialogState extends State<DeviceDialog> {
                     }
                     return null;
                   },
+                  onFieldSubmitted: (_) => _saveDevice(),
                 ),
               ],
               const SizedBox(height: 16),

@@ -99,13 +99,23 @@ class ChatService: NSObject, NetworkMonitorDelegate {
 
         @objc private func appDidEnterBackground() {
             logger.i("App entered background")
+            // Check both listeners' states
+            if let listener = listener, listener.state != .ready {
+                logger.w("Main listener not in ready state before background - attempting restart")
+                restartService()
+            } else if let subscriberListener = subscriberListener, subscriberListener.state != .ready {
+                logger.w("Subscriber listener not in ready state before background - attempting restart")
+                restartService()
+            }
             startBackgroundTask()
         }
 
         @objc private func appWillEnterForeground() {
             logger.i("App will enter foreground")
-            endBackgroundTask(stopService: false)
-            startService()
+            endBackgroundTask()
+            DispatchQueue.global().asyncAfter(deadline: .now() + 1) { [weak self] in
+                self?.startService()
+            }
         }
 
         private var endBackgroundWorkItem: DispatchWorkItem?
@@ -124,7 +134,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             ) { [weak self] in
                 // This is called by the system when background time is about to expire
                 self?.logger.i("Background task expiring by system")
-                self?.endBackgroundTask(stopService: true, bySystem: true)
+                self?.endBackgroundTask(bySystem: true)
             }
 
             // Log the new task
@@ -142,7 +152,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             endBackgroundWorkItem = DispatchWorkItem { [weak self] in
                 guard let self = self else { return }
                 if self.backgroundTask != .invalid {
-                    self.endBackgroundTask(stopService: true)
+                    self.endBackgroundTask()
                 } else {
                     self.logger.e("End background task work item is still valid. Not expected.")
                 }
@@ -157,18 +167,14 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             }
         }
 
-        private func endBackgroundTask(stopService endService: Bool, bySystem: Bool = false) {
+        private func endBackgroundTask(bySystem: Bool = false) { 
             UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
             if backgroundTask != .invalid {
-                logger.i("Ending background task. Stop service: \(endService), by system: \(bySystem)")
+                logger.i("Ending background task. by system: \(bySystem)")
                 notificationWorkItem?.cancel()
                 endBackgroundWorkItem?.cancel()
                 notificationWorkItem = nil
                 endBackgroundWorkItem = nil
-
-                if endService {
-                    stopService()
-                }
                 UIApplication.shared.endBackgroundTask(backgroundTask)
                 backgroundTask = .invalid
             }
@@ -314,7 +320,6 @@ class ChatService: NSObject, NetworkMonitorDelegate {
 
             let interface = ptr?.pointee
             let name = String(cString: (interface?.ifa_name)!)
-            logger.i("Found network interface: \(name)")
         }
     }
 
@@ -324,23 +329,20 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         if !isServerStarted {
             checkNetworkInterfaces()
             isServerStarted = true
-            if #available(iOS 14.0, *) {
-                let monitor = NWPathMonitor()
-                monitor.pathUpdateHandler = { [weak self] path in
-                    guard let self = self else { return }
-                    if path.status == .satisfied {
-                        self.logger.i("Network access granted")
-                        // Continue with server start
-                    } else {
-                        self.logger.e("Network access denied: \(path.status)")
-                        // Handle network access denial
-                    }
-                }
-                monitor.start(queue: DispatchQueue.global())
+
+            // Add listener state check before creating new ones
+            if let existingListener = listener, existingListener.state == .ready,
+               let existingSubscriberListener = subscriberListener, existingSubscriberListener.state == .ready
+            {
+                logger.i("Both listeners already in ready state")
+                return
             }
+
             do {
+                // Main listener setup
                 let parameters = NWParameters.tcp
                 parameters.allowLocalEndpointReuse = true
+
                 let content = NWEndpoint.Port(rawValue: port)!
                 listener = try NWListener(using: parameters, on: content)
                 listener?.stateUpdateHandler = handleStateUpdate
@@ -357,18 +359,10 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                 listener?.start(queue: DispatchQueue.global(qos: .background))
                 logger.i("Server listener started on port \(port)")
 
-                DispatchQueue.global().asyncAfter(deadline: .now() + 10) { [weak self] in
-                    guard let self = self else { return }
-                    if self.listener?.state != .ready {
-                        self.logger.e("Listener did not become ready within timeout period")
-                        if isServerStarted { 
-                            self.restartService()
-                        }
-                    }
-                }
-
+                // Subscriber listener setup
                 let subscriberParameters = NWParameters.tcp
                 subscriberParameters.allowLocalEndpointReuse = true
+
                 let subscriberContent = NWEndpoint.Port(rawValue: subscriberPort)!
                 subscriberListener = try NWListener(using: subscriberParameters, on: subscriberContent)
                 subscriberListener?.stateUpdateHandler = handleSubscriberStateUpdate
@@ -382,28 +376,72 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                 subscriberListener?.start(queue: DispatchQueue.global(qos: .background))
                 logger.i("Subscriber Server listener started on port \(subscriberPort)")
 
-                DispatchQueue.global().asyncAfter(deadline: .now() + 10) { [weak self] in
+                // Check both listeners' states after a delay
+                DispatchQueue.global().asyncAfter(deadline: .now() + 2) { [weak self] in
                     guard let self = self else { return }
-                    if self.subscriberListener?.state != .ready {
+                    let listenerNotReady = self.listener?.state != .ready
+                    let subscriberNotReady = self.subscriberListener?.state != .ready
+
+                    if listenerNotReady {
+                        self.logger.e("Main listener did not become ready within timeout period")
+                    }
+
+                    if subscriberNotReady { 
                         self.logger.e("Subscriber listener did not become ready within timeout period")
-                        if isServerStarted { 
-                            self.restartService()
-                        }
+                    }
+
+                    if listenerNotReady || subscriberNotReady, self.isRunning {
+                        self.restartService()
                     }
                 }
             } catch {
-                logger.e("Failed to start server: \(error). Try to restart.")
+                logger.e("Failed to start listener servers: \(error). Try to restart.")
                 restartService()
             }
         }
     }
 
-    private func restartService() {
-        logger.i("Stop service now and restart service in 5 seconds.")
+    private let restartLock = NSLock()
+    private var isServerRestarting: Bool = false
+    func restartService() {
+        restartLock.lock()
+        if isServerRestarting {
+            restartLock.unlock()
+            logger.i("Server listener is already restarting. Skip.")
+            return
+        }
+
+        isServerRestarting = true
+        restartLock.unlock()
+
+        logger.i("Stop listener service now and restart service in 2 seconds.")
         stopService()
-        DispatchQueue.global().asyncAfter(deadline: .now() + 5) { [weak self] in
+
+        // Increase delay and add network check before restart
+        DispatchQueue.global().asyncAfter(deadline: .now() + 2) { [weak self] in
             guard let self = self else { return }
-            self.startService()
+
+            // Check network availability before restart
+            let monitor = NWPathMonitor()
+            monitor.pathUpdateHandler = { [weak self] path in
+                guard let self = self else { return }
+                monitor.cancel()
+
+                if path.status == .satisfied {
+                    logger.i("Network available, starting service listener from restart.")
+                    self.startService()
+                } else {
+                    logger.w("Network unavailable, will retry restart in 5 seconds")
+                    DispatchQueue.global().asyncAfter(deadline: .now() + 5) {
+                        self.restartService()
+                    }
+                }
+            }
+            monitor.start(queue: DispatchQueue.global())
+
+            self.restartLock.lock()
+            self.isServerRestarting = false
+            self.restartLock.unlock()
         }
     }
 
@@ -418,9 +456,10 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             logger.i("Listener ready on port \(port)")
         case let .failed(error):
             logger.e("Listener failed. Error: \(error.localizedDescription)")
+            logger.e("Listener network error code: \(error)")
             logger.e("Listener Detailed error: \(String(describing: error))")
-            if let netError = error as? NWError {
-                logger.e("Listener metwork error code: \(netError)")
+            if isRunning {
+                restartService()
             }
         case .cancelled:
             logger.i("Listener cancelled")
@@ -442,7 +481,9 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             logger.i("Subscriber listener ready")
         case let .failed(error):
             logger.e("Subscriber listener failed with error: \(error)")
-            stopService()
+            if isRunning {
+                restartService()
+            }
         case .cancelled:
             logger.i("Subscriber listener cancelled")
         default:
@@ -455,11 +496,12 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         logger.i("New connection received from \(connection.endpoint)")
         connection.start(queue: DispatchQueue.global(qos: .background))
         defer {
+            logger.i("Connection from \(connection.endpoint) is now canncled.")
             connection.cancel()
         }
         #if os(iOS)
             if let uuid = apnUUID, let hostname = localHostname {
-                sendApnInfo(connection: connection, hostname: hostname, uuid: uuid)
+                _ = sendApnInfo(connection: connection, hostname: hostname, uuid: uuid)
             }
         #endif
         receiveMessages(connection: connection, messageHandler: handleMessage)
@@ -508,7 +550,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             semaphore.wait()
 
             if let error = receivedError {
-                logger.e("Connection receive error: \(error)")
+                logger.e("Connection \(connection.endpoint) receive error: \(error)")
                 return
             }
 
@@ -527,7 +569,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                 }
             }
             if isComplete {
-                logger.d("Completed. Return.")
+                logger.d("Connection \(connection.endpoint) Completed. Return.")
                 return
             }
         }
@@ -920,9 +962,23 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     }
 
     func stopService() {
-        listener?.cancel()
+        // Add explicit state check and wait for cancellation for both listeners
+        if let existingListener = listener {
+            existingListener.cancel()
+            // Wait briefly for cancellation to complete
+            DispatchQueue.global().sync {
+                Thread.sleep(forTimeInterval: 0.1)
+            }
+        }
+
+        if let existingSubscriberListener = subscriberListener {
+            existingSubscriberListener.cancel()
+            // Wait briefly for cancellation to complete
+            DispatchQueue.global().sync {
+                Thread.sleep(forTimeInterval: 0.1)
+            }
+        }
         listener = nil
-        subscriberListener?.cancel()
         subscriberListener = nil
         isRunning = false
         isServerStarted = false

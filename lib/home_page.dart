@@ -328,7 +328,7 @@ class _HomePageState extends State<HomePage>
     _logger.d("setting up share callbacks.");
     // For sharing images coming from outside the app while the app is in the memory
     _shareMediaFileSub = _shareMediaFileSub ??
-        ReceiveSharingIntent.getMediaStream().listen(
+        ReceiveSharingIntent.instance.getMediaStream().listen(
             (List<SharedMediaFile> value) {
           _navigateToShareMedia(value);
         }, onError: (err) {
@@ -336,20 +336,10 @@ class _HomePageState extends State<HomePage>
         });
 
     // For sharing images coming from outside the app while the app is closed
-    ReceiveSharingIntent.getInitialMedia().then((List<SharedMediaFile> value) {
+    ReceiveSharingIntent.instance
+        .getInitialMedia()
+        .then((List<SharedMediaFile> value) {
       _navigateToShareMedia(value);
-    });
-
-    // For sharing or opening urls/text coming from outside the app while the app is in the memory
-    _shareTextSub = _shareTextSub ??
-        ReceiveSharingIntent.getTextStream().listen((String value) {
-          _navigateToShareText(value);
-        }, onError: (err) {
-          _logger.e("get intent text stream error: $err");
-        });
-    // For sharing or opening urls/text coming from outside the app while the app is closed
-    ReceiveSharingIntent.getInitialText().then((String? value) {
-      _navigateToShareText(value);
     });
   }
 
@@ -364,18 +354,6 @@ class _HomePageState extends State<HomePage>
       _isNetworkAvailable = res;
     });
     return res;
-  }
-
-  void _navigateToShareText(String? value) {
-    _logger.d("received share text ${value?.shortString(20)}");
-    if (value != null && value.toString().isNotEmpty) {
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (context) => ReceiveSharePage(
-          text: value,
-          showSideBySide: showSideBySide(context),
-        ),
-      ));
-    }
   }
 
   void _navigateToShareMedia(List<SharedMediaFile> value) {

@@ -26,14 +26,12 @@ import 'widgets/share_preview.dart';
 class ReceiveSharePage extends StatefulWidget {
   final List<SharedMediaFile>? files;
   final List<types.Message>? messages;
-  final String? text;
   final bool showDrawer;
   final bool showSideBySide;
   const ReceiveSharePage({
     super.key,
     this.files,
     this.messages,
-    this.text,
     this.showDrawer = false,
     this.showSideBySide = false,
   });
@@ -92,13 +90,31 @@ class _State extends State<ReceiveSharePage> {
   void _shareWithSession(ChatSession session) {
     var paths = <String>[];
     final files = widget.files;
+    String? text;
     if (files != null) {
       for (var element in files) {
-        var path = element.path;
-        if (Platform.isIOS && element.type == SharedMediaType.FILE) {
-          path = path.replaceAll(utils.replaceableText, "");
+        switch (element.type) {
+          case SharedMediaType.file:
+            var path = element.path;
+            if (Platform.isIOS && element.type == SharedMediaType.file) {
+              path = path.replaceAll(utils.replaceableText, "");
+            }
+            paths.add(path);
+            break;
+          case SharedMediaType.text:
+            text = element.path;
+            break;
+          case SharedMediaType.image:
+            paths.add(element.path);
+            break;
+          case SharedMediaType.video:
+            paths.add(element.path);
+            break;
+          case SharedMediaType.url:
+            text = element.path;
+            // TODO: handle url correctly.
+            break;
         }
-        paths.add(path);
       }
     }
     Navigator.pop(context);
@@ -107,7 +123,7 @@ class _State extends State<ReceiveSharePage> {
         session: session,
         paths: paths,
         messages: widget.messages,
-        text: widget.text,
+        text: text,
         showSideBySide: widget.showSideBySide,
       ),
     ));
@@ -135,8 +151,9 @@ class _State extends State<ReceiveSharePage> {
   Widget _buildUi(BuildContext context) {
     final tr = AppLocalizations.of(context);
     final title = tr.chooseChatTitle;
+    _logger.d("Receiving share page: sessions[${_sessions.length}]");
 
-    final selfPage = Scaffold(
+    return Scaffold(
       key: _scaffoldKey,
       appBar: MainAppBar(title: title),
       drawer: widget.showDrawer ? const MainDrawer() : null,
@@ -166,8 +183,5 @@ class _State extends State<ReceiveSharePage> {
         ],
       ),
     );
-
-    _logger.d("rebuilding the receive share page");
-    return selfPage;
   }
 }
