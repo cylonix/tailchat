@@ -40,33 +40,63 @@ ChatService _getChatServiceForDevice(Device device) {
   return s;
 }
 
-Future<Status> sendPingToPeer(Device peer) async {
+/// Returns true if push notification has been sent.
+Future<bool> _tryConnectOrSendPushNotifications(
+  ChatService s,
+  Device peer,
+  bool forceNotification,
+) async {
+  try {
+    await s.tryConnect();
+    if (s.isConnected) {
+      if (!forceNotification) {
+        // Try connect succeeded without sending push notiifcation.
+        _logger.d(
+          "${peer.hostname} is connected. Skip sending push notification",
+        );
+        return false;
+      }
+    }
+  } catch (e) {
+    _logger.e("$e");
+  }
+  _logger.i(
+    "sending push notification to: ${peer.hostname} ${peer.pnUUID}",
+  );
+  final result = await http.post(
+    Uri.parse("https://cylonix.io/apn/tailchat"),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: jsonEncode({
+      "sender": Pst.selfUser?.name,
+      "sender_id": Pst.selfDevice?.pnUUID,
+      "sender_hostname": Pst.selfDevice?.hostname,
+      "receiver_id": peer.pnUUID,
+      "receiver_hostname": peer.hostname,
+      "message_type": "connection_request",
+      "message": "ping",
+    }),
+  );
+  _logger.d(
+    "Send push notification result: ${result.statusCode} ${result.body}",
+  );
+  return true;
+}
+
+Future<Status> sendPingToPeer(Device peer, {bool retry = false}) async {
+  var canRetry = false;
   try {
     final s = _getChatServiceForDevice(peer);
     if (!s.isConnected && peer.pnUUID != null) {
-      _logger.d(
-        "sending push notification to: ${peer.hostname} ${peer.pnUUID}",
-      );
-      final result = await http.post(
-        Uri.parse("https://cylonix.io/apn/tailchat"),
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({
-          "sender": Pst.selfUser?.name,
-          "sender_id": Pst.selfDevice?.pnUUID,
-          "sender_hostname": Pst.selfDevice?.hostname,
-          "receiver_id": peer.pnUUID,
-          "receiver_hostname": peer.hostname,
-          "message_type": "connection_request",
-          "message": "ping",
-        }),
-      );
-      _logger.d("result: ${result.statusCode} ${result.body}");
+      canRetry = !(await _tryConnectOrSendPushNotifications(s, peer, retry));
     }
     await s.sendPing();
     return Status.ok;
   } catch (e) {
+    if (canRetry) {
+      return await sendPingToPeer(peer, retry: true);
+    }
     return Status.fail(msg: "Failed to send ping to peer: $e");
   }
 }

@@ -368,6 +368,7 @@ void switchToDefaultHomePage(BuildContext context) {
 }
 
 void toast(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).clearSnackBars();
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(

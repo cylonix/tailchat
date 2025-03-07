@@ -64,6 +64,7 @@ class ChatServer {
     }
     _serverStarted = true;
     _chatService ??= ChatService();
+    ChatService.initMethodChannelHandlers();
     _contactsRepository ??= await ContactsRepository.getInstance();
     if (isMobile() || Platform.isMacOS) {
       _logger.i("Starting chat service");

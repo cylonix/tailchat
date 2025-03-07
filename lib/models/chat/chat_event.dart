@@ -130,3 +130,14 @@ class ChatSocketReceiveDataEvent {
   final String line;
   ChatSocketReceiveDataEvent({required this.line});
 }
+
+class ChatSharingEvent {
+  final String text;
+  final List<String> urls;
+  final List<String> files;
+  const ChatSharingEvent({
+    this.text = '',
+    this.urls = const [],
+    this.files = const [],
+  });
+}

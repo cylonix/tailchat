@@ -28,7 +28,7 @@ class ChatService {
   final String serverAddress;
   final int port, subscriberPort;
   final int _maxRetries = 3;
-  final Duration _initialRetryDelay = Duration(seconds: 1);
+  final Duration _initialRetryDelay = Duration(seconds: 2);
   final String? deviceID;
   final String? userID;
   Socket? _socket;
@@ -66,6 +66,36 @@ class ChatService {
     } on PlatformException catch (e) {
       _logger.e("Failed to stop service: '${e.message}'.");
     }
+  }
+
+  static void initMethodChannelHandlers() {
+    platform.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'handleOpenFile':
+          final String filePath = call.arguments as String;
+          _logger.d("Sharing file $filePath");
+          _eventBus.fire(ChatSharingEvent(files: [filePath]));
+          break;
+        case 'handleOpenFiles':
+          final List<String> filePaths = List<String>.from(call.arguments);
+          _logger.d("Sharing files $filePaths");
+          _eventBus.fire(ChatSharingEvent(files: filePaths));
+          break;
+        case 'handleOpenText':
+          final String text = call.arguments;
+          _logger.d("Sharing text ${text.shortString(100)}");
+          _eventBus.fire(ChatSharingEvent(text: text));
+          break;
+        case 'handleOpenURLs':
+          final List<String> urls = List<String>.from(call.arguments);
+          _logger.d("Sharing urls: $urls");
+          _eventBus.fire(ChatSharingEvent(urls: urls));
+          break;
+        default:
+          _logger.e("Unknow method: ${call.method}");
+          break;
+      }
+    });
   }
 
   static Completer<String>? logCompleter;
@@ -151,11 +181,17 @@ class ChatService {
   Future<void> sendMessage(String message) async {
     try {
       final id = Uuid().v4();
+      final start = DateTime.now();
       _logger.d(
         "send message: make sure socket is connected. "
         "message=${message.shortString(256)}...",
       );
       await _ensureSocketConnected();
+      if (_socket == null) {
+        throw Exception("Socket is not connected.");
+      }
+      final delay = DateTime.now().difference(start).inSeconds;
+      _logger.d("Sending a message stored since $start, after $delay seconds");
       _socket?.write("TEXT:$id:$message\n");
       await _socket?.flush();
       _logger.d("wait for ack of $id");
@@ -317,7 +353,18 @@ class ChatService {
     }
   }
 
-  Future<void> _connectSocketWithRetry() async {
+  Future<void> tryConnect() async {
+    _logger.d("Try connecting to socket $_socketName");
+    await _connectSocketWithRetry(
+      oneShot: true,
+      timeout: Duration(seconds: 1),
+    );
+  }
+
+  Future<void> _connectSocketWithRetry({
+    bool oneShot = false,
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
     if (_isConnecting) {
       return;
     }
@@ -329,16 +376,20 @@ class ChatService {
       state: ChatServiceState.connecting,
     ));
     try {
-      await _connectSocket();
+      await _connectSocket(timeout: timeout);
+      _logger.d("Socket $_socketName is now connected");
       _retryCount = 0;
       _isConnecting = false;
     } catch (e) {
+      if (oneShot) {
+        throw Exception("Failed to connect to $_socketName: $e");
+      }
       _logger.e('Failed to connect to socket (retry count: $_retryCount): $e');
-      _isConnecting = false;
       if (_retryCount < _maxRetries) {
         final delay = _initialRetryDelay * (1 << _retryCount);
         _retryCount++;
         _logger.i('Retrying connection in ${delay.inSeconds} seconds...');
+        _isConnecting = false;
         await Future.delayed(delay);
         await _connectSocketWithRetry();
       } else {
@@ -346,6 +397,8 @@ class ChatService {
         _closeSocket();
         throw Exception("Failed to connect to socket after $_maxRetries tries");
       }
+    } finally {
+      _isConnecting = false;
     }
   }
 
@@ -418,7 +471,13 @@ class ChatService {
     });
   }
 
-  Future<void> _connectSocket() async {
+  bool _isSocketConnecting = false;
+  Future<void> _connectSocket({Duration? timeout}) async {
+    if (_isSocketConnecting) {
+      _logger.d("Socket is already connecting. Skip");
+      return;
+    }
+    _isSocketConnecting = true;
     try {
       if (_socket != null) {
         throw Exception("Socket already exists");
@@ -427,7 +486,7 @@ class ChatService {
       _socket = await Socket.connect(
         serverAddress,
         port,
-        timeout: Duration(seconds: 5),
+        timeout: timeout ?? Duration(seconds: 5),
       );
       _monitorSocket();
       _logger.i("Socket Connected");
@@ -441,6 +500,8 @@ class ChatService {
       _logger.e("Error connecting to socket $e");
       _closeSocket();
       rethrow;
+    } finally {
+      _isSocketConnecting = false;
     }
   }
 
@@ -462,8 +523,6 @@ class ChatService {
       } finally {
         _socket = null;
       }
-    } else {
-      _logger.e("Close socket is called on a socket that has been closed.");
     }
   }
 
@@ -535,8 +594,8 @@ class ChatService {
       _logger.d("Service socket is connecting. Skip.");
       return;
     }
-    _logger.d("Connecting to service socket");
     _isServiceSocketConnecting = true;
+    _logger.d("Connecting to service socket");
     _eventBus.fire(ChatServiceStateEvent(
       from: this,
       state: ChatServiceState.connecting,
@@ -551,7 +610,14 @@ class ChatService {
         'Failed to connect to service socket port $port '
         '(retry $_serviceSocketRetryCount): $e',
       );
-      _isServiceSocketConnecting = false;
+      if (isApple()) {
+        _logger.i("Try to restart the service.");
+        try {
+          await platform.invokeMethod('restartService');
+        } catch (e) {
+          _logger.e("Failed to restart service.: $e");
+        }
+      }
       if (_serviceSocketRetryCount < _maxRetries) {
         final delay = _initialRetryDelay * (1 << _serviceSocketRetryCount);
         _serviceSocketRetryCount++;
@@ -560,8 +626,10 @@ class ChatService {
           'seconds...',
         );
         await Future.delayed(delay);
+        _isServiceSocketConnecting = false;
         await _connectServiceSocketWithRetry();
       } else {
+        _isServiceSocketConnecting = false;
         _logger.e(
           'Max service socket retries reached. '
           'Connection failed.',
@@ -583,7 +651,7 @@ class ChatService {
         isSelfDevice: true,
       ));
     } catch (e) {
-      _logger.e("Error connecting service socket $e");
+      _logger.e("Error connecting service socket: $e");
       _closeServiceSocket();
       rethrow;
     }

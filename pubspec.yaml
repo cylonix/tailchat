@@ -95,7 +95,7 @@ dependencies:
   record: ^5.2.0
   rxdart: ^0.28.0
   screen_retriever: ^0.2.0
-  share_plus: ^10.0.2
+  share_plus: ^10.1.4
   shared_preferences: ^2.0.0
   shelf: ^1.2.0
   shelf_router: ^1.1.1

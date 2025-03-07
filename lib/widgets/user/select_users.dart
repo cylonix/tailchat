@@ -117,9 +117,9 @@ class _SelectUsersState extends State<SelectUsers> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SingleChildScrollView(child: userList),
-        const SizedBox(height: 8),
         if (!_simpleSelect) _bottomButton(context),
+        const SizedBox(height: 8),
+        SingleChildScrollView(child: userList),
       ],
     );
   }
@@ -241,7 +241,6 @@ class _SelectUsersState extends State<SelectUsers> {
           final subtitles = peer.subtitles;
           return PullDownMenuItem(
             onTap: () {
-              Navigator.of(context).pop();
               _flipSelectedState(index, peer);
               if (_simpleSelect) {
                 _handleSelectOnlyOneUser();

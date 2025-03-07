@@ -127,6 +127,9 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
             case "stopService":
                 self.stopChatService()
                 result(nil)
+            case "restartService":
+                self.restartChatService()
+                result(nil)
             case "logs":
                 self.getLogs()
                 result(nil)
@@ -158,7 +161,10 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
 
     private func stopChatService() {
         chatService?.stopService()
-        chatService = nil
+    }
+
+    private func restartChatService() {
+        chatService?.restartService()
     }
 
     private func getLogs() {
