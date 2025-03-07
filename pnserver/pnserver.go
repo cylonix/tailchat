@@ -40,7 +40,7 @@ func (s *PNServer) validateAppleToken(_ context.Context, token string) error {
 		return nil
 	case http.StatusGone: // 410
 		return fmt.Errorf("token expired")
-	case http.StatusBadRequest: // 400
+	case http.StatusBadRequest:
 		if res.Reason == apns2.ReasonBadDeviceToken ||
 			res.Reason == apns2.ReasonDeviceTokenNotForTopic {
 			return fmt.Errorf("invalid token: %s", res.Reason)
@@ -150,30 +150,24 @@ func (s *PNServer) sendApplePush(ctx context.Context, req *PushRequest, receiver
 	}
 	body := fmt.Sprintf("%s@%s wants to connect", req.Sender, req.SenderHostname)
 	notification := &apns2.Notification{
-		DeviceToken: receiverToken.Token,
-		Topic:       s.apnBundleID,
-		Priority:    apns2.PriorityHigh, // Set high priority
-		Payload: map[string]interface{}{
-			"aps": map[string]interface{}{
-				"alert": map[string]interface{}{
-					"title": "Tailchat Connection Request",
-					"body":  body,
-				},
-                "sound": map[string]interface{}{
-                    "critical": 1,
-                    "name": "default",
-                    "volume": 1.0,
+        DeviceToken: receiverToken.Token,
+        Topic:       s.apnBundleID,
+        Priority:    apns2.PriorityHigh,
+        Payload: map[string]interface{}{
+            "aps": map[string]interface{}{
+                "alert": map[string]interface{}{
+                    "title": "Tailchat Connection Request",
+                    "body":  body,
                 },
-				"interruption-level": "time-sensitive", // Make it time sensitive
-				"relevance-score":    1.0,              // Highest relevance
-				"critical":           1,                // Mark as critical
-			},
-			// Custom data
-			"sender_hostname": req.SenderHostname,
-			"type":            "connection_request",
-			"message":         req.Message,
-		},
-	}
+                "sound": "default",
+                "interruption-level": "time-sensitive",
+                "relevance-score": 1.0,  // High relevance
+            },
+            "sender_hostname": req.SenderHostname,
+            "type":           "connection_request",
+            "message":        req.Message,
+        },
+    }
 
 	res, err := s.apnClient.Push(notification)
 	if err != nil {
@@ -183,15 +177,13 @@ func (s *PNServer) sendApplePush(ctx context.Context, req *PushRequest, receiver
 	// Check for specific APNs status codes
 	switch res.StatusCode {
 	case http.StatusGone: // 410 - Token is no longer valid
-		// Clear both tokens from Redis
 		if err := s.redis.Del(ctx, req.SenderHostname, req.ReceiverHostname).Err(); err != nil {
 			s.logger.Printf("Failed to delete invalid tokens: %v", err)
 		}
 		return fmt.Errorf("device token is no longer valid")
 
-	case http.StatusBadRequest: // 400 - Bad request
+	case http.StatusBadRequest:
 		if res.Reason == apns2.ReasonBadDeviceToken || res.Reason == apns2.ReasonDeviceTokenNotForTopic {
-			// Clear both tokens from Redis
 			if err := s.redis.Del(ctx, req.SenderHostname, req.ReceiverHostname).Err(); err != nil {
 				s.logger.Printf("Failed to delete invalid tokens: %v", err)
 			}
