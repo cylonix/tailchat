@@ -114,12 +114,22 @@ class _SelectUsersState extends State<SelectUsers> {
     if (userList == null) {
       return _noUserOrDeviceAvailable;
     }
+    final chooseDevice =
+        widget.chooseOnlyOneDevice ? " and one of the user's devices" : "";
     return Column(
       mainAxisSize: MainAxisSize.min,
+      spacing: 16,
       children: [
+        Text(
+          widget.chooseOnlyOneUser
+              ? "Please select a user$chooseDevice"
+              : "Please select the users",
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+        Flexible(
+          child: userList,
+        ),
         if (!_simpleSelect) _bottomButton(context),
-        const SizedBox(height: 8),
-        SingleChildScrollView(child: userList),
       ],
     );
   }
@@ -134,7 +144,6 @@ class _SelectUsersState extends State<SelectUsers> {
         Text(tr.noUserAvailableDetailsText, style: style),
         const SizedBox(height: 64),
         BaseInputButton(
-          shrinkWrap: true,
           child: Text(tr.ok),
           onPressed: () {
             Navigator.of(context).pop();
@@ -364,19 +373,20 @@ class _SelectUsersState extends State<SelectUsers> {
   Widget get _noUserOrDeviceAvailable {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
-      spacing: 24,
+      spacing: 16,
       children: [
         Caption(context, "No user or device is available."),
         const Text(
           "Please add a contact or add a device to yourself so that you can "
           "begin chatting to a peer on a different device.",
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),
-        ElevatedButton(
+        BaseInputButton(
           onPressed: _showAddContactDialog,
           child: Text("Add Contact"),
         ),
-        ElevatedButton(
+        BaseInputButton(
           onPressed: _showAddDeviceDialog,
           child: Text("Add Device"),
         ),
@@ -419,20 +429,25 @@ class _SelectUsersState extends State<SelectUsers> {
     if (filteredPeers.isEmpty) {
       return null;
     }
-    return ListView.builder(
-      controller: ScrollController(),
-      shrinkWrap: true,
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return ListTile(
-            title: Text(user.username),
-            subtitle: user.name != user.username ? Text(user.name) : null,
-          );
-        }
-        final peer = filteredPeers[index - 1];
-        return _getDeviceCard(index, peer);
-      },
-      itemCount: filteredPeers.length + 1,
+    return Column(
+      spacing: 16,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ListTile(
+          title: Text('User: ${user.username}'),
+          subtitle: user.name != user.username ? Text(user.name) : null,
+        ),
+        Flexible(
+          child: ListView.builder(
+            controller: ScrollController(),
+            itemBuilder: (context, index) {
+              final peer = filteredPeers[index];
+              return _getDeviceCard(index, peer);
+            },
+            itemCount: filteredPeers.length,
+          ),
+        ),
+      ],
     );
   }
 
@@ -486,7 +501,6 @@ class _SelectUsersState extends State<SelectUsers> {
     final tr = AppLocalizations.of(context);
     return BaseInputButton(
       focusNode: _confirmFocusNode,
-      shrinkWrap: true,
       child: Text(
         widget.selectButtonText ?? tr.confirmText,
         textWidthBasis: TextWidthBasis.parent,

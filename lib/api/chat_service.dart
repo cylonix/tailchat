@@ -285,13 +285,17 @@ class ChatService {
     try {
       final id = Uuid().v4();
       await _ensureSocketConnected();
+      final socket = _socket;
+      if (socket == null) {
+        throw Exception("failed to connect to peer");
+      }
       _logger.d("sendFile: start");
-      _socket?.write("FILE_START:$id:$filename:$fileSize\n");
+      socket.write("FILE_START:$id:$filename:$fileSize\n");
       _logger.d("sendFile: sent file information to peer");
-      await _socket?.flush();
+      await socket.flush();
       final inputStream = file.openRead();
       _logger.d("sendFile: read");
-      _socket!.addStream(inputStream);
+      socket.addStream(inputStream);
       _logger.d("sendFile: pipe");
       await _waitForFileDone(id, fileSize, onProgress);
     } catch (e) {

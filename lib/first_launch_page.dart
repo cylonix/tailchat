@@ -203,22 +203,26 @@ class _FirstLaunchPageState extends State<FirstLaunchPage> {
   bool _modifyUsername = false;
   Widget get _usernameInput {
     if (_modifyUsername || (_systemUsername ?? "").isEmpty) {
-      return BaseTextInput(
-        controller: _usernameController,
-        label: 'Your username*',
-        hint: 'Enter a username to identify yourself to other users.',
-        maxLines: null,
-        validator: (value) {
-          if (value?.isEmpty ?? true) {
-            return 'Please enter your username';
-          }
-          return null;
-        },
-        onChanged: (v) {
-          setState(() {
-            // Update UI
-          });
-        },
+      return Column(
+        spacing: 4,
+        children: [
+          const Text('Enter a username to identify yourself to other users:'),
+          BaseTextInput(
+            controller: _usernameController,
+            label: 'Your username*',
+            validator: (value) {
+              if (value?.isEmpty ?? true) {
+                return 'Please enter your username';
+              }
+              return null;
+            },
+            onChanged: (v) {
+              setState(() {
+                // Update UI
+              });
+            },
+          ),
+        ],
       );
     }
     return ListTile(
@@ -246,8 +250,7 @@ class _FirstLaunchPageState extends State<FirstLaunchPage> {
 
   Widget get _selfContactForm {
     final device = _currentDevice;
-    final address =
-        device?.address != device?.hostname ? "${device?.address} " : "";
+    final subtitles = device?.subtitles ?? [];
     return Container(
       alignment: Alignment.center,
       constraints: const BoxConstraints(maxWidth: 600),
@@ -261,8 +264,8 @@ class _FirstLaunchPageState extends State<FirstLaunchPage> {
             if (device != null)
               ListTile(
                 leading: getOsIcon(Platform.operatingSystem),
-                title: Text('Device: ${device.hostname}'),
-                subtitle: Text('${address}Port: ${device.port}'),
+                title: Text('Your device: ${device.title}'),
+                subtitle: subtitles.isNotEmpty ? Text(subtitles[0]) : null,
               ),
             const SizedBox(height: 24),
             BaseInputButton(

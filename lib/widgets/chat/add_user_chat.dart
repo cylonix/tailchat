@@ -107,7 +107,7 @@ class AddUserChat extends StatelessWidget {
       );
     }
     return Container(
-      alignment: Alignment.center,
+      alignment: Alignment.topCenter,
       child: Container(
         padding: const EdgeInsets.all(16),
         constraints: const BoxConstraints(maxWidth: 1000),

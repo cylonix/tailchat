@@ -1,6 +1,7 @@
 // Copyright (c) EZBLOCK Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../api/config.dart';
 import '../../utils/utils.dart';
@@ -60,7 +61,6 @@ class _BaseInputButtonWidgetState extends State<BaseInputButton> {
   }
 
   ButtonStyle? get _buttonStyle {
-    final scaleDown = Pst.enableAR ?? enableARByDefault;
     final side = ((Pst.enableTV ?? false) && (_focus?.hasFocus ?? false))
         ? BorderSide(
             color: isDarkMode(context) ? Colors.tealAccent : Colors.blueAccent,
@@ -69,15 +69,22 @@ class _BaseInputButtonWidgetState extends State<BaseInputButton> {
         : widget.outlineButton
             ? null // Use default side for outline button.
             : BorderSide.none;
-    final minSize = widget.width != null
-        ? Size(widget.width!, scaleDown ? 36 : 40)
-        : widget.shrinkWrap
-            ? Size(200, scaleDown ? 36 : 40)
-            : null;
     return ElevatedButton.styleFrom(
-      minimumSize: minSize,
+      minimumSize: _buttonMinSize,
       side: side,
     );
+  }
+
+  double? get _minButtonWidth {
+    return widget.width ?? (widget.shrinkWrap ? null : 200);
+  }
+
+  Size? get _buttonMinSize {
+    final scaleDown = Pst.enableAR ?? enableARByDefault;
+    final minSize = _minButtonWidth != null
+        ? Size(_minButtonWidth!, scaleDown ? 36 : 40)
+        : null;
+    return minSize;
   }
 
   Widget get _button {
@@ -91,6 +98,15 @@ class _BaseInputButtonWidgetState extends State<BaseInputButton> {
       );
     }
     if (widget.filledButton) {
+      if (isApple()) {
+        return CupertinoButton.filled(
+          autofocus: widget.autoFocus,
+          focusNode: _focus,
+          minSize: _minButtonWidth,
+          onPressed: widget.onPressed,
+          child: widget.child,
+        );
+      }
       return FilledButton(
         autofocus: widget.autoFocus,
         focusNode: _focus,
@@ -100,11 +116,29 @@ class _BaseInputButtonWidgetState extends State<BaseInputButton> {
       );
     }
     if (widget.filledTonalButton) {
+      if (isApple()) {
+        return CupertinoButton.tinted(
+          autofocus: widget.autoFocus,
+          focusNode: _focus,
+          minSize: _minButtonWidth,
+          onPressed: widget.onPressed,
+          child: widget.child,
+        );
+      }
       return FilledButton.tonal(
         autofocus: widget.autoFocus,
         focusNode: _focus,
         onPressed: widget.onPressed,
         style: _buttonStyle,
+        child: widget.child,
+      );
+    }
+    if (isApple()) {
+      return CupertinoButton.tinted(
+        autofocus: widget.autoFocus,
+        focusNode: _focus,
+        minSize: _minButtonWidth,
+        onPressed: widget.onPressed,
         child: widget.child,
       );
     }

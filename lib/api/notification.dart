@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import '../utils/global.dart';
+import '../utils/logger.dart';
+
+const _logger = Logger(tag: "Notification");
 
 extension Notifications on FlutterLocalNotificationsPlugin {
   Future<bool?> init() async {
@@ -16,7 +18,7 @@ extension Notifications on FlutterLocalNotificationsPlugin {
     final initializationSettingsLinux = LinuxInitializationSettings(
       defaultActionName: 'Open notification',
       defaultIcon: AssetsLinuxIcon(
-        'packages/sase_app_ui/assets/images/logo-no-words.png',
+        'lib/assets/images/tailchat.png',
       ),
     );
     final initializationSettings = InitializationSettings(
@@ -30,7 +32,7 @@ extension Notifications on FlutterLocalNotificationsPlugin {
       onDidReceiveBackgroundNotificationResponse:
           _onDidReceiveBackgroundNotificationResponse,
       onDidReceiveNotificationResponse: (response) {
-        Global.logger.d("received notification response $response");
+        _logger.d("received notification response $response");
       },
     );
   }
@@ -38,13 +40,13 @@ extension Notifications on FlutterLocalNotificationsPlugin {
   static void _onDidReceiveBackgroundNotificationResponse(
     NotificationResponse response,
   ) {
-    Global.logger.d("received background notification");
+    _logger.d("received background notification");
   }
 
   static const androidPlatformChannelSpecifics = AndroidNotificationDetails(
-    'tailchat_channel',
-    'tailchat notifications',
-    channelDescription: 'this channel is used for cylonix notifications',
+    'TailchatAppChannel',
+    'Tailchat App Notifications',
+    channelDescription: 'Tailchat notifications from the user interfaces',
     importance: Importance.max,
     priority: Priority.high,
   );
@@ -60,18 +62,22 @@ extension Notifications on FlutterLocalNotificationsPlugin {
 
 FlutterLocalNotificationsPlugin? _notification;
 Future<void> notify(int id, String title, String body) async {
+  _logger.d("notifying $title");
   await _notification?.showNotification(id, title, body);
 }
 
 Future<bool?> initNotifications() async {
   if (_notification != null) {
-    Global.logger.i("notification has been initialized");
+    _logger.i("notification has been initialized");
     return true;
   }
   final n = FlutterLocalNotificationsPlugin();
   final result = await n.init();
   if (result != null) {
     _notification = n;
+    _logger.i("Notification initialization succeeded.");
+  } else {
+    _logger.e("Notification initialization failed.");
   }
   return result;
 }

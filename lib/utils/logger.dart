@@ -5,7 +5,7 @@ import 'global.dart';
 
 class Logger {
   final String tag;
-  Logger({required this.tag});
+  const Logger({required this.tag});
   void d(String log) {
     Global.wrappedLogger.d("tailchat: $tag: $log");
   }

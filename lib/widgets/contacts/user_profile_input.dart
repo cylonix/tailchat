@@ -94,23 +94,32 @@ class _UserProfileInputState extends State<UserProfileInput> {
     return Form(
       key: widget.formKey,
       child: Column(
-        spacing: 16,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: 16),
+          if (!widget.usernameReadOnly) ...[
+            Text("Username identifies a user and cannot be modified once set"),
+            const SizedBox(height: 4),
+          ],
           BaseTextInput(
             controller: _usernameController,
             label: widget.usernameReadOnly ? "Username" : 'Username*',
-            hint: "Username is to identify you to other chat users.",
-            maxLines: null,
             validator: _validateUsername,
             readOnly: widget.usernameReadOnly,
             onChanged: (v) => _notifyChange(),
           ),
+          const SizedBox(height: 16),
+          if (!widget.usernameReadOnly) ...[
+            const Text("Display name is optional and can be modified anytime"),
+            const SizedBox(height: 4),
+          ],
           BaseTextInput(
             controller: _nameController,
             label: 'Display Name',
             hint: "Optional display name",
             onChanged: (v) => _notifyChange(),
           ),
+          const SizedBox(height: 16),
           BaseTextInput(
             controller: _profileUrlController,
             label: 'Profile URL',

@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:file_manager/file_manager.dart';
 import 'package:flutter/material.dart';
+import '../base_input/button.dart';
 
 class FileManagerPage extends StatelessWidget {
   FileManagerPage({
@@ -189,7 +190,7 @@ class FileManagerPage extends StatelessWidget {
                     controller: folderName,
                   ),
                 ),
-                ElevatedButton(
+                BaseInputButton(
                   onPressed: () async {
                     try {
                       // Create Folder
