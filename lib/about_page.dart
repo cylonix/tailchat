@@ -88,7 +88,7 @@ class _AboutPageState extends State<AboutPage> {
   Widget get _version {
     const subVersion = String.fromEnvironment(
       "BUILD_SUB_VERSION",
-      defaultValue: "6",
+      defaultValue: "7",
     );
     const version = String.fromEnvironment(
       "VERSION",

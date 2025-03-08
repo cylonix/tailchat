@@ -134,6 +134,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             ) { [weak self] in
                 // This is called by the system when background time is about to expire
                 self?.logger.i("Background task expiring by system")
+                self?.stopService()
                 self?.endBackgroundTask(bySystem: true)
             }
 
@@ -151,9 +152,13 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             // Schedule task end
             endBackgroundWorkItem = DispatchWorkItem { [weak self] in
                 guard let self = self else { return }
+                self.backgroundTaskIDLock.lock()
                 if self.backgroundTask != .invalid {
+                    self.backgroundTaskIDLock.unlock()
+                    self.stopService()
                     self.endBackgroundTask()
                 } else {
+                    self.backgroundTaskIDLock.unlock()
                     self.logger.e("End background task work item is still valid. Not expected.")
                 }
             }
@@ -167,17 +172,25 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             }
         }
 
+        private let backgroundTaskIDLock = NSLock()
         private func endBackgroundTask(bySystem: Bool = false) { 
             UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-            if backgroundTask != .invalid {
-                logger.i("Ending background task. by system: \(bySystem)")
-                notificationWorkItem?.cancel()
-                endBackgroundWorkItem?.cancel()
-                notificationWorkItem = nil
-                endBackgroundWorkItem = nil
-                UIApplication.shared.endBackgroundTask(backgroundTask)
-                backgroundTask = .invalid
+            backgroundTaskIDLock.lock()
+            if backgroundTask == .invalid {
+                backgroundTaskIDLock.unlock()
+                return
             }
+
+            let id = backgroundTask
+            backgroundTask = .invalid
+            backgroundTaskIDLock.unlock()
+
+            logger.i("Ending background task. by system: \(bySystem)")
+            notificationWorkItem?.cancel()
+            endBackgroundWorkItem?.cancel()
+            notificationWorkItem = nil
+            endBackgroundWorkItem = nil
+            UIApplication.shared.endBackgroundTask(id)
         }
 
         private func showBackgroundTaskExpirationNotification() {
@@ -496,7 +509,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         logger.i("New connection received from \(connection.endpoint)")
         connection.start(queue: DispatchQueue.global(qos: .background))
         defer {
-            logger.i("Connection from \(connection.endpoint) is now canncled.")
+            logger.i("Connection from \(connection.endpoint) is now closed.")
             connection.cancel()
         }
         #if os(iOS)
