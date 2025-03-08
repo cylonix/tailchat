@@ -75,14 +75,14 @@ class _BaseInputButtonWidgetState extends State<BaseInputButton> {
     );
   }
 
-  double? get _minButtonWidth {
+  double? get _buttonWidth {
     return widget.width ?? (widget.shrinkWrap ? null : 200);
   }
 
   Size? get _buttonMinSize {
     final scaleDown = Pst.enableAR ?? enableARByDefault;
-    final minSize = _minButtonWidth != null
-        ? Size(_minButtonWidth!, scaleDown ? 36 : 40)
+    final minSize =
+        _buttonWidth != null ? Size(_buttonWidth!, scaleDown ? 36 : 40)
         : null;
     return minSize;
   }
@@ -102,7 +102,6 @@ class _BaseInputButtonWidgetState extends State<BaseInputButton> {
         return CupertinoButton.filled(
           autofocus: widget.autoFocus,
           focusNode: _focus,
-          minSize: _minButtonWidth,
           onPressed: widget.onPressed,
           child: widget.child,
         );
@@ -120,7 +119,6 @@ class _BaseInputButtonWidgetState extends State<BaseInputButton> {
         return CupertinoButton.tinted(
           autofocus: widget.autoFocus,
           focusNode: _focus,
-          minSize: _minButtonWidth,
           onPressed: widget.onPressed,
           child: widget.child,
         );
@@ -134,10 +132,9 @@ class _BaseInputButtonWidgetState extends State<BaseInputButton> {
       );
     }
     if (isApple()) {
-      return CupertinoButton.tinted(
+      return CupertinoButton(
         autofocus: widget.autoFocus,
         focusNode: _focus,
-        minSize: _minButtonWidth,
         onPressed: widget.onPressed,
         child: widget.child,
       );
@@ -155,7 +152,7 @@ class _BaseInputButtonWidgetState extends State<BaseInputButton> {
   Widget build(BuildContext context) {
     return SizedBox(
       height: widget.height,
-      width: widget.width,
+      width: _buttonWidth,
       child: _button,
     );
   }

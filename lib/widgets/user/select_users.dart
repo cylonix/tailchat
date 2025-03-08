@@ -118,6 +118,7 @@ class _SelectUsersState extends State<SelectUsers> {
         widget.chooseOnlyOneDevice ? " and one of the user's devices" : "";
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: 16,
       children: [
         Text(
@@ -439,6 +440,7 @@ class _SelectUsersState extends State<SelectUsers> {
         ),
         Flexible(
           child: ListView.builder(
+            shrinkWrap: true,
             controller: ScrollController(),
             itemBuilder: (context, index) {
               final peer = filteredPeers[index];
@@ -500,6 +502,7 @@ class _SelectUsersState extends State<SelectUsers> {
   Widget _selectButton(BuildContext context) {
     final tr = AppLocalizations.of(context);
     return BaseInputButton(
+      filledTonalButton: true,
       focusNode: _confirmFocusNode,
       child: Text(
         widget.selectButtonText ?? tr.confirmText,
