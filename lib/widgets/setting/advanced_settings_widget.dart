@@ -4,6 +4,7 @@
 import 'dart:collection';
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_logger/flutter_logger.dart' as log;
 import 'package:logger/logger.dart';
@@ -78,26 +79,36 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
     return !Platform.isWindows && !Platform.isLinux;
   }
 
+  void _openFlutterLogConsole() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) {
+        return log.LogConsole(
+          dark: _isDarkTheme,
+          showRefreshButton: true,
+          saveFile: () => _save(_appLogFile),
+          shareFile: _canShareFile ? () => _share(_appLogFile) : null,
+        );
+      }),
+    );
+  }
+
   Widget get _flutterLogConsole {
     final tr = AppLocalizations.of(context);
     Global.setLogConsoleLocalTexts(context);
+    if (isApple()) {
+      return CupertinoListTile(
+        leading: getIcon(CupertinoIcons.doc, darkTheme: isDarkMode(context)),
+        title: const Text("Show app diagnostic logs"),
+        trailing: CupertinoListTileChevron(),
+        onTap: _openFlutterLogConsole,
+      );
+    }
     return ListTile(
       title: Text(tr.showLog),
       subtitle: const Text("Show app diagnostic logs"),
       leading: getIcon(Icons.wysiwyg_rounded, darkTheme: isDarkMode(context)),
       trailing: _arrowForward,
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) {
-            return log.LogConsole(
-              dark: _isDarkTheme,
-              showRefreshButton: true,
-              saveFile: () => _save(_appLogFile),
-              shareFile: _canShareFile ? () => _share(_appLogFile) : null,
-            );
-          }),
-        );
-      },
+      onTap: _openFlutterLogConsole,
     );
   }
 
@@ -105,35 +116,43 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
     return const Icon(Icons.arrow_forward_ios, size: 16);
   }
 
-  static const _isServiceLogConsoleSupported = true;
+  void _openServiceLogConsole() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) {
+        return log.LogConsole(
+          dark: _isDarkTheme,
+          title: "Service",
+          subtitle: "Tailchat service log",
+          showRefreshButton: true,
+          getLogOutputEvents: _getChatServiceLogs,
+          saveFile: () => _save(_serviceLogFile),
+          shareFile: _canShareFile ? () => _share(_serviceLogFile) : null,
+        );
+      }),
+    );
+  }
+
   Widget get _serviceLogConsole {
     final tr = AppLocalizations.of(context);
     Global.setLogConsoleLocalTexts(context);
+    if (isApple()) {
+      return CupertinoListTile(
+        title: Text(tr.showDaemonLog),
+        subtitle: const Text("Show chat service diagnostic logs"),
+        leading: getIcon(
+          CupertinoIcons.doc_fill,
+          darkTheme: isDarkMode(context),
+        ),
+        trailing: _arrowForward,
+        onTap: _openServiceLogConsole,
+      );
+    }
     return ListTile(
       title: Text(tr.showDaemonLog),
       subtitle: const Text("Show chat service diagnostic logs"),
       leading: getIcon(Icons.terminal_rounded, darkTheme: isDarkMode(context)),
-      trailing: _isServiceLogConsoleSupported
-          ? _arrowForward
-          : Text("Not supported yet"),
-      onTap: _isServiceLogConsoleSupported
-          ? () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) {
-                  return log.LogConsole(
-                    dark: _isDarkTheme,
-                    title: "Service",
-                    subtitle: "Tailchat service log",
-                    showRefreshButton: true,
-                    getLogOutputEvents: _getChatServiceLogs,
-                    saveFile: () => _save(_serviceLogFile),
-                    shareFile:
-                        _canShareFile ? () => _share(_serviceLogFile) : null,
-                  );
-                }),
-              );
-            }
-          : null,
+      trailing: _arrowForward,
+      onTap: _openServiceLogConsole,
     );
   }
 
@@ -219,6 +238,16 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
   }
 
   Widget get _settingsListView {
+    if (isApple()) {
+      return CupertinoListSection.insetGrouped(
+        margin: EdgeInsets.all(16),
+        header: const Text("Inspect logs"),
+        children: [
+          _flutterLogConsole,
+          _serviceLogConsole,
+        ],
+      );
+    }
     return ListView.separated(
       padding: const EdgeInsets.all(8),
       controller: ScrollController(),
@@ -238,6 +267,23 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (isApple()) {
+      final tr = AppLocalizations.of(context);
+      return CupertinoPageScaffold(
+        navigationBar: CupertinoNavigationBar(
+          middle: Text(tr.advancedSettingsTitle),
+        ),
+        child: Container(
+          padding: const EdgeInsets.only(
+            top: 80,
+            right: 16,
+            left: 16,
+            bottom: 32,
+          ),
+          child: _settingsListView,
+        ),
+      );
+    }
     return Scaffold(
       appBar: _appBar,
       body: Container(

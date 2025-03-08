@@ -21,22 +21,19 @@ class AccountAndSettingsPage extends StatelessWidget {
     return !_isTV && !useNavigationRail(context);
   }
 
-  bool get _showFooter {
-    return !_isTV;
-  }
-
   Widget get _body {
     if (_isTV) {
-      return SettingsWidget(showLoginLogout: !_showFooter);
+      return SettingsWidget();
     }
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         const SizedBox(height: 8),
         TopRow(
           child: UserProfileHeader(user: Pst.selfUser),
         ),
         const Divider(height: 1),
-        const Expanded(child: SettingsWidget(showThemeSetting: true)),
+        const Flexible(child: SettingsWidget(showThemeSetting: true)),
       ],
     );
   }

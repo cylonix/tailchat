@@ -26,6 +26,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      centerTitle: true,
       automaticallyImplyLeading:
           !Global.isAndroidTV, // Keep back arrow for emulated TV.
       elevation: 0.0,

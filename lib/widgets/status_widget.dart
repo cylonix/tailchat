@@ -5,6 +5,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:tailchat/utils/utils.dart';
 import '../api/chat_service.dart';
 import '../api/config.dart';
 import '../gen/l10n/app_localizations.dart';
@@ -98,12 +99,23 @@ class _StatusWidgetState extends State<StatusWidget> {
       );
     }
 
+    final leading = getIcon(
+      widget.icon ?? Icons.connect_without_contact,
+      color: _color,
+      appleBackgroundColor: CupertinoColors.systemGrey4,
+      adaptive: widget.adaptiveIcon,
+    );
+
+    if (isApple()) {
+      return CupertinoListTile(
+        leading: leading,
+        title: Text(tr.statusTitle),
+        onTap: widget.onPressed ?? _showStatusPage,
+      );
+    }
+
     return ListTile(
-      leading: getIcon(widget.icon ?? Icons.connect_without_contact,
-        color: _color,
-        appleBackgroundColor: CupertinoColors.systemGrey4,
-        adaptive: widget.adaptiveIcon,
-      ),
+      leading: leading,
       title: Text(tr.statusTitle),
       onTap: widget.onPressed ?? _showStatusPage,
     );

@@ -116,7 +116,9 @@ Widget getOsIcon(String os, {Color? color, double? size}) {
 }
 
 Widget loadingWidget() {
-  return Center(child: CircularProgressIndicator.adaptive());
+  return Center(
+    child: CircularProgressIndicator.adaptive(padding: const EdgeInsets.all(4)),
+  );
 }
 
 ShapeBorder commonShapeBorder() {

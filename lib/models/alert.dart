@@ -1,7 +1,9 @@
 // Copyright (c) EZBLOCK Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:tailchat/utils/utils.dart';
 
 enum AlertVariant {
   success,
@@ -44,11 +46,17 @@ class Alert {
   Widget? get avatar {
     switch (variant) {
       case (AlertVariant.success):
-        return const Icon(Icons.done);
+        return Icon(isApple() ? CupertinoIcons.checkmark : Icons.done);
       case (AlertVariant.error):
-        return const Icon(Icons.error);
+        return Icon(
+          isApple() ? CupertinoIcons.exclamationmark_octagon : Icons.error,
+          color: Colors.red,
+        );
       case (AlertVariant.warning):
-        return const Icon(Icons.warning);
+        return Icon(
+          isApple() ? CupertinoIcons.exclamationmark_triangle : Icons.warning,
+          color: Colors.amber,
+        );
       default:
         return null;
     }

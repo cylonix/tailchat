@@ -1,6 +1,7 @@
 // Copyright (c) EZBLOCK Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:tailchat/utils/utils.dart';
 import '../../models/theme_change_event.dart';
@@ -12,26 +13,38 @@ class TextScale extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isApple()) {
+      return CupertinoListTile(
+        leading: getIcon(Icons.format_size, darkTheme: isDarkMode(context)),
+        title: const Text("Format size"),
+        trailing: _scaleButtonsRow,
+      );
+    }
     return ListTile(
       leading: getIcon(Icons.format_size, darkTheme: isDarkMode(context)),
       title: const Text("Format size"),
       trailing: SizedBox(
         width: 160,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            FilledButton.tonal(
-              onPressed: () => _changeScale(add: false),
-              child: const Icon(Icons.remove),
-            ),
-            const SizedBox(width: 16),
-            FilledButton.tonal(
-              onPressed: () => _changeScale(add: true),
-              child: const Icon(Icons.add),
-            )
-          ],
-        ),
+        child: _scaleButtonsRow,
       ),
+    );
+  }
+
+  Widget get _scaleButtonsRow {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        FilledButton.tonal(
+          onPressed: () => _changeScale(add: false),
+          child: const Icon(Icons.remove),
+        ),
+        const SizedBox(width: 16),
+        FilledButton.tonal(
+          onPressed: () => _changeScale(add: true),
+          child: const Icon(Icons.add),
+        )
+      ],
     );
   }
 

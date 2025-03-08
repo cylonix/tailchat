@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -216,7 +217,10 @@ class _MainNavigationRailState extends State<MainNavigationRail> {
                 _extended = true;
               });
             },
-            icon: _icon(Icons.arrow_forward, size: _iconSize("expand")),
+            icon: _icon(
+              isApple() ? CupertinoIcons.chevron_right : Icons.arrow_forward,
+              size: _iconSize("expand"),
+            ),
           ),
         ],
       ),
@@ -263,19 +267,42 @@ class _MainNavigationRailState extends State<MainNavigationRail> {
               ),
             ),
           extended
-              ? ListTile(
-                  leading: getIcon(Icons.info, adaptive: false),
-                  title: Text(tr.aboutTitle),
-                  onTap: _showAboutPage,
-                )
+              ? _about
               : IconButton(
                   focusNode: _infoFocus,
-                  icon: Icon(Icons.info, size: _iconSize("info")),
+                  icon: Icon(
+                    isApple() ? CupertinoIcons.info : Icons.info,
+                    size: _iconSize("info"),
+                  ),
                   tooltip: tr.aboutTitle,
                   onPressed: _showAboutPage,
                 ),
         ],
       ),
+    );
+  }
+
+  void _switchToAboutPage() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const AboutPage(),
+      ),
+    );
+  }
+
+  Widget get _about {
+    final tr = AppLocalizations.of(context);
+    if (isApple()) {
+      return CupertinoListTile(
+        leading: getIcon(CupertinoIcons.info, adaptive: false),
+        title: Text(tr.aboutTitle),
+        onTap: _switchToAboutPage,
+      );
+    }
+    return ListTile(
+      leading: getIcon(Icons.info, adaptive: false),
+      title: Text(tr.aboutTitle),
+      onTap: _switchToAboutPage,
     );
   }
 
@@ -307,12 +334,18 @@ class _MainNavigationRailState extends State<MainNavigationRail> {
       if (!_isTV)
         _rail(
           extended,
-          _icon(Icons.home, size: _iconSize(tr.homeText)),
+          _icon(
+            isApple() ? CupertinoIcons.home : Icons.home,
+            size: _iconSize(tr.homeText),
+          ),
           tr.homeText,
         ),
       _rail(
         extended,
-        _icon(Icons.settings, size: _iconSize(tr.settingsTitle)),
+        _icon(
+          isApple() ? CupertinoIcons.settings : Icons.settings,
+          size: _iconSize(tr.settingsTitle),
+        ),
         tr.settingsTitle,
       ),
       _rail(
@@ -390,7 +423,9 @@ class _MainNavigationRailState extends State<MainNavigationRail> {
               iconSize: _contractFocus.hasFocus ? 64 : null,
               padding: const EdgeInsets.all(0),
               tooltip: tr.compactText,
-              icon: const Icon(Icons.arrow_back),
+              icon: Icon(
+                isApple() ? CupertinoIcons.chevron_left : Icons.arrow_back,
+              ),
               onPressed: () {
                 setState(() {
                   _extended = false;

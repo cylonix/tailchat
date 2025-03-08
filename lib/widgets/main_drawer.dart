@@ -1,6 +1,7 @@
 // Copyright (c) EZBLOCK Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -69,6 +70,79 @@ class _MainDrawerState extends State<MainDrawer> {
     ];
   }
 
+  void _switchToHome() {
+    Navigator.popUntil(
+      context,
+      ModalRoute.withName('/'),
+    );
+  }
+
+  Widget get _home {
+    final tr = AppLocalizations.of(context);
+    if (isApple()) {
+      return CupertinoListTile(
+        leading: _listIcon(CupertinoIcons.home),
+        title: Text(tr.homeText),
+        onTap: _switchToHome,
+      );
+    }
+    return ListTile(
+      leading: _listIcon(Icons.home),
+      title: Text(tr.homeText),
+      onTap: _switchToHome,
+    );
+  }
+
+  void _switchToSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const SettingsPage(
+          showThemeSetting: true,
+        ),
+      ),
+    );
+  }
+
+  Widget get _settings {
+    final tr = AppLocalizations.of(context);
+    if (isApple()) {
+      return CupertinoListTile(
+        leading: _listIcon(CupertinoIcons.settings),
+        title: Text(tr.settingsTitle),
+        onTap: _switchToSettings,
+      );
+    }
+    return ListTile(
+      leading: _listIcon(Icons.settings),
+      title: Text(tr.settingsTitle),
+      onTap: _switchToSettings,
+    );
+  }
+
+  void _switchToAboutPage() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const AboutPage(),
+      ),
+    );
+  }
+
+  Widget get _about {
+    final tr = AppLocalizations.of(context);
+    if (isApple()) {
+      return CupertinoListTile(
+        leading: _listIcon(CupertinoIcons.info),
+        title: Text(tr.aboutTitle),
+        onTap: _switchToAboutPage,
+      );
+    }
+    return ListTile(
+      leading: _listIcon(Icons.info),
+      title: Text(tr.aboutTitle),
+      onTap: _switchToAboutPage,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tr = AppLocalizations.of(context);
@@ -87,46 +161,14 @@ class _MainDrawerState extends State<MainDrawer> {
             ),
             const Divider(height: 1),
             const SizedBox(height: 8),
-            if (_showHomeButton)
-              ListTile(
-                leading: _listIcon(Icons.home),
-                title: Text(tr.homeText),
-                onTap: () {
-                  Navigator.popUntil(
-                    context,
-                    ModalRoute.withName('/'),
-                  );
-                },
-              ),
+            if (_showHomeButton) _home,
             if (_showThemeSetting)
               const ThemeSettingWidget(adaptiveIcon: false),
             if (_showStatus) const StatusWidget(),
-            ListTile(
-              leading: _listIcon(Icons.settings),
-              title: Text(tr.settingsTitle),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const SettingsPage(
-                      showThemeSetting: true,
-                    ),
-                  ),
-                );
-              },
-            ),
+            _settings,
             if (_isTV) ..._tvMenuItems,
             if (!_isAR)
-              ListTile(
-                leading: _listIcon(Icons.info),
-                title: Text(tr.aboutTitle),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const AboutPage(),
-                    ),
-                  );
-                },
-              ),
+              _about,
           ],
         ),
       ),

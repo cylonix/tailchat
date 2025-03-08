@@ -1,6 +1,7 @@
 // Copyright (c) EZBLOCK Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tailchat/utils/utils.dart';
@@ -44,7 +45,11 @@ class _SessionsIconState extends State<SessionsIcon> {
   Widget build(BuildContext context) {
     return StackWithStatus(
       widget.useDefaultColor
-          ? Icon(Icons.chat_rounded, color: widget.color, size: widget.size)
+          ? Icon(
+              isApple() ? CupertinoIcons.chat_bubble_2 : Icons.chat_bubble,
+              color: widget.color,
+              size: widget.size,
+            )
           : getIcon(
               Icons.chat_rounded,
               color: widget.color,

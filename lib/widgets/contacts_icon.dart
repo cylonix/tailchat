@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tailchat/utils/utils.dart';
@@ -52,7 +53,7 @@ class _ContactsIconState extends State<ContactsIcon> {
 
   Widget get _contactsIconWithNotice {
     return _iconStacked(
-      Icons.supervisor_account_rounded,
+      isApple() ? CupertinoIcons.person_3 : Icons.supervisor_account_rounded,
       _hasContactNotice,
     );
   }

@@ -47,14 +47,14 @@ class _ContactsPageState extends State<ContactsPage>
     return Scaffold(
       appBar: _showAppBar
           ? MainAppBar(
-              titleWidget: ListTile(
-                title: Text("Contacts"),
-                subtitle: isMediumScreen(context)
-                    ? Text(
-                        Pst.selfDevice?.hostname ?? "Self device not found.",
-                      )
-                    : null,
-              ),
+              titleWidget: isMediumScreen(context)
+                  ? ListTile(
+                      title: Text("Contacts"),
+                      subtitle: Text(
+                        Pst.selfDevice?.title ?? "Self device not found.",
+                      ),
+                    )
+                  : Text("Contacts"),
             )
           : null,
       drawer: _showAppBar && widget.showDrawer ? const MainDrawer() : null,

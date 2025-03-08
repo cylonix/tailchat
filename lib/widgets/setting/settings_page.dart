@@ -21,10 +21,6 @@ class SettingsPage extends StatelessWidget {
     return !aRMode && !(Pst.enableTV ?? false);
   }
 
-  bool get _showFooter {
-    return !(Pst.enableTV ?? false);
-  }
-
   @override
   Widget build(BuildContext context) {
     final tr = AppLocalizations.of(context);
@@ -32,7 +28,6 @@ class SettingsPage extends StatelessWidget {
     return Scaffold(
       appBar: _showAppBar ? MainAppBar(title: tr.settingsTitle) : null,
       body: SettingsWidget(
-        showLoginLogout: !_showFooter,
         showThemeSetting: showThemeSetting,
       ),
     );

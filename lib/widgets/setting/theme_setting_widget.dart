@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../api/config.dart';
@@ -68,41 +69,81 @@ class _ThemeSettingWidgetState extends State<ThemeSettingWidget> {
         tooltip: _selectedTheme ? tr.dayMode : tr.nightMode,
         onPressed: () => _selectDestination(_selectedTheme ? 0 : 1),
         icon: Icon(
-          _selectedTheme ? Icons.sunny : Icons.nights_stay,
+          _themedIcon,
           size: widget.size,
         ),
       );
     }
-    if (preferOnOffButtonOverSwitch()) {
-      return ListTile(
-        leading: getIcon(
-          _selectedTheme ? Icons.sunny : Icons.nights_stay,
-          darkTheme: isDarkMode(context),
-          adaptive: widget.adaptiveIcon,
-        ),
-        title: Text(
-          _selectedTheme ? tr.dayMode : tr.nightMode,
-        ),
-        onTap: () {
-          _selectDestination(_selectedTheme ? 0 : 1);
-        },
+
+    if (isApple()) {
+      return CupertinoListTile(
+        leading: _leading,
+        title: _title,
+        trailing: _trailing,
+        onTap: _onTap,
       );
     }
     return ListTile(
-      leading: getIcon(
-        Icons.nights_stay,
+      leading: _leading,
+      title: _title,
+      onTap: _onTap,
+    );
+  }
+
+  IconData get _themedIcon {
+    if (isApple()) {
+      return _selectedTheme
+          ? CupertinoIcons.sun_max
+          : CupertinoIcons.moon_stars;
+    }
+    return _selectedTheme ? Icons.sunny : Icons.nights_stay;
+  }
+
+  Widget get _leading {
+    if (preferOnOffButtonOverSwitch()) {
+      return getIcon(
+        _themedIcon,
         darkTheme: isDarkMode(context),
         adaptive: widget.adaptiveIcon,
-      ),
-      trailing: Switch.adaptive(
+      );
+    }
+    return getIcon(
+      isApple() ? CupertinoIcons.moon_stars : Icons.nights_stay,
+      darkTheme: isDarkMode(context),
+      adaptive: widget.adaptiveIcon,
+    );
+  }
+
+  Widget get _title {
+    final tr = AppLocalizations.of(context);
+    if (preferOnOffButtonOverSwitch()) {
+      return Text(
+        _selectedTheme ? tr.dayMode : tr.nightMode,
+      );
+    }
+    return Text(tr.nightMode);
+  }
+
+  void _onTap() {
+    _selectDestination(_selectedTheme ? 0 : 1);
+  }
+
+  Widget? get _trailing {
+    if (preferOnOffButtonOverSwitch()) {
+      return null;
+    }
+    if (isApple()) {
+      return CupertinoSwitch(
         value: _selectedTheme,
         onChanged: (nightModeOn) {
           _selectDestination(nightModeOn ? 1 : 0);
         },
-      ),
-      title: Text(tr.nightMode),
-      onTap: () {
-        _selectDestination(_selectedTheme ? 0 : 1);
+      );
+    }
+    return Switch(
+      value: _selectedTheme,
+      onChanged: (nightModeOn) {
+        _selectDestination(nightModeOn ? 1 : 0);
       },
     );
   }

@@ -1,8 +1,8 @@
 // Copyright (c) EZBLOCK Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
 import '../../api/config.dart';
 import '../../gen/l10n/app_localizations.dart';
 import '../../utils/utils.dart';
@@ -16,11 +16,9 @@ import 'theme_setting_widget.dart';
 
 class SettingsWidget extends StatefulWidget {
   final bool showThemeSetting;
-  final bool showLoginLogout;
   const SettingsWidget({
     super.key,
     this.showThemeSetting = false,
-    this.showLoginLogout = false,
   });
   @override
   State<SettingsWidget> createState() => _SettingsWidgetState();
@@ -53,38 +51,72 @@ class _SettingsWidgetState extends State<SettingsWidget> {
           );
   }
 
-  List<Widget> get _settingList {
+  void _openAppearanceSettingPage() {
+    _pushPage(
+      AppearanceSettings(
+        showAppBar: !_showSideBySide,
+        showThemeSetting: widget.showThemeSetting,
+      ),
+      "appearance",
+    );
+  }
+
+  Widget get _appearance {
     final tr = AppLocalizations.of(context);
-    return [
-      ListTile(
-        leading: getIcon(
-          Icons.display_settings,
-          darkTheme: isDarkMode(context),
-        ),
+    final leading = getIcon(
+      Icons.display_settings,
+      darkTheme: isDarkMode(context),
+    );
+
+    if (isApple()) {
+      return CupertinoListTile(
+        leading: leading,
         title: Text(tr.appearanceTitle),
-        onTap: () => _pushPage(
-          AppearanceSettings(
-            showAppBar: !_showSideBySide,
-            showThemeSetting: widget.showThemeSetting,
-          ),
-          "appearance",
-        ),
-        selected: _rightSidePageName == "appearance",
+        onTap: _openAppearanceSettingPage,
+      );
+    }
+    return ListTile(
+      leading: leading,
+      title: Text(tr.appearanceTitle),
+      onTap: _openAppearanceSettingPage,
+      selected: _rightSidePageName == "appearance",
+    );
+  }
+
+  void _pushAdanvedSettingPage() {
+    _pushPage(
+      AdvancedSettingsWidget(
+        showAppBar: !_showSideBySide,
       ),
-      ListTile(
-        leading: getIcon(
-          Icons.settings_ethernet_rounded,
-          darkTheme: isDarkMode(context),
-        ),
+      "advanced",
+    );
+  }
+
+  Widget get _advanced {
+    final tr = AppLocalizations.of(context);
+    final leading = getIcon(
+      Icons.settings_ethernet_rounded,
+      darkTheme: isDarkMode(context),
+    );
+    if (isApple()) {
+      return CupertinoListTile(
+        leading: leading,
         title: Text(tr.advancedSettingsTitle),
-        onTap: () => _pushPage(
-          AdvancedSettingsWidget(
-            showAppBar: !_showSideBySide,
-          ),
-          "advanced",
-        ),
-        selected: _rightSidePageName == "advanced",
-      ),
+        onTap: _pushAdanvedSettingPage,
+      );
+    }
+    return ListTile(
+      leading: leading,
+      title: Text(tr.advancedSettingsTitle),
+      onTap: _pushAdanvedSettingPage,
+      selected: _rightSidePageName == "advanced",
+    );
+  }
+
+  List<Widget> get _settingList {
+    return [
+      _appearance,
+      _advanced,
     ];
   }
 
@@ -99,6 +131,7 @@ class _SettingsWidgetState extends State<SettingsWidget> {
         Expanded(
           flex: 2,
           child: LeftSide(
+            mainAxisAlignment: MainAxisAlignment.start,
             color: _enableTV ? color : null,
             children: [
               if (_enableTV) ...[
@@ -115,10 +148,7 @@ class _SettingsWidgetState extends State<SettingsWidget> {
                   ),
                 ),
               ],
-              if (!_enableTV) ...[
-                Container(),
-                Expanded(child: _fullSettingList),
-              ],
+              if (!_enableTV) _fullSettingList,
             ],
           ),
         ),
@@ -147,6 +177,11 @@ class _SettingsWidgetState extends State<SettingsWidget> {
   }
 
   Widget get _fullSettingList {
+    if (isApple()) {
+      return CupertinoListSection.insetGrouped(
+        children: _settingList,
+      );
+    }
     return ListView(
       padding: const EdgeInsets.all(16),
       shrinkWrap: true,

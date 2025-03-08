@@ -1,6 +1,7 @@
 // Copyright (c) EZBLOCK Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../api/config.dart';
 import '../../gen/l10n/app_localizations.dart';
@@ -43,12 +44,26 @@ class _ChatSimpleUIState extends State<ChatSimpleUI> {
 
   Widget get _setChatSimpleUIOnOff {
     final tr = AppLocalizations.of(context);
+    if (isApple()) {
+      return CupertinoListTile(
+        leading: getIcon(
+          Icons.chat_bubble_outline_rounded,
+          darkTheme: isDarkMode(context),
+        ),
+        trailing: CupertinoSwitch(
+          value: _simpleUI,
+          onChanged: _setChatSimpleUI,
+        ),
+        title: Text(tr.simpleChatUI),
+        onTap: () => _setChatSimpleUI(!_simpleUI),
+      );
+    }
     return ListTile(
       leading: getIcon(
         Icons.chat_bubble_outline_rounded,
         darkTheme: isDarkMode(context),
       ),
-      trailing: Switch.adaptive(
+      trailing: Switch(
         value: _simpleUI,
         onChanged: _setChatSimpleUI,
       ),

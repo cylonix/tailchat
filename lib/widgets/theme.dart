@@ -1,6 +1,7 @@
 // Copyright (c) EZBLOCK Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../utils/utils.dart';
 
@@ -17,6 +18,10 @@ final List<ThemeData> themeList = [
     ),
   ),
   _dark.copyWith(
+    cupertinoOverrideTheme: CupertinoThemeData(
+      //brightness: Brightness.dark,
+      textTheme: CupertinoTextThemeData(primaryColor: CupertinoColors.white),
+    ),
     listTileTheme: _dark.listTileTheme.copyWith(
       titleTextStyle:
           (_dark.listTileTheme.titleTextStyle ?? _dark.textTheme.titleMedium)
