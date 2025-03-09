@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:tailchat/utils/utils.dart';
+import '../api/chat_server.dart';
 import '../api/chat_service.dart';
 import '../api/config.dart';
 import '../gen/l10n/app_localizations.dart';
@@ -45,6 +46,9 @@ class _StatusWidgetState extends State<StatusWidget> {
     if (Pst.selfDevice?.isOnline ?? false) {
       _serviceState = ChatServiceState.connected;
     }
+    if (ChatServer.isServiceSocketConnected) {
+      _serviceState = ChatServiceState.connected;
+    }
     _registerServiceStateEvent();
   }
 
@@ -57,7 +61,7 @@ class _StatusWidgetState extends State<StatusWidget> {
   void _registerServiceStateEvent() {
     final eventBus = ChatService.eventBus;
     _serviceStateSub = eventBus.on<ChatServiceStateEvent>().listen((event) {
-      if (event.deviceID == null) {
+      if (event.deviceID == null || event.isSelfDevice) {
         _logger.i("update service state to ${event.state.name}");
         setState(() {
           _serviceState = event.state;
