@@ -27,6 +27,10 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     private var isServerStarted = false
     private var subscribers: [NWConnection] = []
     private let subscriberMutex = DispatchQueue(label: "io.cylonix.tailchat.subscriberMutex")
+    private var connections: [NWConnection] = []
+    private let connectionMutex = DispatchQueue(label: "io.cylonix.tailchat.connectionMutex")
+    private var isShuttingDown: Bool = false
+    private let shutdownLock = NSLock()
 
     func startService() {
         logger.i("Starting service if not yet running.")
@@ -35,9 +39,6 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             isRunning = true
             startNetworkMonitor()
             startServer()
-            #if os(iOS)
-                registerForAppStateNotifications()
-            #endif
         }
     }
 
@@ -62,173 +63,9 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             // Handle connection request from push notification
         }
 
-        private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
-        private var isAppStateNotificationsRegistered = false
-
-        private func registerForAppStateNotifications() {
-            // Check if already registered
-            if isAppStateNotificationsRegistered {
-                logger.d("App state notifications already registered")
-                return
-            }
-
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(appDidEnterBackground),
-                name: UIApplication.didEnterBackgroundNotification,
-                object: nil
-            )
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(appWillEnterForeground),
-                name: UIApplication.willEnterForegroundNotification,
-                object: nil
-            )
-
-            isAppStateNotificationsRegistered = true
-            logger.i("Registered for app state notifications")
-        }
-
-        // Add cleanup method for notifications
         deinit {
-            if isAppStateNotificationsRegistered {
-                NotificationCenter.default.removeObserver(self)
-                logger.i("Removed app state notifications")
-            }
+            logger.i("Deinit. I am gone!")
         }
-
-        @objc private func appDidEnterBackground() {
-            logger.i("App entered background")
-            // Check both listeners' states
-            if let listener = listener, listener.state != .ready {
-                logger.w("Main listener not in ready state before background - attempting restart")
-                restartService()
-            } else if let subscriberListener = subscriberListener, subscriberListener.state != .ready {
-                logger.w("Subscriber listener not in ready state before background - attempting restart")
-                restartService()
-            }
-            startBackgroundTask()
-        }
-
-        @objc private func appWillEnterForeground() {
-            logger.i("App will enter foreground")
-            endBackgroundTask()
-            DispatchQueue.global().asyncAfter(deadline: .now() + 1) { [weak self] in
-                self?.startService()
-            }
-        }
-
-        private var endBackgroundWorkItem: DispatchWorkItem?
-        private var notificationWorkItem: DispatchWorkItem?
-
-        private func startBackgroundTask() {
-            // Check if there's already a valid background task
-            if backgroundTask != .invalid {
-                logger.i("Background task already running with identifier: \(backgroundTask)")
-                return
-            }
-
-            let taskIdentifier = "io.cylonix.tailchat.chatServiceTask"
-            backgroundTask = UIApplication.shared.beginBackgroundTask(
-                withName: taskIdentifier
-            ) { [weak self] in
-                // This is called by the system when background time is about to expire
-                self?.logger.i("Background task expiring by system")
-                self?.stopService()
-                self?.endBackgroundTask(bySystem: true)
-            }
-
-            // Log the new task
-            logger.i("Started background task with identifier: \(backgroundTask)")
-
-            // Schedule notification
-            notificationWorkItem = DispatchWorkItem { [weak self] in
-                guard let self = self else { return }
-                if self.backgroundTask != .invalid {
-                    self.showBackgroundTaskExpirationNotification()
-                }
-            }
-
-            // Schedule task end
-            endBackgroundWorkItem = DispatchWorkItem { [weak self] in
-                guard let self = self else { return }
-                self.backgroundTaskIDLock.lock()
-                if self.backgroundTask != .invalid {
-                    self.backgroundTaskIDLock.unlock()
-                    self.stopService()
-                    self.endBackgroundTask()
-                } else {
-                    self.backgroundTaskIDLock.unlock()
-                    self.logger.e("End background task work item is still valid. Not expected.")
-                }
-            }
-
-            if let notificationItem = notificationWorkItem {
-                DispatchQueue.global().asyncAfter(deadline: .now() + 20, execute: notificationItem)
-            }
-
-            if let endItem = endBackgroundWorkItem {
-                DispatchQueue.global().asyncAfter(deadline: .now() + 30, execute: endItem)
-            }
-        }
-
-        private let backgroundTaskIDLock = NSLock()
-        private func endBackgroundTask(bySystem: Bool = false) { 
-            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-            backgroundTaskIDLock.lock()
-            if backgroundTask == .invalid {
-                backgroundTaskIDLock.unlock()
-                return
-            }
-
-            let id = backgroundTask
-            backgroundTask = .invalid
-            backgroundTaskIDLock.unlock()
-
-            logger.i("Ending background task. by system: \(bySystem)")
-            notificationWorkItem?.cancel()
-            endBackgroundWorkItem?.cancel()
-            notificationWorkItem = nil
-            endBackgroundWorkItem = nil
-            UIApplication.shared.endBackgroundTask(id)
-        }
-
-        private func showBackgroundTaskExpirationNotification() {
-            logger.i("Preparing to show background expiration notification")
-            if backgroundTask == .invalid || isAppActive() {
-                logger.i("Background task is already invalid or App is active. Not showing notification.")
-                return
-            }
-
-            // Create notification content
-            let content = UNMutableNotificationContent()
-            content.title = "Tailchat Service"
-            content.subtitle = "Swipe down to show options"
-            content.body = "Tailchat background receiving service will stop soon. Swipe down to continue or stop the service."
-            content.sound = .default
-            content.categoryIdentifier = "SERVICE_EXPIRING"
-
-            if #available(iOS 15.0, *) {
-                content.interruptionLevel = .timeSensitive
-                content.relevanceScore = 1.0
-            }
-
-            let request = UNNotificationRequest(
-                identifier: "service-expiring-\(UUID().uuidString)",
-                content: content,
-                trigger: nil
-            )
-
-            // Schedule the notification
-            UNUserNotificationCenter.current().add(request) { [weak self] error in
-                if let error = error {
-                    self?.logger.e("Failed to schedule notification: \(error)")
-                } else {
-                    self?.logger.i("Background expiration notification scheduled successfully")
-                }
-            }
-        }
-
     #endif
 
     private func startNetworkMonitor() {
@@ -319,28 +156,10 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
     }
 
-    private func checkNetworkInterfaces() {
-        var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddr) == 0 else {
-            logger.e("Failed to get network interfaces")
-            return
-        }
-        defer { freeifaddrs(ifaddr) }
-
-        var ptr = ifaddr
-        while ptr != nil {
-            defer { ptr = ptr?.pointee.ifa_next }
-
-            let interface = ptr?.pointee
-            let name = String(cString: (interface?.ifa_name)!)
-        }
-    }
-
     // Long running service to listen for incoming connections and each connection
     // is handled in a separate queue and run in synchronous mode.
     private func startServer() {
-        if !isServerStarted {
-            checkNetworkInterfaces()
+        if !isServerStarted { 
             isServerStarted = true
 
             // Add listener state check before creating new ones
@@ -507,9 +326,26 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     typealias MessageHandler = (NWConnection, String, inout Data) -> Error?
     private func handleConnection(connection: NWConnection) {
         logger.i("New connection received from \(connection.endpoint)")
+        shutdownLock.lock()
+        if isShuttingDown {
+            shutdownLock.unlock()
+            logger.i("Rejecting new connection during shutdown from \(connection.endpoint)")
+            connection.cancel()
+            return
+        }
+
+        shutdownLock.unlock()
         connection.start(queue: DispatchQueue.global(qos: .background))
+        connectionMutex.sync {
+            connections.append(connection)
+        }
         defer {
             logger.i("Connection from \(connection.endpoint) is now closed.")
+            connectionMutex.sync {
+                if let index = connections.firstIndex(where: { $0.endpoint == connection.endpoint }) {
+                    connections.remove(at: index)
+                }
+            }
             connection.cancel()
         }
         #if os(iOS)
@@ -521,6 +357,13 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     }
 
     private func handleSubscriberConnection(connection: NWConnection) {
+        shutdownLock.lock()
+        if isShuttingDown {
+            shutdownLock.unlock()
+            logger.i("Rejecting new subscriber connection during shutdown from \(connection.endpoint)")
+            connection.cancel()
+            return
+        }
         logger.i("New subscriber connection received from \(connection.endpoint)")
 
         connection.start(queue: DispatchQueue.global(qos: .background))
@@ -598,15 +441,21 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             )
         }
         var error: Error?
+        var shouldNotify = !isAppActive()
         switch parts[0] {
         case "CTRL":
             error = broadcastOrBufferMessage(message: message)
+            shouldNotify = false
         case "TEXT":
             error = broadcastOrBufferMessage(message: message)
+            if parts.count > 3, parts[2] == "SENDER" {
+                shouldNotify = false
+            }
         case "FILE_START":
             error = handleFileTransfer(connection: connection, message: message, fullBuffer: &fullBuffer)
         case "PING":
             logger.d("Received PING: \(message)")
+            shouldNotify = false
         default:
             error = NSError(
                 domain: "ChatService", code: 1002,
@@ -615,10 +464,9 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
         logger.d("DONE handling message error=\(Logger.opt(error))")
         if error == nil {
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                let shouldNotify = !isAppActive()
-                if shouldNotify {
+            if shouldNotify { 
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
                     self.showNotification(title: "New Message Received", body: "")
                 }
             }
@@ -717,6 +565,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
 
         // Continue receiving data from connection
+        var start = Date()
         var lastAckTime = Date()
         while received < fileSize {
             let semaphore = DispatchSemaphore(value: 0)
@@ -748,7 +597,9 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                     try fileHandle.write(contentsOf: bytesToWrite)
                     totalRead += Int64(bytesToWrite.count)
                     received = totalRead
+                    let now = Date()
                     if totalRead >= fileSize {
+                        sendFileMessageUpdate(filePath: filePath, totalRead: fileSize, fileSize: fileSize, time: Int64(round(now.timeIntervalSince(start) * 1000)))
                         try fileHandle.close()
                         logger.i("File transfer complete: \(filePath)")
                         return nil
@@ -759,13 +610,12 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                             userInfo: [NSLocalizedDescriptionKey: "Connection closed before file transfer is complete"]
                         )
                     }
-                    let now = Date()
                     if now.timeIntervalSince(lastAckTime) >= ackInterval {
                         lastAckTime = now
                         if let error = sendAck(connection: connection, id: id, status: "\(totalRead)") {
                             return error
                         }
-                        sendFileMessageUpdate(filePath: filePath, totalRead: totalRead, fileSize: fileSize)
+                        sendFileMessageUpdate(filePath: filePath, totalRead: totalRead, fileSize: fileSize, time: Int64(round(now.timeIntervalSince(start) * 1000)))
                     }
                 } catch {
                     logger.e("Error receiving file: \(error)")
@@ -776,7 +626,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         return nil
     }
 
-    private func sendFileMessageUpdate(filePath: String, totalRead: Int64, fileSize: Int64) {
+    private func sendFileMessageUpdate(filePath: String, totalRead: Int64, fileSize: Int64, time: Int64) { 
         if let eventSink = eventSink {
             DispatchQueue.main.async {
                 eventSink(
@@ -785,6 +635,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                         "file_path": filePath,
                         "total_read": totalRead,
                         "file_size": fileSize,
+                        "time": time,
                     ]
                 )
             }
@@ -921,6 +772,10 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     private func appendMessageToBufferFile(message: String) {
         if let fileURL = getBufferFileURL() {
             do {
+                if !FileManager.default.fileExists(atPath: fileURL.path) {
+                    logger.i("Creating new buffer file at \(fileURL.path)")
+                    FileManager.default.createFile(atPath: fileURL.path, contents: nil)
+                }
                 let fileHandle = try FileHandle(forWritingTo: fileURL)
                 try fileHandle.seekToEnd()
                 if let data = message.data(using: .utf8) {
@@ -975,7 +830,36 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     }
 
     func stopService() {
-        // Add explicit state check and wait for cancellation for both listeners
+        // Set shutdown flag first
+        shutdownLock.lock()
+        if isShuttingDown {
+            logger.i("Already shutting down. Skip...")
+            shutdownLock.unlock()
+            return
+        }
+
+        isShuttingDown = true
+        shutdownLock.unlock()
+
+        logger.i("Stopping service...")
+
+        // Close all main connections first
+        connectionMutex.sync {
+            for connection in connections {
+                logger.d("Closing connection to \(connection.endpoint)")
+                connection.cancel()
+            }
+            connections.removeAll()
+        }
+
+        // Close all subscriber connections
+        subscriberMutex.sync {
+            for connection in subscribers {
+                logger.d("Closing subscriber connection to \(connection.endpoint)")
+                connection.cancel()
+            }
+            subscribers.removeAll()
+        }
         if let existingListener = listener {
             existingListener.cancel()
             // Wait briefly for cancellation to complete
@@ -995,7 +879,12 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         subscriberListener = nil
         isRunning = false
         isServerStarted = false
-        subscribers.removeAll()
+
+        // Reset shutdown flag
+        shutdownLock.lock()
+        isShuttingDown = false
+        shutdownLock.unlock()
+
         logger.i("Service stopped")
     }
 

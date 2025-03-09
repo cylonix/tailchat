@@ -19,6 +19,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart' as pp;
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:tailchat/widgets/base_input/button.dart';
 import '../../api/chat_service.dart';
 import '../../api/chat_server.dart';
 import '../../api/config.dart';
@@ -123,6 +124,7 @@ class _ChatPageState extends State<ChatPage>
   Contact? _peerContact;
   Device? _peerDevice;
   bool _canSendChecking = false;
+  bool _cancelCurrentTryingToConnect = false;
   bool _isActive = true;
   Timer? _tryToConnectPeersTimer;
   int _tryToConnectAttempts = 0;
@@ -339,9 +341,7 @@ class _ChatPageState extends State<ChatPage>
       final messageID = event.messageID;
       _logger.i("Progress event $event");
       if (event.chatID == myChatID ||
-          (event.chatID == "" &&
-              messageID != "" &&
-              _isMyMessageID(messageID))) {
+          (messageID != "" && _isMyMessageID(messageID))) {
         final percent = event.bytes / event.total;
         final bytes = formatBytes(event.bytes, 2);
         final total = formatBytes(event.total, 2);
@@ -363,14 +363,15 @@ class _ChatPageState extends State<ChatPage>
               metadata["progress"] = null;
               return message.copyWith(metadata: metadata);
             }
+            final peer = event.peer ?? "";
             if (metadata == null) {
               metadata = <String, dynamic>{
-                "progress": {event.peer: progress},
+                "progress": {peer: progress},
               };
             } else if (metadata["progress"] == null) {
-              metadata["progress"] = {event.peer: progress};
+              metadata["progress"] = {peer: progress};
             } else {
-              metadata["progress"][event.peer] = progress;
+              metadata["progress"][peer] = progress;
             }
             return message.copyWith(metadata: metadata);
           },
@@ -406,26 +407,46 @@ class _ChatPageState extends State<ChatPage>
     }
   }
 
-  Future<void> _onTryToConnect() async {
+  void _cancelTryToConnect() {
     _tryToConnectPeersTimer?.cancel();
     _tryToConnectPeersTimer = null;
+    _tryToConnectAttempts = 0;
+    setState(() {
+      _cancelCurrentTryingToConnect = true;
+      _canSendChecking = false;
+    });
+  }
 
-    if (_hasPeersReady) {
-      _logger.d("Already can send. Skip trying to connect.");
-      return;
-    }
-    if (!_isActive || !mounted) {
-      _logger.d("Not yet mounted or inactive. Skip trying to connect.");
-      return;
-    }
+  void _tryToConnect() {
+    _doTryToConnect();
+  }
+
+  Future<void> _doTryToConnect() async {
     if (_canSendChecking) {
       _logger.d("Already checking. Stop trying to connect.");
       return;
     }
+    if (mounted) {
+      setState(() {
+        _cancelCurrentTryingToConnect = false;
+        _canSendChecking = true;
+      });
+      await _onTryToConnect();
+    }
+  }
 
-    setState(() {
-      _canSendChecking = true;
-    });
+  Future<void> _onTryToConnect() async {
+    _tryToConnectPeersTimer?.cancel();
+    _tryToConnectPeersTimer = null;
+
+    if (!_isActive || !mounted) {
+      _logger.d("Not yet mounted or inactive. Skip trying to connect.");
+      return;
+    }
+    if (_cancelCurrentTryingToConnect) {
+      _logger.d("Cancel current trying to connect requested. Skip...");
+      return;
+    }
 
     try {
       final peers = await _chatID.chatPeers ?? [];
@@ -434,14 +455,22 @@ class _ChatPageState extends State<ChatPage>
       if (!mounted) return;
 
       if (result.success) {
-        if (_alert?.setter == 'onTryToConnect') {
-          setState(() => _alert = null);
-        }
+        _logger.i("Connct success");
+        setState(() {
+          _canSendChecking = false;
+          if (_alert?.setter == 'onTryToConnect') {
+            _alert = null;
+          }
+        });
         return;
       }
 
       _tryToConnectAttempts++;
       if (_tryToConnectAttempts >= _maxTryToConnectAttempts) {
+        _logger.e("Failed to connect after $_maxTryToConnectAttempts attempt");
+        setState(() {
+          _canSendChecking = false;
+        });
         return;
       }
 
@@ -467,10 +496,8 @@ class _ChatPageState extends State<ChatPage>
           setter: 'onTryToConnect',
         );
       });
-    } finally {
-      if (mounted) {
-        setState(() => _canSendChecking = false);
-      }
+    } catch (e) {
+      _logger.e("Failed to try to connect: $e");
     }
   }
 
@@ -591,6 +618,7 @@ class _ChatPageState extends State<ChatPage>
           _hasPeersReady = hasPeersReady;
           _onlineUsers = onlineUsers;
           if (_hasPeersReady) {
+            _canSendChecking = false;
             _retryPendingMessage();
           }
         });
@@ -848,7 +876,7 @@ class _ChatPageState extends State<ChatPage>
       );
     }
     if (!_hasPeersReady) {
-      await _onTryToConnect();
+      await _doTryToConnect();
     }
     if (message.expireAt == null &&
         message.createdAt != null &&
@@ -1972,6 +2000,71 @@ class _ChatPageState extends State<ChatPage>
     if (e != null) _logger.e(e);
   }
 
+  Widget? get _peerStatusWidget {
+    if (_isGroupChat) {
+      return null;
+    }
+    final name = _peerContact?.name.capitalize();
+    if (name == null) {
+      return null;
+    }
+    if (_canSendChecking) {
+      final title = Text(
+        "Waiting for $name to accept chat request...",
+        maxLines: 3,
+        textAlign: TextAlign.center,
+      );
+      final trailing = BaseInputButton(
+        onPressed: _cancelTryToConnect,
+        shrinkWrap: true,
+        child: const Text("Cancel"),
+      );
+      if (utils.isApple()) {
+        return CupertinoListTile(
+          padding: const EdgeInsets.all(8),
+          leading: const Icon(CupertinoIcons.question_circle),
+          title: title,
+          trailing: trailing,
+          onTap: _cancelTryToConnect,
+        );
+      }
+      return ListTile(
+        leading: const Icon(Icons.question_mark_rounded),
+        title: title,
+        trailing: trailing,
+        onTap: _cancelTryToConnect,
+      );
+    }
+    if (_hasPeersReady) {
+      return null;
+    }
+    final title = Text(
+      "$name is not available. Send a chat request?",
+      maxLines: 3,
+      textAlign: TextAlign.center,
+    );
+    final trailing = BaseInputButton(
+      onPressed: _tryToConnect,
+      shrinkWrap: true,
+      child: const Text("Yes"),
+    );
+    if (utils.isApple()) {
+      return CupertinoListTile(
+        padding: const EdgeInsets.all(8),
+        leading: const Icon(CupertinoIcons.question_circle),
+        title: title,
+        trailing: trailing,
+        onTap: _tryToConnect,
+      );
+    }
+    return ListTile(
+      leading: const Icon(Icons.question_mark_rounded),
+      title: title,
+      onTap: _tryToConnect,
+      trailing: trailing,
+    );
+  }
+
   PreferredSizeWidget? get _appBar {
     if (_isTV) {
       return null;
@@ -1983,7 +2076,7 @@ class _ChatPageState extends State<ChatPage>
       canSendChecking: _canSendChecking,
       subtitle: _subtitle,
       messageExpireInMs: _session.messageExpireInMs,
-      onTryToConnect: _onTryToConnect,
+      onTryToConnect: _tryToConnect,
       onDeleteAllPressed: _isGroupChat ? null : _onDeleteAllMessagesPressed,
       onGroupChatManagementPressed:
           _isGroupChat ? _onGroupChatManagementPressed : null,
@@ -2012,6 +2105,7 @@ class _ChatPageState extends State<ChatPage>
                   });
                 },
               ),
+            if (_peerStatusWidget != null) _peerStatusWidget!,
             Expanded(child: _chatWidget),
           ],
         ),

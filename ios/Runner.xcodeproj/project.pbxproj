@@ -11,6 +11,7 @@
 		202F49DFA01F6A8AB4A3144C /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 44EC32DC5F7483DD57A2AEFF /* Pods_RunnerTests.framework */; };
 		25118B242D7A0FF500A2DE6D /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 25118B192D7A0FF500A2DE6D /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		25E23F222D491BE700822A6F /* Dns.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25E23F212D491BE700822A6F /* Dns.swift */; };
+		25F323AE2D7DF05C00A60681 /* BackgroundTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F323AD2D7DF05C00A60681 /* BackgroundTask.swift */; };
 		25F88B972D465F870053F557 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F88B942D465F870053F557 /* Logger.swift */; };
 		25F88B982D465F870053F557 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F88B952D465F870053F557 /* NetworkMonitor.swift */; };
 		25F88B992D465F870053F557 /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F88B962D465F870053F557 /* ChatService.swift */; };
@@ -71,6 +72,7 @@
 		25118B192D7A0FF500A2DE6D /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2588F4AF2D6BD97100F4C400 /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
 		25E23F212D491BE700822A6F /* Dns.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Dns.swift; path = Runner/Dns.swift; sourceTree = "<group>"; };
+		25F323AD2D7DF05C00A60681 /* BackgroundTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BackgroundTask.swift; path = Runner/BackgroundTask.swift; sourceTree = "<group>"; };
 		25F88B942D465F870053F557 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Logger.swift; path = Runner/Logger.swift; sourceTree = "<group>"; };
 		25F88B952D465F870053F557 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NetworkMonitor.swift; path = Runner/NetworkMonitor.swift; sourceTree = "<group>"; };
 		25F88B962D465F870053F557 /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ChatService.swift; path = Runner/ChatService.swift; sourceTree = "<group>"; };
@@ -102,7 +104,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		25118B282D7A0FF500A2DE6D /* Exceptions for "ShareExtension" folder in "ShareExtension" target */ = {
+		25118B282D7A0FF500A2DE6D /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -112,18 +114,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		25118B1A2D7A0FF500A2DE6D /* ShareExtension */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				25118B282D7A0FF500A2DE6D /* Exceptions for "ShareExtension" folder in "ShareExtension" target */,
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = ShareExtension;
-			sourceTree = "<group>";
-		};
+		25118B1A2D7A0FF500A2DE6D /* ShareExtension */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (25118B282D7A0FF500A2DE6D /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = ShareExtension; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -192,6 +183,7 @@
 		97C146E51CF9000F007C117D = {
 			isa = PBXGroup;
 			children = (
+				25F323AD2D7DF05C00A60681 /* BackgroundTask.swift */,
 				25E23F212D491BE700822A6F /* Dns.swift */,
 				25F88B962D465F870053F557 /* ChatService.swift */,
 				25F88B942D465F870053F557 /* Logger.swift */,
@@ -518,6 +510,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				25F323AE2D7DF05C00A60681 /* BackgroundTask.swift in Sources */,
 				25E23F222D491BE700822A6F /* Dns.swift in Sources */,
 				25F88B972D465F870053F557 /* Logger.swift in Sources */,
 				25F88B982D465F870053F557 /* NetworkMonitor.swift in Sources */,

@@ -82,9 +82,14 @@ class _BaseInputButtonWidgetState extends State<BaseInputButton> {
   Size? get _buttonMinSize {
     final scaleDown = Pst.enableAR ?? enableARByDefault;
     final minSize =
-        _buttonWidth != null ? Size(_buttonWidth!, scaleDown ? 36 : 40)
-        : null;
+        _buttonWidth != null ? Size(_buttonWidth!, scaleDown ? 36 : 40) : null;
     return minSize;
+  }
+
+  CupertinoButtonSize get _cupertinoButtonSize {
+    return widget.shrinkWrap
+        ? CupertinoButtonSize.medium
+        : CupertinoButtonSize.large;
   }
 
   Widget get _button {
@@ -103,6 +108,7 @@ class _BaseInputButtonWidgetState extends State<BaseInputButton> {
           autofocus: widget.autoFocus,
           focusNode: _focus,
           onPressed: widget.onPressed,
+          sizeStyle: _cupertinoButtonSize,
           child: widget.child,
         );
       }
@@ -120,6 +126,7 @@ class _BaseInputButtonWidgetState extends State<BaseInputButton> {
           autofocus: widget.autoFocus,
           focusNode: _focus,
           onPressed: widget.onPressed,
+          sizeStyle: _cupertinoButtonSize,
           child: widget.child,
         );
       }
@@ -132,11 +139,21 @@ class _BaseInputButtonWidgetState extends State<BaseInputButton> {
       );
     }
     if (isApple()) {
-      return CupertinoButton(
-        autofocus: widget.autoFocus,
-        focusNode: _focus,
-        onPressed: widget.onPressed,
-        child: widget.child,
+      return Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: CupertinoColors.systemGrey3.resolveFrom(context),
+            width: 0.5,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: CupertinoButton(
+          autofocus: widget.autoFocus,
+          focusNode: _focus,
+          onPressed: widget.onPressed,
+          sizeStyle: _cupertinoButtonSize,
+          child: widget.child,
+        ),
       );
     }
     return ElevatedButton(

@@ -158,6 +158,7 @@ class ChatStorage {
   }
 
   static String? getMessageIDFromFilename(String filename) {
+    filename = path.split(filename).last;
     final l = filename.split(messageIDDelimiterInFilename);
     if (l.length > 1) {
       final id = l[0];

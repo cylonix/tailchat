@@ -19,28 +19,35 @@ import UserNotifications
 #endif
 
 @available(macOS 10.15, iOS 13.0, *)
-class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
+class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProtocol {
     private var chatService: ChatService?
     private var methodChannel: FlutterMethodChannel?
     private var eventChannel: FlutterEventChannel?
     private var chatMessageChannel: FlutterEventChannel?
+    private var chatMesssageEventSink: FlutterEventSink?
     private var eventSink: FlutterEventSink?
     var isAppInBackground = false
     private let logger = Logger(tag: "AppDelegate")
+
+    // MARK: - BackgroundTaskProtocol
+
+    func cleanup() {
+        logger.i("Service cleanup called from background task")
+        stopChatService()
+    }
+
     #if os(iOS)
+        private var backgroundTaskHandler: BackgroundTask?
         override func application(
             _ application: UIApplication,
             didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
         ) -> Bool {
-            #if os(iOS)
-                // Register for remote notifications
-                application.registerForRemoteNotifications()
-            #endif
-
+            application.registerForRemoteNotifications()
             GeneratedPluginRegistrant.register(with: self)
             requestNotificationPermissions()
             startChatService()
             setupFlutterChannels()
+            backgroundTaskHandler = BackgroundTask(delegate: self)
             return super.application(application, didFinishLaunchingWithOptions: launchOptions)
         }
 
@@ -52,13 +59,16 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
             isAppInBackground = true
             chatService?.setAppActive(false)
             startChatService()
+            backgroundTaskHandler?.startBackgroundTask()
         }
 
         override func applicationWillEnterForeground(_: UIApplication) {
             isAppInBackground = false
+            backgroundTaskHandler?.endBackgroundTask()
             startChatService()
             chatService?.setAppActive(true)
         }
+
     #endif
 
     #if os(macOS)
@@ -157,10 +167,14 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
         }
         logger.i("Starting chat service")
         chatService?.startService()
+        chatService?.setChatMessageSink(eventSink: chatMesssageEventSink)
+        chatService?.setEventSink(eventSink: eventSink)
     }
 
     private func stopChatService() {
         chatService?.stopService()
+        logger.i("Deleting chat service instance")
+        chatService = nil
     }
 
     private func restartChatService() {
@@ -191,6 +205,7 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
         let argsDescription = args.map { String(describing: $0) } ?? "nil"
         logger.i("Setting event sink \(argsDescription) from onListen")
         if args as? String == "chat_messages" {
+            chatMesssageEventSink = events
             chatService?.setChatMessageSink(eventSink: events)
         } else {
             eventSink = events
@@ -203,8 +218,10 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
         let argsDescription = args.map { String(describing: $0) } ?? "nil"
         logger.i("Cancelling event sink \(argsDescription) from onCancel")
         if args as? String == "chat_messages" {
+            chatMesssageEventSink = nil
             chatService?.setChatMessageSink(eventSink: nil)
         } else {
+            eventSink = nil
             chatService?.setEventSink(eventSink: nil)
         }
         return nil
@@ -335,4 +352,8 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler {
             completionHandler()
         }
     #endif
+}
+
+protocol BackgroundTaskProtocol: AnyObject {
+    func cleanup()
 }

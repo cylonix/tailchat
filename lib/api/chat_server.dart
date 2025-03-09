@@ -18,6 +18,7 @@ import '../models/contacts/contact.dart';
 import '../models/contacts/contacts_repository.dart';
 import '../models/contacts/device.dart';
 import '../models/contacts/user_profile.dart';
+import '../models/progress_change_event.dart';
 import '../utils/logger.dart';
 import '../utils/utils.dart';
 import 'chat_service.dart';
@@ -187,6 +188,39 @@ class ChatServer {
           break;
         case "file_receive":
           _logger.d("Receive file $event");
+          final filePath = event['file_path'];
+          if (filePath == null ||
+              event['total_read'] == null ||
+              event['file_size'] == null ||
+              event['time'] == null) {
+            _logger.e("Invalid file event");
+            break;
+          }
+          late int received, total, time;
+          try {
+            received = event['total_read'] as int;
+            total = event['file_size'] as int;
+            time = event['time'] as int;
+          } catch (e) {
+            _logger.e("Failed to decode file event: $e");
+          }
+          if (received < 0 || total <= 0 || time < 0) {
+            _logger.e(
+              "Invalid receive and total size $received/$total in $time",
+            );
+            break;
+          }
+          final messageID = ChatStorage.getMessageIDFromFilename(filePath);
+          if (messageID == null) {
+            _logger.e("Invalid message id from $filePath");
+            break;
+          }
+          _eventBus.fire(ProgressChangeEvent(
+            messageID: messageID,
+            bytes: received,
+            total: total,
+            time: time,
+          ));
           break;
         case "logs":
           _logger.d("Received logs");
