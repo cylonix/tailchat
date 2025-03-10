@@ -177,7 +177,10 @@ class ChatServer {
           _logger.d("Received push notification info: $event");
           final uuid = event['uuid'];
           final token = event['token'];
-          if (uuid != null && token != null) {
+          if (uuid != null &&
+              token != null &&
+              uuid.isNotEmpty &&
+              token.isNotEmpty) {
             await sendPushNotificationToken(uuid, token);
             if (uuid != Pst.pushNotificationUUID ||
                 token != Pst.pushNotificationToken) {

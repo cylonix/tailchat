@@ -614,14 +614,6 @@ class ChatService {
         'Failed to connect to service socket port $port '
         '(retry $_serviceSocketRetryCount): $e',
       );
-      if (isApple()) {
-        _logger.i("Try to restart the service.");
-        try {
-          await platform.invokeMethod('restartService');
-        } catch (e) {
-          _logger.e("Failed to restart service.: $e");
-        }
-      }
       if (_serviceSocketRetryCount < _maxRetries) {
         final delay = _initialRetryDelay * (1 << _serviceSocketRetryCount);
         _serviceSocketRetryCount++;

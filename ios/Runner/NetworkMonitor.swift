@@ -52,10 +52,16 @@ class NetworkMonitor {
     }
 
     func start() {
+        logger.i("Start")
         startPathMonitor()
     }
 
     private func startPathMonitor() {
+        monitor?.cancel()
+        monitor = nil
+
+        logger.i("Starting path monitor")
+
         // Only monitor VPN interfaces
         monitor = NWPathMonitor(requiredInterfaceType: .other)
         monitor?.pathUpdateHandler = { [weak self] path in
@@ -63,6 +69,7 @@ class NetworkMonitor {
         }
         let queue = DispatchQueue(label: "NetworkMonitor")
         monitor?.start(queue: queue)
+        logger.i("Started")
     }
 
     private func getRoutes() throws -> [(address: String, isLocal: Bool)] {
@@ -72,7 +79,9 @@ class NetworkMonitor {
         let monitor = NWPathMonitor()
         let semaphore = DispatchSemaphore(value: 0)
 
-        monitor.pathUpdateHandler = { path in
+        monitor.pathUpdateHandler = { [weak self] path in
+            guard let self = self else { return }
+
             // Look for VPN interfaces (utun)
             for interface in path.availableInterfaces where interface.type == .other {
                 if interface.name.hasPrefix("utun") {
@@ -139,8 +148,16 @@ class NetworkMonitor {
     }
 
     func stop() {
-        monitor?.cancel()
-        monitor = nil
+        if let monitor = monitor {
+            logger.i("Stopped Ref count=\(CFGetRetainCount(monitor))")
+            monitor.cancel()
+            self.monitor = nil
+        }
+        logger.i("Stopped.")
+    }
+
+    deinit {
+        logger.i("Deinit. I am gone.")
     }
 
     private func handlePathUpdate(_ path: Network.NWPath) {

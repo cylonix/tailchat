@@ -1726,7 +1726,7 @@ class _ChatPageState extends State<ChatPage>
     if (_isGroupChat) {
       return null;
     }
-    return _peerDevice?.hostname.split('.')[0];
+    return _peerDevice?.title;
   }
 
   ChatL10n get _chatL10n {
@@ -2038,8 +2038,11 @@ class _ChatPageState extends State<ChatPage>
     if (_hasPeersReady) {
       return null;
     }
+    final device = _peerDevice != null ? "@${_peerDevice?.title}" : "";
+    final request =
+        _peerDevice?.pnUUID != null ? "Send a chat request" : "Try to connect";
     final title = Text(
-      "$name is not available. Send a chat request?",
+      "$name$device is not available. $request?",
       maxLines: 3,
       textAlign: TextAlign.center,
     );

@@ -19,8 +19,7 @@ import UserNotifications
 #endif
 
 @available(macOS 10.15, iOS 13.0, *)
-class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProtocol {
-    private var chatService: ChatService?
+class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProtocol { 
     private var methodChannel: FlutterMethodChannel?
     private var eventChannel: FlutterEventChannel?
     private var chatMessageChannel: FlutterEventChannel?
@@ -37,6 +36,29 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
     }
 
     #if os(iOS)
+        private var _chatService: Unmanaged<ChatService>?
+        private var chatService: ChatService? {
+            get {
+                return _chatService?.takeUnretainedValue()
+            }
+            set {
+                if let service = _chatService {
+                    logger.i("[ChatService] Setter called. Ref-count=\(CFGetRetainCount(service as AnyObject))")
+                }
+                // Release existing service if any
+                _chatService?.release()
+
+                // Retain new service if provided
+                if let newValue = newValue {
+                    _chatService = Unmanaged.passRetained(newValue)
+                    logger.i("[ChatService] New instance retained. Ref count=\(CFGetRetainCount(newValue))")
+                } else {
+                    _chatService = nil
+                    logger.i("[ChatService] Instance cleared")
+                }
+            }
+        }
+
         private var backgroundTaskHandler: BackgroundTask?
         override func application(
             _ application: UIApplication,
@@ -72,12 +94,12 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
     #endif
 
     #if os(macOS)
+        private var chatService: ChatService?
         override func applicationDidFinishLaunching(_: Notification) {
             if chatService == nil {
                 chatService = ChatService()
             }
             requestNotificationPermissions()
-            // startChatService()
             setupFlutterChannels()
         }
 
@@ -131,7 +153,6 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
 
             switch call.method {
             case "startService":
-                logger.i("Starting service")
                 self.startChatService()
                 result(nil)
             case "stopService":
@@ -162,23 +183,34 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
     }
 
     private func startChatService() {
-        if chatService == nil {
-            chatService = ChatService()
-        }
         logger.i("Starting chat service")
+        if chatService == nil {
+            let service = ChatService()
+            chatService = service
+        }
         chatService?.startService()
         chatService?.setChatMessageSink(eventSink: chatMesssageEventSink)
         chatService?.setEventSink(eventSink: eventSink)
     }
 
     private func stopChatService() {
-        chatService?.stopService()
-        logger.i("Deleting chat service instance")
+        logger.i("Stopping chat service")
+        if let service = chatService {
+            logger.i("[ChatService] Stopping instance. Ref count=\(CFGetRetainCount(service))")
+            service.stopService()
+        }
         chatService = nil
     }
 
     private func restartChatService() {
-        chatService?.restartService()
+        logger.i("Restarting chat service")
+        if let service = chatService {
+            service.restartServer()
+        }
+    }
+
+    deinit {
+        stopChatService()
     }
 
     private func getLogs() {
@@ -345,7 +377,7 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
                 logger.i("User chose to continue service")
             case "STOP_SERVICE":
                 logger.i("User chose to stop service")
-                chatService?.stopService()
+                stopChatService()
             default:
                 logger.i("Default notification action")
             }

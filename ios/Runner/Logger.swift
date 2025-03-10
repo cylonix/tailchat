@@ -9,7 +9,7 @@ public class Logger {
     private let fileManager = FileManager.default
     private let logQueue = DispatchQueue(label: "io.cylonix.tailchat.logger")
     private let maxLogFiles = 5
-    private let maxFileSize: UInt64 = 64 * 1024 // 64KB
+    private let maxFileSize: UInt64 = 1024 * 1024 // 1MB
 
     private lazy var logFileURL: URL = {
         let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -66,12 +66,16 @@ public class Logger {
     }
 
     private func rotateLogFileIfNeeded() {
-        guard let attributes = try? fileManager.attributesOfItem(atPath: logFileURL.path),
-              let fileSize = attributes[.size] as? UInt64,
-              fileSize > maxLogFiles
-        else {
+        let attributes = try? fileManager.attributesOfItem(atPath: logFileURL.path)
+        let fileSize = attributes?[.size] as? UInt64
+        guard let fileSize = fileSize else {
+            os_log("%{public}@", log: osLog, type: .default, "[LOGGER] [ERROR] File size unknown.")
             return
         }
+        if fileSize < maxFileSize {
+            return
+        }
+        os_log("%{public}@", log: osLog, type: .default, "[LOGGER] Rotate log file \(fileSize) \(maxFileSize)")
 
         // Rotate existing log files
         for i in (1 ... maxLogFiles - 1).reversed() {
@@ -83,6 +87,9 @@ public class Logger {
         // Move current log to .1.log
         let firstRotatedLog = logFileURL.deletingPathExtension().appendingPathExtension("1.log")
         try? fileManager.moveItem(at: logFileURL, to: firstRotatedLog)
+
+        // Create new empty log file
+        fileManager.createFile(atPath: logFileURL.path, contents: nil)
     }
 
     static func opt(_ a: Any?) -> String {
