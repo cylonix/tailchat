@@ -17,6 +17,7 @@ import '../../models/contacts/device.dart';
 import '../../utils/logger.dart';
 import '../../utils/utils.dart';
 import '../../widgets/alert_chip.dart';
+import '../../widgets/dialog_action.dart';
 import '../../widgets/contacts/hostname_change_dialog.dart';
 
 class NetworkMonitor extends StatefulWidget {
@@ -119,11 +120,12 @@ class _ContactsPageState extends State<NetworkMonitor> {
             "for $currentAddress",
           ),
           actions: [
-            TextButton(
+            DialogAction(
+              isDestructive: true,
               onPressed: () => Navigator.of(context).pop(),
               child: Text("Ignore"),
             ),
-            TextButton(
+            DialogAction(
               onPressed: () => Navigator.of(context).pop(true),
               child: Text("Update"),
             ),

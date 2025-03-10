@@ -8,6 +8,7 @@ import '../../models/contacts/contact.dart';
 import '../../models/contacts/device.dart';
 import '../../utils/utils.dart';
 import '../alert_chip.dart';
+import '../dialog_action.dart';
 import 'device_dialog.dart';
 import 'user_profile_input.dart';
 
@@ -60,60 +61,80 @@ class _ContactDialogState extends State<ContactDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.contact == null ? 'Add Contact' : 'Edit Contact'),
-      content: Material(
-        type: MaterialType.transparency,
-        child: SingleChildScrollView(
-          child: Container(
-            constraints: BoxConstraints(
-              minWidth: isMediumScreen(context) ? 600 : 350,
-            ),
-            child: Column(
-              spacing: 16,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_alert != null) AlertChip(_alert!),
-                UserProfileInput(
-                  usernameReadOnly: widget.contact != null,
-                  initialUsername: widget.contact?.username,
-                  initialName: widget.contact?.name,
-                  initialProfileUrl: widget.contact?.profileUrl,
-                  onChanged: _handleProfileChange,
-                ),
-                SizedBox(
-                  width: double.infinity,
-                  child: Card(
-                    margin: const EdgeInsets.all(0),
-                    child: Column(
-                      spacing: 8,
-                      children: [
-                        ListTile(
-                          title: Text('Devices'),
-                          trailing: TextButton(
-                            onPressed: _contactID != null ? _addDevice : null,
-                            child: Text('Add Device'),
-                          ),
+      title: _title,
+      content: _addContactForm,
+      actions: _actions,
+    );
+  }
+
+  Widget get _title {
+    return Text(widget.contact == null ? 'Add Contact' : 'Edit Contact');
+  }
+
+  Widget get _saveButton {
+    return TextButton(
+      onPressed: () => Navigator.pop(context),
+      child: Text('Cancel'),
+    );
+  }
+
+  Widget get _cancelButton {
+    return TextButton(
+      onPressed: _saveContact,
+      child: Text('Save'),
+    );
+  }
+
+  List<Widget> get _actions {
+    return [
+      _saveButton,
+      _cancelButton,
+    ];
+  }
+
+  Widget get _addContactForm {
+    return Material(
+      type: MaterialType.transparency,
+      child: SingleChildScrollView(
+        child: Container(
+          constraints: BoxConstraints(
+            minWidth: isMediumScreen(context) ? 600 : 350,
+          ),
+          child: Column(
+            spacing: 16,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_alert != null) AlertChip(_alert!),
+              UserProfileInput(
+                usernameReadOnly: widget.contact != null,
+                initialUsername: widget.contact?.username,
+                initialName: widget.contact?.name,
+                initialProfileUrl: widget.contact?.profileUrl,
+                onChanged: _handleProfileChange,
+              ),
+              SizedBox(
+                width: double.infinity,
+                child: Card(
+                  margin: const EdgeInsets.all(0),
+                  child: Column(
+                    spacing: 8,
+                    children: [
+                      ListTile(
+                        title: Text('Devices'),
+                        trailing: TextButton(
+                          onPressed: _contactID != null ? _addDevice : null,
+                          child: Text('Add Device'),
                         ),
-                        ..._buildDevicesList(),
-                      ],
-                    ),
+                      ),
+                      ..._buildDevicesList(),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: _saveContact,
-          child: Text('Save'),
-        ),
-      ],
     );
   }
 
@@ -147,10 +168,32 @@ class _ContactDialogState extends State<ContactDialog> {
     });
   }
 
-  void _removeDevice(Device device) {
-    setState(() {
-      _devices.remove(device);
-    });
+  void _removeDevice(Device device) async {
+    final delete = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog.adaptive(
+        title: const Text('Delete Device'),
+        content: Text('Are you sure you want to delete ${device.hostname}?'),
+        actions: [
+          DialogAction(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancel'),
+          ),
+          DialogAction(
+            isDestructive: true,
+            onPressed: () {
+              Navigator.pop(c, true);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if ((delete ?? false) && mounted) {
+      setState(() {
+        _devices.remove(device);
+      });
+    }
   }
 
   void _saveContact() async {

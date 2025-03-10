@@ -300,7 +300,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             content.body = "Failed to start chat service after \(self.maxRestartAttempts) attempts. Tailchat will now exit."
             content.sound = .default
 
-            if #available(iOS 15.0, *) {
+            if #available(iOS 15.0, macOS 12.0, *) {
                 content.interruptionLevel = .timeSensitive
                 content.relevanceScore = 1.0
             }

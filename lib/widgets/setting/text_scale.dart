@@ -35,15 +35,25 @@ class TextScale extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        FilledButton.tonal(
-          onPressed: () => _changeScale(add: false),
-          child: const Icon(Icons.remove),
-        ),
+        isApple()
+            ? CupertinoButton(
+                onPressed: () => _changeScale(add: false),
+                child: const Icon(CupertinoIcons.minus),
+              )
+            : IconButton(
+                onPressed: () => _changeScale(add: false),
+                icon: const Icon(Icons.remove),
+              ),
         const SizedBox(width: 16),
-        FilledButton.tonal(
-          onPressed: () => _changeScale(add: true),
-          child: const Icon(Icons.add),
-        )
+        isApple()
+            ? CupertinoButton(
+                onPressed: () => _changeScale(add: true),
+                child: const Icon(CupertinoIcons.add),
+              )
+            : IconButton(
+                onPressed: () => _changeScale(add: true),
+                icon: const Icon(Icons.add),
+              )
       ],
     );
   }

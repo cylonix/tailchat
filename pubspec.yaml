@@ -124,7 +124,7 @@ dev_dependencies:
 
 flutter_launcher_icons:
   android: false
-  ios: true
+  ios: false
   remove_alpha_ios: true
   image_path: "lib/assets/images/tailchat1024.png"
   web:

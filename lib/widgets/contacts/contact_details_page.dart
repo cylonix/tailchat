@@ -15,6 +15,7 @@ import '../../models/contacts/device.dart';
 import '../../utils/logger.dart';
 import '../../utils/utils.dart';
 import '../alert_chip.dart';
+import '../dialog_action.dart';
 import '../top_row.dart';
 import 'contact_dialog.dart';
 import 'device_dialog.dart';
@@ -244,11 +245,11 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
         title: const Text('Delete Contact'),
         content: Text('Are you sure you want to delete ${_contact.name}?'),
         actions: [
-          TextButton(
+          DialogAction(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          DialogAction(
             onPressed: () {
               Navigator.pop(context, true);
             },
@@ -311,11 +312,11 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
         title: const Text('Delete Device'),
         content: Text('Are you sure you want to delete ${device.hostname}?'),
         actions: [
-          TextButton(
+          DialogAction(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          DialogAction(
             onPressed: () {
               Navigator.pop(context, true);
             },

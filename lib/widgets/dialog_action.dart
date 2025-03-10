@@ -7,13 +7,23 @@ import '../utils/utils.dart';
 
 class DialogAction extends StatelessWidget {
   final Widget child;
+  final bool isDestructive;
   final Function() onPressed;
-  const DialogAction({super.key, required this.child, required this.onPressed});
+  const DialogAction({
+    super.key,
+    required this.child,
+    required this.onPressed,
+    this.isDestructive = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return isApple()
-        ? CupertinoDialogAction(onPressed: onPressed, child: child)
+        ? CupertinoDialogAction(
+            onPressed: onPressed,
+            isDestructiveAction: isDestructive,
+            child: child,
+          )
         : TextButton(
             onPressed: onPressed,
             child: Container(
