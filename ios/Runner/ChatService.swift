@@ -181,23 +181,24 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             let parameters = NWParameters.tcp
             parameters.allowLocalEndpointReuse = true
 
-            // Add TCP keepalive settings
+            // Add TCP settings trying to work around some problems on the ios
+            // networking stake when connection is not cleanly closed due to
+            // network connectivity issues.
             if let tcpOptions = parameters.defaultProtocolStack.internetProtocol as? NWProtocolTCP.Options {
-                tcpOptions.enableKeepalive = true
-                tcpOptions.keepaliveIdle = 15 // Start keepalive after 15 seconds of idle
-                tcpOptions.keepaliveCount = 4 // Try 4 times
+                tcpOptions.keepaliveIdle = 5 // Start keepalive after 5 seconds of idle
+                tcpOptions.keepaliveCount = 1 // Try 1 time
                 tcpOptions.keepaliveInterval = 5 // 5 seconds between attempts
+                tcpOptions.retransmitFinDrop = true
+                tcpOptions.persistTimeout = 0 // this one reduces waiting time significantly when there is no open connections
+                tcpOptions.enableKeepalive = true // this one reduces the number of open connections by reusing existing ones
+                tcpOptions.connectionDropTime = 5
+                tcpOptions.connectionTimeout = 5
+                tcpOptions.noDelay = true
             }
 
             let content = NWEndpoint.Port(rawValue: port)!
             listener = try NWListener(using: parameters, on: content)
             listener?.stateUpdateHandler = handleStateUpdate
-
-            /* let parameters = NWParameters.tcp
-             parameters.allowLocalEndpointReuse = true
-             let content = NWEndpoint.Port(rawValue: port)!
-             listener = try NWListener(using: parameters, on: content)
-             listener?.stateUpdateHandler = handleStateUpdate */
             listener?.newConnectionHandler = { [weak self] connection in
                 let logger = Logger(tag: "ChatService")
                 logger.i("New connection from \(connection.endpoint)")
@@ -206,7 +207,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
                     connection.cancel()
                     return
                 }
-                            let connectionQueue = DispatchQueue(label: "connectionQueue-\(connection.endpoint)")
+                let connectionQueue = DispatchQueue(label: "connectionQueue-\(connection.endpoint)")
                 connectionQueue.async { [weak self] in
                     guard let self = self else {
                         logger.e("ConnectionQueue.async: Self is nil. Ignoring connection: \(connection.endpoint).")

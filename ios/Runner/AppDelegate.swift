@@ -31,34 +31,12 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
     // MARK: - BackgroundTaskProtocol
 
     func cleanup() {
-        logger.i("Service cleanup called from background task")
+        logger.i("Service cleanup called from background task. Stop Service!")
         stopChatService()
     }
 
     #if os(iOS)
-        private var _chatService: Unmanaged<ChatService>?
-        private var chatService: ChatService? {
-            get {
-                return _chatService?.takeUnretainedValue()
-            }
-            set {
-                if let service = _chatService {
-                    logger.i("[ChatService] Setter called. Ref-count=\(CFGetRetainCount(service as AnyObject))")
-                }
-                // Release existing service if any
-                _chatService?.release()
-
-                // Retain new service if provided
-                if let newValue = newValue {
-                    _chatService = Unmanaged.passRetained(newValue)
-                    logger.i("[ChatService] New instance retained. Ref count=\(CFGetRetainCount(newValue))")
-                } else {
-                    _chatService = nil
-                    logger.i("[ChatService] Instance cleared")
-                }
-            }
-        }
-
+        private var chatService: ChatService?
         private var backgroundTaskHandler: BackgroundTask?
         override func application(
             _ application: UIApplication,

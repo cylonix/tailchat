@@ -35,6 +35,7 @@ class NetworkMonitor {
     private var monitor: NWPathMonitor?
     private let logger = Logger(tag: "NetworkMonitor")
     private weak var delegate: NetworkMonitorDelegate?
+    var onNetworkStatusChange: ((Bool) -> Void)?
 
     private enum CGNATRange {
         static let start = "100.64.0.0"
@@ -162,6 +163,7 @@ class NetworkMonitor {
 
     private func handlePathUpdate(_ path: Network.NWPath) {
         logger.i("Network path \(path) changed")
+        onNetworkStatusChange?(path.status == .satisfied)
         handlePathOrRouteUpdate()
     }
 
