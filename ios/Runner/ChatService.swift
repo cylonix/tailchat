@@ -26,13 +26,14 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     private var eventSink: FlutterEventSink?
     private var chatMessageEventSink: FlutterEventSink?
     private var isServerStarting = false
-    private let isServerStartingLock = NSLock()
     private var subscribers: [NWConnection] = []
     private let subscriberMutex = DispatchQueue(label: "io.cylonix.tailchat.subscriberMutex")
     private var connections: [NWConnection] = []
     private let connectionMutex = DispatchQueue(label: "io.cylonix.tailchat.connectionMutex")
     private var isShuttingDown: Bool = false
-    private let shutdownLock = NSLock()
+    private let startServerLock = NSLock()
+    private let stopServerLock = NSLock()
+    private let startStopServerLock = NSLock()
     private var isDeleted: Bool = false
 
     func startService() {
@@ -156,17 +157,25 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     // Long running service to listen for incoming connections and each connection
     // is handled in a separate queue and run in synchronous mode.
     private func startServer() {
-        isServerStartingLock.lock()
-        if isServerStarting {
-            isServerStartingLock.unlock()
-            logger.w("Server already started. Skip...")
+        if !startServerLock.try() {
+            logger.w("Server already being started. Skip...")
             return
         }
-
+        defer {
+            logger.d("Relaseing startServer lock")
+            startServerLock.unlock()
+        }
         isServerStarting = true
-        isServerStartingLock.unlock()
+        logger.i("Sart server lock acquired")
 
-        logger.i("Sarting server")
+        // Wait for ongoing shutdown to finish if any.
+        startStopServerLock.lock()
+        defer {
+            logger.d("Releasing startStopServer lock")
+            startStopServerLock.unlock()
+        }
+
+        logger.i("Start-stop server lock acquired. Starting server")
 
         // Add listener state check before creating new ones
         if let existingListener = listener, existingListener.state == .ready,
@@ -247,46 +256,49 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             // Check both listeners' states after a delay
             DispatchQueue.global().asyncAfter(deadline: .now() + 2) { [weak self] in
                 guard let self = self else { return }
-                let listenerNotReady = self.listener?.state != .ready
-                let subscriberNotReady = self.subscriberListener?.state != .ready
-
-                if listenerNotReady {
-                    self.logger.e("Main listener did not become ready within timeout period")
-                }
-
-                if subscriberNotReady {
-                    self.logger.e("Subscriber listener did not become ready within timeout period")
-                }
-
-                if !listenerNotReady, !subscriberNotReady {
-                    self.logger.i("Start success!")
-                    self.restartCountLock.lock()
-                    self.restartAttemptCount = 0
-                    self.restartCountLock.unlock()
-                    self.logger.i("Restart count reset to 0")
-                    return
-                }
-
-                self.isRunningLock.lock()
-                if self.isRunning {
-                    self.logger.i("Restart server: main listener not ready \(listenerNotReady), subscriber listener not ready \(subscriberNotReady), is running \(self.isRunning)")
-                    self.isRunningLock.unlock()
-                    self.restartServer()
-                } else {
-                    self.isRunningLock.unlock()
-                }
-
-                self.logger.i("Finished listener not ready state handling.")
+                self.restartServerIfNecessary()
             }
-        } catch { 
-            logger.e("Failed to start listener servers: \(error). Restart...")
-            restartServer()
+        } catch {
+            logger.e("Failed to start listener servers: \(error). Restart in two seconds...")
+            DispatchQueue.global().asyncAfter(deadline: .now() + 2) { [weak self] in
+                guard let self = self else { return }
+                self.restartServerIfNecessary()
+            }
         }
 
-        isServerStartingLock.lock()
         isServerStarting = false
-        isServerStartingLock.unlock()
         logger.i("Finished starting server.")
+    }
+
+    private func restartServerIfNecessary() {
+        let listenerReady = listener?.state == .ready
+        let subscriberReady = subscriberListener?.state == .ready
+
+        if !listenerReady {
+            logger.e("Main listener is not ready")
+        }
+
+        if !subscriberReady {
+            logger.e("Subscriber listener is not ready")
+        }
+
+        if listenerReady, subscriberReady {
+            logger.i("Start success!")
+            restartCountLock.lock()
+            restartAttemptCount = 0
+            restartCountLock.unlock()
+            logger.i("Restart count reset to 0")
+            return
+        }
+
+        isRunningLock.lock()
+        if isRunning {
+            logger.i("Restart server: main listener ready \(listenerReady), subscriber listener ready \(subscriberReady), is running \(isRunning)")
+            isRunningLock.unlock()
+            restartServer()
+        } else {
+            isRunningLock.unlock()
+        }
     }
 
     private func stopAndExit() {
@@ -430,15 +442,11 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     typealias MessageHandler = (NWConnection, String, inout Data) -> Error?
     private func handleConnection(connection: NWConnection) {
         logger.i("New connection received from \(connection.endpoint)")
-        shutdownLock.lock()
-        if isShuttingDown {
-            shutdownLock.unlock()
+        if isShuttingDown { 
             logger.i("Rejecting new connection during shutdown from \(connection.endpoint)")
             connection.cancel()
             return
         }
-        shutdownLock.unlock()
-
         logger.i("Start handling connection $\(connection.endpoint)")
 
         connection.start(queue: DispatchQueue.global(qos: .background))
@@ -462,15 +470,12 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         receiveMessages(connection: connection, messageHandler: handleMessage)
     }
 
-    private func handleSubscriberConnection(connection: NWConnection) {
-        shutdownLock.lock()
-        if isShuttingDown {
-            shutdownLock.unlock()
+    private func handleSubscriberConnection(connection: NWConnection) { 
+        if isShuttingDown { 
             logger.i("Rejecting new subscriber connection during shutdown from \(connection.endpoint)")
             connection.cancel()
             return
         }
-        shutdownLock.unlock()
         logger.i("New subscriber connection received from \(connection.endpoint)")
 
         connection.start(queue: DispatchQueue.global(qos: .background))
@@ -1054,17 +1059,26 @@ class ChatService: NSObject, NetworkMonitorDelegate {
 
     private func stopServer() {
         logger.i("Stop server")
-        shutdownLock.lock()
-        if isShuttingDown {
+        if !stopServerLock.try() { 
             logger.i("Already shutting down. Skip...")
-            shutdownLock.unlock()
             return
         }
-        logger.d("Got isShuttingDown lock. Proceed to shutdown server.")
-        isShuttingDown = true
-        shutdownLock.unlock()
+        defer {
+            logger.d("Releasing stopServer lock")
+            stopServerLock.unlock()
+        }
 
-        logger.i("Stopping server...")
+        isShuttingDown = true
+        logger.d("Got stopServer lock. Proceed to shutdown server.")
+
+        // Wait for current startSever to finish.
+        startStopServerLock.lock()
+        defer {
+            logger.d("Releasing startStopServer lock")
+            startStopServerLock.unlock()
+        }
+
+        logger.i("Got startStopServer lock. Stopping server...")
 
         // Close all main connections first
         connectionMutex.sync {
@@ -1102,9 +1116,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         subscriberListener = nil
 
         // Reset shutdown flag
-        shutdownLock.lock()
         isShuttingDown = false
-        shutdownLock.unlock()
 
         logger.i("Server stopped")
     }

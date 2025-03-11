@@ -45,7 +45,7 @@ import '../../utils/global.dart';
 import '../../utils/logger.dart';
 import '../../utils/utils.dart' as utils;
 import '../alert_chip.dart';
-import '../alert_dialog_widget.dart' as ad;
+import '../alert_dialog_widget.dart';
 import '../common_widgets.dart';
 import '../snackbar_widget.dart';
 import '../tv/return_button.dart';
@@ -346,8 +346,7 @@ class _ChatPageState extends State<ChatPage>
         final bytes = formatBytes(event.bytes, 2);
         final total = formatBytes(event.total, 2);
         final time = Duration(milliseconds: event.time).pretty();
-        final progress =
-            percent < 1 ? "$bytes/$total in $time" : "$total in $time";
+        final progress = percent < 1 ? "$bytes/$total in $time" : "";
         // don't persist in-progress updates as there are multiple sending
         // happening at the same time.
         _logger.d("Update progress: '$percent' '$progress'");
@@ -449,7 +448,24 @@ class _ChatPageState extends State<ChatPage>
     }
 
     try {
-      final peers = await _chatID.chatPeers ?? [];
+      var peers = <Device>[];
+      try {
+        peers = await _chatID.chatPeers ?? [];
+      } catch (e) {
+        _logger.e("Failed to get chat peers: $e");
+        var msg = "$e";
+        if (e is UserIDNotExistsException) {
+          final name = widget.session.peerName ?? e.id;
+          msg = "User '$name' does not exist. Is the contact deleted?";
+        } else if (e is DeviceIDNotExistsException) {
+          final name = widget.session.peerDeviceName ?? e.id;
+          msg = "Device '$name' does not exist. is the device deleted?";
+        }
+        if (mounted) {
+          await utils.showAlertDialog(context, "Failed to connect", msg);
+        }
+        return;
+      }
       final result = await tryConnectToPeers(peers);
 
       if (!mounted) return;
@@ -489,10 +505,44 @@ class _ChatPageState extends State<ChatPage>
         },
       );
 
+      final peer = _peerDescription ?? "peer";
       setState(() {
         _alert = Alert(
-          'Failed to connect to peers: ${result.failureMsg}. '
-          'Retry in $backoff seconds.',
+          'Failed to connect to $peer',
+          actions: [
+            AlertAction(
+              'Details',
+              icon: utils.isApple() ? CupertinoIcons.info : Icons.info,
+              onPressed: () async => await AlertDialogWidget(
+                title: "Failure Details",
+                contents: [
+                  Content(
+                    content: result.failureMsg ?? "",
+                  ),
+                  Content(
+                    content: 'Retry in $backoff seconds.',
+                  ),
+                ],
+                actions: [
+                  AlertAction(
+                    "OK",
+                    isDefault: true,
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ).show(context),
+            ),
+            AlertAction(
+              "Delete",
+              onPressed: () => {
+                setState(() {
+                  _alert = null;
+                })
+              },
+              destructive: true,
+              icon: utils.isApple() ? CupertinoIcons.clear : Icons.clear,
+            ),
+          ],
           setter: 'onTryToConnect',
         );
       });
@@ -732,7 +782,7 @@ class _ChatPageState extends State<ChatPage>
 
   Future<bool?> _showSendResultDialog(
     ChatSendPeersResult? r, {
-    List<ad.Action> actions = const [],
+    List<AlertAction> actions = const [],
   }) async {
     if (!mounted) {
       return null;
@@ -740,9 +790,9 @@ class _ChatPageState extends State<ChatPage>
     final tr = AppLocalizations.of(context);
     String? st;
     String? ft;
+    final s = r?.successCnt ?? 0;
+    final f = r?.failureCnt ?? 0;
     if (r != null) {
-      final s = r.successCnt;
-      final f = r.failureCnt;
       st = r.successMsg != null
           ? "${tr.successDeviceCountText} ($s):"
           : r.success
@@ -750,35 +800,50 @@ class _ChatPageState extends State<ChatPage>
               : null;
       ft = r.failureMsg != null ? "${tr.failureDeviceCountText} ($f):" : null;
     }
-
-    return ad.AlertDialogWidget(
-      title: tr.messageSendResultsText,
-      contents: [
-        if (st != null)
-          ad.Content(
-            content: st,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        if (r != null && r.successMsg != null)
-          ad.Content(
-            content: r.successMsg!,
-            style: const TextStyle(color: Colors.green),
-          ),
-        if (ft != null)
-          ad.Content(
-            content: ft,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        if (r != null && r.failureMsg != null)
-          ad.Content(
-            content: r.failureMsg!,
-            style: const TextStyle(color: Colors.red),
-          ),
-      ],
+    final peer = _peerDescription ?? "peer";
+    final title = (r?.success ?? false)
+        ? "Succeeded to send to $peer"
+        : s > 0
+            ? "Failed to send to some devices"
+            : "Failed to send to $peer";
+    final contents = [
+      if (st != null)
+        Content(
+          content: st,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      if (r != null && r.successMsg != null)
+        Content(
+          content: r.successMsg!,
+          style: const TextStyle(color: Colors.green),
+        ),
+      if (ft != null)
+        Content(
+          content: ft,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      if (r != null && r.failureMsg != null)
+        Content(
+          content: r.failureMsg!,
+          style: const TextStyle(color: Colors.red),
+        ),
+    ];
+    return AlertDialogWidget(
+      title: title,
+      titleStyle:
+          (r?.success ?? false) ? null : const TextStyle(color: Colors.red),
       actions: [
         ...actions,
-        ad.Action(title: tr.ok, onPressed: () => Navigator.pop(context, true)),
+        AlertAction(
+          tr.ok,
+          isDefault: true,
+          onPressed: () => Navigator.pop(context, true),
+        ),
       ],
+      child: ExpansionTile(
+        title: const Text("Details:"),
+        children: contents.map((c) => Text(c.content, style: c.style)).toList(),
+      ),
     ).show(context);
   }
 
@@ -909,8 +974,8 @@ class _ChatPageState extends State<ChatPage>
         await _showSendResultDialog(
           r,
           actions: [
-            ad.Action(
-              title: tr.dontShowAgainText,
+            AlertAction(
+              tr.dontShowAgainText,
               onPressed: () {
                 Navigator.of(context).pop(false);
                 _showSendResult = false;
@@ -1465,6 +1530,10 @@ class _ChatPageState extends State<ChatPage>
     );
   }
 
+  bool get _isSingleDeviceChat {
+    return _peerDevice != null;
+  }
+
   /// Exception will be thrown if retry fails.
   void _handleMessageLongPressedRetry(
     types.Message message,
@@ -1474,8 +1543,8 @@ class _ChatPageState extends State<ChatPage>
     await _showSendResultDialog(
       result,
       actions: [
-        ad.Action(
-          title: result.success
+        AlertAction(
+          result.success || _isSingleDeviceChat
               ? tr.sendAgainText
               : tr.retrySendingToFailedDevicesText,
           onPressed: () async {
@@ -1489,11 +1558,33 @@ class _ChatPageState extends State<ChatPage>
             await _sendMessage(message);
           },
         ),
-        ad.Action(
-          title: "Delete message",
+        AlertAction(
+          "Delete message",
+          destructive: true,
           onPressed: () async {
-            Navigator.of(context).pop(true);
-            await _deleteMessage(message);
+            final delete = await AlertDialogWidget(
+                  title: "Confirm delete",
+                  contents: [
+                    Content(content: "Sure to delete this message?"),
+                  ],
+                  actions: [
+                    AlertAction(
+                      "Yes, Delete",
+                      destructive: true,
+                      onPressed: () => Navigator.of(context).pop(true),
+                    ),
+                    AlertAction(
+                      "Cancel",
+                      isDefault: true,
+                      onPressed: () => Navigator.of(context).pop(false),
+                    ),
+                  ],
+                ).show(context) ??
+                false;
+            if (delete && mounted) {
+              Navigator.of(context).pop(true);
+              await _deleteMessage(message);
+            }
           },
         ),
       ],
@@ -2000,7 +2091,7 @@ class _ChatPageState extends State<ChatPage>
     if (e != null) _logger.e(e);
   }
 
-  Widget? get _peerStatusWidget {
+  String? get _peerDescription {
     if (_isGroupChat) {
       return null;
     }
@@ -2008,10 +2099,19 @@ class _ChatPageState extends State<ChatPage>
     if (name == null) {
       return null;
     }
+    final device = _peerDevice != null ? "@${_peerDevice?.title}" : "";
+    return '$name$device';
+  }
+
+  Widget? get _peerStatusWidget {
+    final peer = _peerDescription;
+    if (peer == null) {
+      return null;
+    }
     if (_canSendChecking) {
       final title = Text(
-        "Waiting for $name to accept chat request...",
-        maxLines: 3,
+        "Waiting for $peer to accept chat request...",
+        maxLines: 10,
         textAlign: TextAlign.center,
       );
       final trailing = BaseInputButton(
@@ -2024,7 +2124,10 @@ class _ChatPageState extends State<ChatPage>
           padding: const EdgeInsets.all(8),
           leading: const Icon(CupertinoIcons.question_circle),
           title: title,
-          trailing: trailing,
+          trailing: Padding(
+            padding: const EdgeInsets.only(left: 8, right: 8),
+            child: trailing,
+          ),
           onTap: _cancelTryToConnect,
         );
       }
@@ -2038,12 +2141,11 @@ class _ChatPageState extends State<ChatPage>
     if (_hasPeersReady) {
       return null;
     }
-    final device = _peerDevice != null ? "@${_peerDevice?.title}" : "";
     final request =
         _peerDevice?.pnUUID != null ? "Send a chat request" : "Try to connect";
     final title = Text(
-      "$name$device is not available. $request?",
-      maxLines: 3,
+      "$peer is not connected. $request?",
+      maxLines: 10,
       textAlign: TextAlign.center,
     );
     final trailing = BaseInputButton(
@@ -2056,7 +2158,10 @@ class _ChatPageState extends State<ChatPage>
         padding: const EdgeInsets.all(8),
         leading: const Icon(CupertinoIcons.question_circle),
         title: title,
-        trailing: trailing,
+        trailing: Padding(
+          padding: const EdgeInsets.only(left: 8, right: 8),
+          child: trailing,
+        ),
         onTap: _tryToConnect,
       );
     }

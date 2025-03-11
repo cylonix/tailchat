@@ -14,6 +14,7 @@ import '../models/chat/chat_id.dart';
 import '../models/chat/chat_session.dart';
 import '../models/session.dart';
 import '../models/contacts/user_profile.dart';
+import '../utils/logger.dart';
 import '../utils/utils.dart';
 import 'common_widgets.dart';
 import 'chat/last_chat.dart';
@@ -80,6 +81,7 @@ class SessionWidgetState extends State<SessionWidget> {
   late final bool _isTV;
   bool _hasPeersReady = false;
   UserProfile? _peerUser;
+  static const Logger _logger = Logger(tag: "SessionWidget");
 
   @override
   void initState() {
@@ -107,8 +109,12 @@ class SessionWidgetState extends State<SessionWidget> {
   void _updateChatPeersStatus() async {
     if (_session is ChatSession) {
       final chatID = ChatID(id: _session.sessionID);
-      _hasPeersReady =
-          (await chatID.chatPeers)?.any((p) => p.isOnline) ?? false;
+      try {
+        _hasPeersReady =
+            (await chatID.chatPeers)?.any((p) => p.isOnline) ?? false;
+      } catch (e) {
+        _logger.e("Failed to update chat peer status: $e");
+      }
     }
   }
 

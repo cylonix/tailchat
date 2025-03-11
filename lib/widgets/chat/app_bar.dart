@@ -4,7 +4,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:pull_down_button/pull_down_button.dart';
-import 'package:tailchat/widgets/alert_dialog_widget.dart' as ad;
+import 'package:tailchat/models/alert.dart';
+import 'package:tailchat/widgets/alert_dialog_widget.dart';
 import '../../gen/l10n/app_localizations.dart';
 import '../../utils/utils.dart';
 import '../common_widgets.dart';
@@ -28,33 +29,54 @@ class ChatAppBar extends MainAppBar {
     void Function()? onGroupChatManagementPressed,
     void Function(Duration? duration)? onSettingMessageExpirationTime,
   }) : super(
-          titleWidget: ListTile(
-            dense: true,
-            title: Text(title),
-            subtitle: (subtitle != null)
-                ? Text(subtitle, textScaler: TextScaler.linear(0.8))
-                : null,
-          ),
+          titleSpacing: 0.0,
+          titleWidget: isApple()
+              ? CupertinoListTile(
+                  title: Text(title),
+                  subtitle: (subtitle != null)
+                      ? Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      : null,
+                )
+              : ListTile(
+                  dense: true,
+                  title: Text(title),
+                  subtitle: (subtitle != null)
+                      ? Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      : null,
+                ),
           trailing: [
             Icon(
               isApple() ? CupertinoIcons.arrow_down : Icons.arrow_downward,
               color: canReceive ? Colors.green : Colors.grey,
+              size: 20,
             ),
             const SizedBox(width: 4),
             IconButtonWidget(
+              padding: const EdgeInsets.all(0),
               icon: canSendChecking
-                  ? loadingWidget()
+                  ? loadingWidget(
+                      constraints: BoxConstraints.tight(const Size(20, 20)),
+                    )
                   : Icon(
                       isApple() ? CupertinoIcons.arrow_up : Icons.arrow_upward,
                       color: canSend ? Colors.green : Colors.grey,
+                      size: 20,
                     ),
               onPressed: onTryToConnect,
               tooltip: canSendChecking
                   ? "Connecting to peer"
                   : "Press to try to connect to send",
             ),
-            const SizedBox(width: 16),
-            if (messageExpireInMs != null && showTrailingActions)
+            const SizedBox(width: 8),
+            if (messageExpireInMs != null && showTrailingActions) ...[
               ChatAppBarPopupMenuButton(
                 icon: Icon(
                   isApple()
@@ -63,9 +85,9 @@ class ChatAppBar extends MainAppBar {
                 ),
                 messageExpireInMs: messageExpireInMs,
                 onSettingMessageExpirationTime: onSettingMessageExpirationTime,
-              ),
-            if (messageExpireInMs != null && showTrailingActions)
-              const SizedBox(width: 16),
+              ), 
+              const SizedBox(width: 8),
+            ],
             if (showTrailingActions)
               ChatAppBarPopupMenuButton(
                 onDeleteAllPressed: onDeleteAllPressed,
@@ -104,22 +126,22 @@ class ChatAppBarPopupMenuButtonState extends State<ChatAppBarPopupMenuButton> {
 
   void _showDeleteAllDialog() async {
     final tr = AppLocalizations.of(context);
-    await ad.AlertDialogWidget(
+    await AlertDialogWidget(
       title: tr.confirmText,
       contents: [
-        ad.Content(content: "Please confirm to delete all messages."),
-        ad.Content(
+        Content(content: "Please confirm to delete all messages."),
+        Content(
           content: "Messages will be forever deleted.",
           style: TextStyle(color: Colors.red),
         ),
       ],
       actions: [
-        ad.Action(
-          title: tr.cancelButton,
+        AlertAction(
+          tr.cancelButton,
           onPressed: () => Navigator.of(context).pop(false),
         ),
-        ad.Action(
-          title: tr.ok,
+        AlertAction(
+          tr.ok,
           onPressed: () {
             Navigator.of(context).pop(true);
             widget.onDeleteAllPressed?.call(_deleteFromAllPeers);
@@ -274,7 +296,8 @@ class ChatAppBarPopupMenuButtonState extends State<ChatAppBarPopupMenuButton> {
       );
     });
   }
-List<Widget> _getDurationEntries(BuildContext context) {
+
+  List<Widget> _getDurationEntries(BuildContext context) {
     const durations = [
       Duration(seconds: 15),
       Duration(minutes: 1),

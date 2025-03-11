@@ -15,8 +15,14 @@ enum AlertVariant {
 class Alert {
   final AlertVariant variant;
   final String text;
+  final List<AlertAction> actions;
   final String? setter;
-  const Alert(this.text, {this.setter, this.variant = AlertVariant.error});
+  const Alert(
+    this.text, {
+    this.actions = const [],
+    this.setter,
+    this.variant = AlertVariant.error,
+  });
   Color? get color {
     switch (variant) {
       case (AlertVariant.success):
@@ -61,4 +67,19 @@ class Alert {
         return null;
     }
   }
+}
+
+class AlertAction {
+  final Function() onPressed;
+  final String title;
+  final IconData? icon;
+  final bool isDefault;
+  final bool destructive;
+  const AlertAction(
+    this.title, {
+    required this.onPressed,
+    this.icon,
+    this.isDefault = false,
+    this.destructive = false,
+  });
 }

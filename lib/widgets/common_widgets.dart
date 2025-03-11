@@ -115,9 +115,13 @@ Widget getOsIcon(String os, {Color? color, double? size}) {
   return getIcon(getOsIconData(os), color: color, size: size, adaptive: false);
 }
 
-Widget loadingWidget() {
+Widget loadingWidget(
+    {BoxConstraints? constraints, EdgeInsetsGeometry? padding}) {
   return Center(
-    child: CircularProgressIndicator.adaptive(padding: const EdgeInsets.all(4)),
+    child: CircularProgressIndicator.adaptive(
+      padding: padding,
+      constraints: constraints,
+    ),
   );
 }
 

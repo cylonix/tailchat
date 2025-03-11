@@ -7,7 +7,36 @@ import 'chat_storage.dart';
 import '../contacts/device.dart';
 import '../../api/config.dart';
 import '../../api/contacts.dart';
-import '../../utils/global.dart';
+
+class UserIDNotExistsException implements Exception {
+  final String id;
+  const UserIDNotExistsException(this.id);
+
+  @override
+  String toString() {
+    return "User with ID '$id' does not exist";
+  }
+}
+
+class DeviceIDNotExistsException implements Exception {
+  final String id;
+  const DeviceIDNotExistsException(this.id);
+
+  @override
+  String toString() {
+    return "Device with ID '$id' does not exist";
+  }
+}
+
+class ChatTypeNotSupportedException implements Exception {
+  final String id;
+  const ChatTypeNotSupportedException(this.id);
+
+  @override
+  String toString() {
+    return "Chat type not supported. ID=$id";
+  }
+}
 
 class ChatID {
   static const chatUser = "USER_CHAT";
@@ -118,7 +147,7 @@ class ChatID {
         if (user != null) {
           peers.addAll(user.devices);
         } else {
-          Global.logger.d("user $userID does not exist");
+          throw UserIDNotExistsException(userID);
         }
       }
       return peers;
@@ -130,21 +159,19 @@ class ChatID {
         userIDs != null &&
         devices.length == 2 &&
         userIDs?.length == 2) {
-      for (var id in devices) {
-        if (Pst.isSelfDevice(id)) {
+      for (var deviceID in devices) {
+        if (Pst.isSelfDevice(deviceID)) {
           continue;
         }
-        final peer = await getDevice(id);
+        final peer = await getDevice(deviceID);
         if (peer != null) {
           peers.add(peer);
         } else {
-          //Global.logger.e("peer not available to chat $machine $peer");
-          return [];
+          throw DeviceIDNotExistsException(deviceID);
         }
         return peers;
       }
     }
-    Global.logger.e("unsupported chat type $id");
-    return null;
+    throw ChatTypeNotSupportedException(id);
   }
 }

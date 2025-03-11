@@ -11,7 +11,8 @@ import 'package:random_color/random_color.dart';
 
 import '../api/config.dart';
 import '../gen/l10n/app_localizations.dart';
-import '../widgets/alert_dialog_widget.dart' as ad;
+import '../models/alert.dart';
+import '../widgets/alert_dialog_widget.dart';
 import 'global.dart';
 
 const double baseHeight = 480;
@@ -85,18 +86,18 @@ Future<bool?> showAlertDialog(
   String title,
   String content, {
   String? okText,
-  List<ad.Content> contents = const [],
-  List<ad.Action> actions = const [],
+  List<Content> contents = const [],
+  List<AlertAction> actions = const [],
 }) {
-  return ad.AlertDialogWidget(
+  return AlertDialogWidget(
     title: title,
     contents: [
-      ad.Content(content: content),
+      Content(content: content),
       ...contents,
     ],
     actions: [
-      ad.Action(
-        title: okText ?? AppLocalizations.of(context).ok,
+      AlertAction(
+        okText ?? AppLocalizations.of(context).ok,
         onPressed: () {
           Navigator.of(context).pop(true);
         },

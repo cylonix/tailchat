@@ -15,8 +15,6 @@ class AlertChip extends Card {
     Color? backgroundColor,
     double? fontSize,
     double? width,
-    List<Widget>? actions,
-    List<PullDownMenuEntry>? appleActions,
   }) : super(
           margin: EdgeInsets.all(0),
           color: backgroundColor ?? alert.background,
@@ -46,14 +44,44 @@ class AlertChip extends Card {
                       onPressed: onDeleted,
                     )
                   : null;
-              if (appleActions != null) {
+              List<Widget> actions = [];
+              List<PullDownMenuEntry> appleActions = [];
+              if (isApple()) {
+                for (var a in alert.actions) {
+                  appleActions.add(PullDownMenuItem(
+                    onTap: a.onPressed,
+                    title: a.title,
+                    icon: a.icon,
+                    isDestructive: a.destructive,
+                  ));
+                  if (a.destructive) {
+                    appleActions.add(PullDownMenuDivider.large());
+                  }
+                }
+              } else {
+                actions = alert.actions
+                    .map(
+                      (a) => TextButton.icon(
+                        onPressed: a.onPressed,
+                        label: Text(
+                          a.title,
+                          style: a.destructive
+                              ? TextStyle(color: Colors.red)
+                              : null,
+                        ),
+                        icon: Icon(a.icon),
+                      ),
+                    )
+                    .toList();
+              }
+              if (appleActions.isNotEmpty) {
                 return PullDownButton(
                   itemBuilder: (c) => appleActions,
                   buttonAnchor: PullDownMenuAnchor.center,
                   buttonBuilder: (context, showMenu) => CupertinoButton(
                     onPressed: showMenu,
                     child: Tooltip(
-                      message: "Click to show action options",
+                      message: "Show options",
                       child: CupertinoListTile(
                         leading: alert.avatar,
                         title: title,
@@ -65,7 +93,7 @@ class AlertChip extends Card {
                   ),
                 );
               }
-              if (actions != null) {
+              if (actions.isNotEmpty) {
                 return ExpansionTile(
                   leading: alert.avatar,
                   title: title,

@@ -2,18 +2,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import 'package:flutter/material.dart';
+import '../models/alert.dart';
 import '../utils/utils.dart';
 import 'dialog_action.dart';
-
-class Action {
-  final String title;
-  final void Function() onPressed;
-
-  Action({
-    required this.title,
-    required this.onPressed,
-  });
-}
 
 class Content {
   final String content;
@@ -28,15 +19,17 @@ class Content {
 /// A dialog that returns a bool result
 class AlertDialogWidget extends StatelessWidget {
   final String title;
+  final TextStyle? titleStyle;
   final List<Content> contents;
-  final List<Action> actions;
+  final List<AlertAction> actions;
   final Widget? child;
 
   const AlertDialogWidget({
     super.key,
     required this.title,
-    required this.contents,
     required this.actions,
+    this.titleStyle,
+    this.contents = const [],
     this.child,
   });
 
@@ -48,15 +41,11 @@ class AlertDialogWidget extends StatelessWidget {
     );
   }
 
-  Widget _action({required Widget child, required void Function() onPressed}) {
-    return DialogAction(onPressed: onPressed, child: child);
-  }
-
   @override
   Widget build(BuildContext context) {
     return AlertDialog.adaptive(
       key: key,
-      title: Text(title, textAlign: TextAlign.center),
+      title: Text(title, textAlign: TextAlign.center, style: titleStyle),
       contentPadding: const EdgeInsets.only(bottom: 8),
       content: Material(
         type: MaterialType.transparency,
@@ -66,29 +55,33 @@ class AlertDialogWidget extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               if (!isApple()) const Divider(height: 1),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 8,
-                  horizontal: 8,
-                ),
-                child: Column(
+              if (contents.isNotEmpty || child != null)
+                Column(
                   mainAxisSize: MainAxisSize.min,
                   spacing: 4,
                   children: [
-                    ...contents.map((c) => Text(c.content, style: c.style)),
+                    if (contents.isNotEmpty)
+                      ...contents.map(
+                        (c) => Text(
+                          c.content,
+                          style: c.style,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     if (child != null) child!,
                   ],
                 ),
-              ),
             ],
           ),
         ),
       ),
       actions: actions
           .map(
-            (a) => _action(
-              child: Text(a.title, textAlign: TextAlign.center),
+            (a) => DialogAction(
               onPressed: a.onPressed,
+              isDefault: a.isDefault,
+              isDestructive: a.destructive,
+              child: Text(a.title),
             ),
           )
           .toList(),

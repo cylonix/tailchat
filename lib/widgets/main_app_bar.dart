@@ -9,11 +9,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
   final Widget? leading;
   final List<Widget>? trailing;
+  final double? titleSpacing;
   final Widget? titleWidget;
   const MainAppBar({
     super.key,
     this.title,
     this.leading,
+    this.titleSpacing,
     this.titleWidget,
     this.trailing,
   });
@@ -32,6 +34,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0.0,
       backgroundColor: defaultBackgroundColor(context),
       title: titleWidget ?? Text(title ?? ""),
+      titleSpacing: titleSpacing,
       leading: leading,
       actions: trailing,
       foregroundColor: defaultForegroundColor(context),

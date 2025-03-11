@@ -8,11 +8,13 @@ import '../utils/utils.dart';
 class DialogAction extends StatelessWidget {
   final Widget child;
   final bool isDestructive;
+  final bool isDefault;
   final Function() onPressed;
   const DialogAction({
     super.key,
     required this.child,
     required this.onPressed,
+    this.isDefault = false,
     this.isDestructive = false,
   });
 
@@ -21,6 +23,7 @@ class DialogAction extends StatelessWidget {
     return isApple()
         ? CupertinoDialogAction(
             onPressed: onPressed,
+            isDefaultAction: isDefault,
             isDestructiveAction: isDestructive,
             child: child,
           )
