@@ -6,11 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:tailchat/utils/utils.dart';
 import '../../gen/l10n/app_localizations.dart';
 import 'theme_setting_widget.dart';
-import 'ar_mode.dart';
+//import 'ar_mode.dart';
 import 'chat_simple_ui.dart';
 import 'setting_app_bar.dart';
 import 'text_scale.dart';
-import 'tv_mode.dart';
+//import 'tv_mode.dart';
 
 class AppearanceSettings extends StatelessWidget {
   const AppearanceSettings({
@@ -42,8 +42,8 @@ class AppearanceSettings extends StatelessWidget {
             children: [
               if (showThemeSetting)
                 const ThemeSettingWidget(adaptiveIcon: true),
-              const ARMode(),
-              const TVMode(),
+              //const ARMode(),
+              //const TVMode(),
               const ChatSimpleUI(),
               const TextScale(),
             ],
@@ -65,10 +65,10 @@ class AppearanceSettings extends StatelessWidget {
                   const ThemeSettingWidget(adaptiveIcon: true),
                   const Divider(height: 1),
                 ],
-                const ARMode(),
-                const Divider(height: 1),
-                const TVMode(),
-                const Divider(height: 1),
+                //const ARMode(),
+                //const Divider(height: 1),
+                //const TVMode(),
+                //const Divider(height: 1),
                 const ChatSimpleUI(),
               ],
             ),
