@@ -86,6 +86,8 @@ Future<bool?> showAlertDialog(
   String title,
   String content, {
   String? okText,
+  bool showCancel = false,
+  bool isOKButtonDestructive = false,
   List<Content> contents = const [],
   List<AlertAction> actions = const [],
 }) {
@@ -96,7 +98,16 @@ Future<bool?> showAlertDialog(
       ...contents,
     ],
     actions: [
+      if (showCancel)
+        AlertAction(
+          "Cancel",
+          isDefault: true,
+          onPressed: () {
+            Navigator.of(context).pop(false);
+          },
+        ),
       AlertAction(
+        destructive: isOKButtonDestructive,
         okText ?? AppLocalizations.of(context).ok,
         onPressed: () {
           Navigator.of(context).pop(true);

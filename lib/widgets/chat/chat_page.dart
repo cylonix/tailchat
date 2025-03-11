@@ -1455,18 +1455,46 @@ class _ChatPageState extends State<ChatPage>
   PullDownMenuItem _deleteMessageAppleMenuItem(types.Message message) {
     final tr = AppLocalizations.of(context);
     return PullDownMenuItem(
-      onTap: () => _deleteMessage(message),
+      onTap: () async {
+        final delete = await utils.showAlertDialog(
+              context,
+              "Confirm Delete",
+              "Sure to delete the message?",
+              okText: "Yes Delete",
+              showCancel: true,
+              isOKButtonDestructive: true,
+            ) ??
+            false;
+        if (delete) {
+          _deleteMessage(message);
+        }
+      },
       title: tr.deleteText,
       icon: CupertinoIcons.delete,
+      isDestructive: true,
     );
   }
 
   PullDownMenuItem _deleteMessageForAllAppleMenuItem(types.Message message) {
     final tr = AppLocalizations.of(context);
     return PullDownMenuItem(
-      onTap: () => _deleteMessage(message, forAll: true),
+      onTap: () async {
+        final delete = await utils.showAlertDialog(
+              context,
+              "Confirm Delete",
+              "Sure to delete the message and also delete from all receivers?",
+              okText: "Yes Delete for all",
+              showCancel: true,
+              isOKButtonDestructive: true,
+            ) ??
+            false;
+        if (delete) {
+          _deleteMessage(message, forAll: true);
+        }
+      },
       title: tr.deleteFromAllPeersText,
       icon: CupertinoIcons.delete_solid,
+      isDestructive: true,
     );
   }
 

@@ -635,6 +635,10 @@ class ChatService {
     }
   }
 
+  Future<void> restartServer() async {
+    await platform.invokeMethod("restartService");
+  }
+
   Future<void> _connectServiceSocket() async {
     try {
       _logger.d("Trying to connect to service socket port $port");
@@ -705,7 +709,8 @@ class ChatService {
       await _serviceSocket?.flush();
       _logger.i("Started service port monitor.");
     } catch (e) {
-      _logger.e('Failed to start service port monitor: $e');
+      final msg = 'Failed to start service port monitor: $e';
+      _logger.e(msg);
       _closeServiceSocket();
     }
   }

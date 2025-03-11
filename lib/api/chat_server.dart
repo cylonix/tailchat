@@ -80,6 +80,14 @@ class ChatServer {
     _logger.i("Done starting service");
   }
 
+  static Future<void> startServiceStateMonitor() async {
+    await _chatService?.startServiceStateMonitor();
+  }
+
+  static Future<void> restartServer() async {
+    await _chatService?.restartServer();
+  }
+
   static get isServiceSocketConnected {
     _logger.i("Service connected: ${_chatService?.isServiceSocketConnected}");
     return _chatService?.isServiceSocketConnected ?? false;

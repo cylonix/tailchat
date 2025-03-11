@@ -13,92 +13,114 @@ import '../main_app_bar.dart';
 import '../tv/icon_button.dart';
 
 /// ChatAppBar implements the chat page app bar.
-class ChatAppBar extends MainAppBar {
-  ChatAppBar({
+class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final String title;
+  final String? subtitle;
+  final bool canReceive;
+  final bool canSend;
+  final bool canSendChecking;
+  final bool showTrailingActions;
+  final int? messageExpireInMs;
+  final Widget? leading;
+  final void Function() onTryToConnect;
+  final Function(bool deleteForAllPeers)? onDeleteAllPressed;
+  final Function()? onGroupChatManagementPressed;
+  final Function(Duration? duration)? onSettingMessageExpirationTime;
+  const ChatAppBar({
     super.key,
-    required String title,
-    String? subtitle,
-    bool canReceive = false,
-    bool canSend = false,
-    bool canSendChecking = false,
-    bool showTrailingActions = true,
-    int? messageExpireInMs,
-    super.leading,
-    required void Function() onTryToConnect,
-    void Function(bool deleteForAllPeers)? onDeleteAllPressed,
-    void Function()? onGroupChatManagementPressed,
-    void Function(Duration? duration)? onSettingMessageExpirationTime,
-  }) : super(
-          titleSpacing: 0.0,
-          titleWidget: isApple()
-              ? CupertinoListTile(
-                  title: Text(title),
-                  subtitle: (subtitle != null)
-                      ? Text(
-                          subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        )
-                      : null,
+    required this.title,
+    this.subtitle,
+    this.canReceive = false,
+    this.canSend = false,
+    this.canSendChecking = false,
+    this.showTrailingActions = true,
+    this.messageExpireInMs,
+    this.leading,
+    required this.onTryToConnect,
+    this.onDeleteAllPressed,
+    this.onGroupChatManagementPressed,
+    this.onSettingMessageExpirationTime,
+  });
+
+  @override
+  Size get preferredSize {
+    return const Size.fromHeight(46);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final titleWidget = isLargeScreen(context)
+        ? Text(
+            '$title${subtitle != null ? "@$subtitle" : ""}',
+          )
+        : Text(title);
+    final subtitleWidget = isLargeScreen(context)
+        ? null
+        : (subtitle != null)
+            ? Text(
+                subtitle!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              )
+            : null;
+    return MainAppBar(
+      titleSpacing: 0.0,
+      titleWidget: isApple()
+          ? CupertinoListTile(
+              title: titleWidget,
+              subtitle: subtitleWidget,
+            )
+          : ListTile(
+              dense: true,
+              title: titleWidget,
+              subtitle: subtitleWidget,
+            ),
+      trailing: [
+        Icon(
+          isApple() ? CupertinoIcons.arrow_down : Icons.arrow_downward,
+          color: canReceive ? Colors.green : Colors.grey,
+          size: 20,
+        ),
+        const SizedBox(width: 4),
+        IconButtonWidget(
+          padding: const EdgeInsets.all(0),
+          icon: canSendChecking
+              ? loadingWidget(
+                  constraints: BoxConstraints.tight(const Size(20, 20)),
                 )
-              : ListTile(
-                  dense: true,
-                  title: Text(title),
-                  subtitle: (subtitle != null)
-                      ? Text(
-                          subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        )
-                      : null,
+              : Icon(
+                  isApple() ? CupertinoIcons.arrow_up : Icons.arrow_upward,
+                  color: canSend ? Colors.green : Colors.grey,
+                  size: 20,
                 ),
-          trailing: [
-            Icon(
-              isApple() ? CupertinoIcons.arrow_down : Icons.arrow_downward,
-              color: canReceive ? Colors.green : Colors.grey,
-              size: 20,
+          onPressed: onTryToConnect,
+          tooltip: canSendChecking
+              ? "Connecting to peer"
+              : "Press to try to connect to send",
+        ),
+        const SizedBox(width: 8),
+        if (messageExpireInMs != null && showTrailingActions) ...[
+          ChatAppBarPopupMenuButton(
+            icon: Icon(
+              isApple() ? CupertinoIcons.timelapse : Icons.timelapse_outlined,
             ),
-            const SizedBox(width: 4),
-            IconButtonWidget(
-              padding: const EdgeInsets.all(0),
-              icon: canSendChecking
-                  ? loadingWidget(
-                      constraints: BoxConstraints.tight(const Size(20, 20)),
-                    )
-                  : Icon(
-                      isApple() ? CupertinoIcons.arrow_up : Icons.arrow_upward,
-                      color: canSend ? Colors.green : Colors.grey,
-                      size: 20,
-                    ),
-              onPressed: onTryToConnect,
-              tooltip: canSendChecking
-                  ? "Connecting to peer"
-                  : "Press to try to connect to send",
-            ),
-            const SizedBox(width: 8),
-            if (messageExpireInMs != null && showTrailingActions) ...[
-              ChatAppBarPopupMenuButton(
-                icon: Icon(
-                  isApple()
-                      ? CupertinoIcons.timelapse
-                      : Icons.timelapse_outlined,
-                ),
-                messageExpireInMs: messageExpireInMs,
-                onSettingMessageExpirationTime: onSettingMessageExpirationTime,
-              ), 
-              const SizedBox(width: 8),
-            ],
-            if (showTrailingActions)
-              ChatAppBarPopupMenuButton(
-                onDeleteAllPressed: onDeleteAllPressed,
-                onGroupChatManagementPressed: onGroupChatManagementPressed,
-                onSettingMessageExpirationTime: messageExpireInMs == null
-                    ? onSettingMessageExpirationTime
-                    : null,
-              ),
-            if (showTrailingActions) const SizedBox(width: 16),
-          ],
-        );
+            messageExpireInMs: messageExpireInMs,
+            onSettingMessageExpirationTime: onSettingMessageExpirationTime,
+          ),
+          const SizedBox(width: 8),
+        ],
+        if (showTrailingActions)
+          ChatAppBarPopupMenuButton(
+            onDeleteAllPressed: onDeleteAllPressed,
+            onGroupChatManagementPressed: onGroupChatManagementPressed,
+            onSettingMessageExpirationTime: messageExpireInMs == null
+                ? onSettingMessageExpirationTime
+                : null,
+          ),
+        if (showTrailingActions) const SizedBox(width: 16),
+      ],
+    );
+  }
 }
 
 class ChatAppBarPopupMenuButton extends StatefulWidget {

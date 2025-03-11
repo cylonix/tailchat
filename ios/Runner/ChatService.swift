@@ -20,8 +20,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     private let subscriberPort: UInt16 = 50312 // Port to listen for subscribers
     private var listener: NWListener?
     private var subscriberListener: NWListener?
-    private var isRunning = false
-    private let isRunningLock = NSLock()
+    @Atomic private var isRunning = false
     private let logger = Logger(tag: "ChatService")
     private var eventSink: FlutterEventSink?
     private var chatMessageEventSink: FlutterEventSink?
@@ -35,6 +34,8 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     private let stopServerLock = NSLock()
     private let startStopServerLock = NSLock()
     private var isDeleted: Bool = false
+    private var isNetworkAvailable = false
+    private var stateCheckWorkItem: DispatchWorkItem?
 
     func startService() {
         logger.i("Starting service if not yet running.")
@@ -43,15 +44,12 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             return
         }
 
-        isRunningLock.lock()
-        if isRunning {
-            isRunningLock.unlock()
+        if isRunning { 
             logger.w("Service already running. Skip...")
             return
         }
-
         isRunning = true
-        isRunningLock.unlock()
+
         logger.i("Service is not yet running. Starting it.")
         startNetworkMonitor()
         startServer()
@@ -84,8 +82,24 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
     #endif
 
+    // Retarting listeners base on network availability does not work as
+    // expected. Will do more investigation and experiments to decide the
+    // best path forward.
     private func startNetworkMonitor() {
         networkMonitor = NetworkMonitor(delegate: self)
+        networkMonitor?.onNetworkStatusChange = { [weak self] isAvailable in
+            guard let self = self else { return }
+            self.logger.i("Network availability changed: \(isAvailable)")
+            if isAvailable, self.isRunning {
+                self.isNetworkAvailable = true
+                self.logger.i("Network became available.")
+                // self.restartServer()
+            } else {
+                self.isNetworkAvailable = false
+                self.logger.i("Network became unavailable.")
+                // self.stopServer()
+            }
+        }
         networkMonitor?.start()
     }
 
@@ -166,7 +180,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             startServerLock.unlock()
         }
         isServerStarting = true
-        logger.i("Sart server lock acquired")
+        logger.i("Start server lock acquired")
 
         // Wait for ongoing shutdown to finish if any.
         startStopServerLock.lock()
@@ -177,6 +191,14 @@ class ChatService: NSObject, NetworkMonitorDelegate {
 
         logger.i("Start-stop server lock acquired. Starting server")
 
+        // Retarting listeners base on network availability does not work as
+        // expected. Will do more investigation and experiments to decide the
+        // best path forward.
+        /* if !isNetworkAvailable {
+             logger.i("Network is not yet available. Wait for network status change to start server.")
+             return
+         } */
+
         // Add listener state check before creating new ones
         if let existingListener = listener, existingListener.state == .ready,
            let existingSubscriberListener = subscriberListener, existingSubscriberListener.state == .ready
@@ -184,6 +206,18 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             logger.i("Both listeners already in ready state")
             return
         }
+
+        // Cancel existing work item if any
+        stateCheckWorkItem?.cancel()
+
+        // Create new work item for state check
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.logger.i("[StateCheck] Checking listener states after delay")
+            self.restartServerIfNecessary()
+        }
+
+        stateCheckWorkItem = workItem
 
         do {
             // Main listener setup
@@ -253,17 +287,12 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             subscriberListener?.start(queue: DispatchQueue.global(qos: .background))
             logger.i("Subscriber Server listener started on port \(subscriberPort)")
 
-            // Check both listeners' states after a delay
-            DispatchQueue.global().asyncAfter(deadline: .now() + 2) { [weak self] in
-                guard let self = self else { return }
-                self.restartServerIfNecessary()
-            }
-        } catch {
-            logger.e("Failed to start listener servers: \(error). Restart in two seconds...")
-            DispatchQueue.global().asyncAfter(deadline: .now() + 2) { [weak self] in
-                guard let self = self else { return }
-                self.restartServerIfNecessary()
-            }
+            // Schedule the check
+            DispatchQueue.global().asyncAfter(deadline: .now() + 2, execute: workItem)
+            logger.i("[StateCheck] Scheduled state check work item")
+       } catch { 
+            logger.e("Failed to start listener servers: \(error). Retry in two seconds...")
+            DispatchQueue.global().asyncAfter(deadline: .now() + 2, execute: workItem)
         }
 
         isServerStarting = false
@@ -284,6 +313,8 @@ class ChatService: NSObject, NetworkMonitorDelegate {
 
         if listenerReady, subscriberReady {
             logger.i("Start success!")
+            stateCheckWorkItem?.cancel()
+            stateCheckWorkItem = nil
             restartCountLock.lock()
             restartAttemptCount = 0
             restartCountLock.unlock()
@@ -291,13 +322,9 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             return
         }
 
-        isRunningLock.lock()
         if isRunning {
             logger.i("Restart server: main listener ready \(listenerReady), subscriber listener ready \(subscriberReady), is running \(isRunning)")
-            isRunningLock.unlock()
             restartServer()
-        } else {
-            isRunningLock.unlock()
         }
     }
 
@@ -348,39 +375,55 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         restartLock.lock()
         if isServerRestarting {
             restartLock.unlock()
-            logger.i("Server listener is already restarting. Skip.")
+            logger.i("[Restart] Server listener is already restarting. Skip.")
             return
         }
         isServerRestarting = true
         restartLock.unlock()
-        logger.i("Restarting listener service")
+        logger.i("[Restart] Restarting listener service")
 
         restartCountLock.lock()
         restartAttemptCount += 1
         let currentCount = restartAttemptCount
         restartCountLock.unlock()
-        logger.i("Restart count \(currentCount)")
+        logger.i("[Restart] Restart count \(currentCount)")
 
         if currentCount > maxRestartAttempts {
-            logger.e("Maximum restart attempts (\(maxRestartAttempts)) reached. Stopping service and exit.")
+            logger.e("[Restart] Maximum restart attempts (\(maxRestartAttempts)) reached. Stopping service and exit.")
             stopAndExit()
             return
         }
 
-        logger.w("Attempting restart \(currentCount) of \(maxRestartAttempts)")
-        logger.i("Stop listener service now and restart service in 2 seconds.")
+        logger.i("[Restart] Stop listener service first")
         stopServer()
 
-        // Increase delay and add network check before restart
-        DispatchQueue.global().asyncAfter(deadline: .now() + 2) { [weak self] in
-            guard let self = self else { return }
-            self.logger.i("Restarting the listener service.")
+        logger.i("[Restart] Server stopped. Scheduling delayed start at \(Date())")
+        logger.i("[Restart] Current thread: \(Thread.current), isMain: \(Thread.isMainThread)")
+        let startTime = Date()
+
+        let workItem = DispatchWorkItem { [weak self] in
+            let executionTime = Date()
+            let logger = Logger(tag: "ChatService")
+            logger.i("[Restart] Delayed block executing at \(executionTime)")
+            logger.i("[Restart] Execution thread: \(Thread.current), isMain: \(Thread.isMainThread)")
+
+            guard let self = self else {
+                logger.i("[Restart] Self is nil. Skip restarting.")
+                return
+            }
+
+            self.logger.i("[Restart] Starting server on thread: \(Thread.current)")
             self.startServer()
             self.restartLock.lock()
             self.isServerRestarting = false
             self.restartLock.unlock()
-            self.logger.i("Restarted the listener service")
+            let completionTime = Date()
+            self.logger.i("[Restart] Restart sequence completed at \(completionTime)")
+            self.logger.i("[Restart] Total restart duration: \(completionTime.timeIntervalSince(startTime))s")
         }
+
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 2, execute: workItem)
+        logger.i("[Restart] Scheduled restart work item at \(Date())")
     }
 
     private func handleStateUpdate(state: NWListener.State) {
@@ -392,16 +435,17 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             logger.e("Detailed error: \(String(describing: error))")
         case .ready:
             logger.i("Listener ready on port \(port)")
+            if let subscriber = subscriberListener, subscriber.state == .ready {
+                logger.i("Both listeners ready, cancelling state check")
+                stateCheckWorkItem?.cancel()
+                stateCheckWorkItem = nil
+            }
         case let .failed(error):
             logger.e("Listener failed. Error: \(error.localizedDescription)")
             logger.e("Listener network error code: \(error)")
             logger.e("Listener Detailed error: \(String(describing: error))")
-            isRunningLock.lock()
-            if isRunning {
-                isRunningLock.unlock()
+            if isRunning { 
                 restartServer()
-            } else {
-                isRunningLock.unlock()
             }
             logger.i("Finshed listener failed state handling.")
         case .cancelled:
@@ -422,14 +466,15 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             logger.e("Subscriber listener waiting with error: \(error)")
         case .ready:
             logger.i("Subscriber listener ready")
+            if let listener = listener, listener.state == .ready {
+                logger.i("Both listeners ready, cancelling state check")
+                stateCheckWorkItem?.cancel()
+                stateCheckWorkItem = nil
+            }
         case let .failed(error):
             logger.e("Subscriber listener failed with error: \(error)")
-            isRunningLock.lock()
-            if isRunning {
-                isRunningLock.unlock()
+            if isRunning { 
                 restartServer()
-            } else {
-                isRunningLock.unlock()
             }
             logger.i("Finished subscriber listener failed state handling.")
         case .cancelled:
@@ -470,7 +515,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         receiveMessages(connection: connection, messageHandler: handleMessage)
     }
 
-    private func handleSubscriberConnection(connection: NWConnection) { 
+    private func handleSubscriberConnection(connection: NWConnection) {
         if isShuttingDown { 
             logger.i("Rejecting new subscriber connection during shutdown from \(connection.endpoint)")
             connection.cancel()
@@ -810,8 +855,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
 
     private func sendFileMessageUpdate(filePath: String, totalRead: Int64, fileSize: Int64, time: Int64) { 
         if let eventSink = eventSink {
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
+            DispatchQueue.main.async { 
                 eventSink(
                     [
                         "type": "file_receive",
@@ -916,8 +960,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     private func broadcastOrBufferMessage(message: String) -> Error? {
         if let eventSink = chatMessageEventSink {
             logger.i("UI app is running, sending message to eventSink: length \(message.count): \(preview(message))")
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
+            DispatchQueue.main.async { 
                 eventSink(message)
             }
         } else {
@@ -1027,8 +1070,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         do {
             let messages = getBufferedMessages()
             for message in messages {
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
+                DispatchQueue.main.async { 
                     eventSink(String(message))
                 }
             }
@@ -1040,16 +1082,12 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
     }
 
-    func stopService() {
-        isRunningLock.lock()
-        if !isRunning {
-            isRunningLock.unlock()
+    func stopService() { 
+        if !isRunning { 
             logger.w("Service already stopped. Skip...")
             return
         }
-
         isRunning = false
-        isRunningLock.unlock()
 
         logger.i("Stopping service")
         stopNetworkMonitor()
@@ -1059,6 +1097,11 @@ class ChatService: NSObject, NetworkMonitorDelegate {
 
     private func stopServer() {
         logger.i("Stop server")
+
+        // Cancel state check work item
+        stateCheckWorkItem?.cancel()
+        stateCheckWorkItem = nil
+
         if !stopServerLock.try() { 
             logger.i("Already shutting down. Skip...")
             return
@@ -1097,21 +1140,50 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             }
             subscribers.removeAll()
         }
+        let cancelGroup = DispatchGroup()
+
+        // Cancel main listener
         if let existingListener = listener {
-            existingListener.cancel()
-            // Wait briefly for cancellation to complete
-            DispatchQueue.global().sync {
-                Thread.sleep(forTimeInterval: 0.1)
+            if existingListener.state != .cancelled {
+                cancelGroup.enter()
+                existingListener.stateUpdateHandler = { [weak self] state in
+                    guard let self = self else { return }
+                    self.logger.i("[Main] Listener state during cancellation: \(state)")
+                    if state == .cancelled {
+                        self.logger.i("[Main] Listener cancelled successfully")
+                        cancelGroup.leave()
+                    }
+                }
+                existingListener.cancel()
+            } else {
+                logger.i("[Main] Listener already cancelled")
             }
         }
 
+        // Cancel subscriber listener
         if let existingSubscriberListener = subscriberListener {
-            existingSubscriberListener.cancel()
-            // Wait briefly for cancellation to complete
-            DispatchQueue.global().sync {
-                Thread.sleep(forTimeInterval: 0.1)
+            if existingSubscriberListener.state != .cancelled {
+                cancelGroup.enter()
+                existingSubscriberListener.stateUpdateHandler = { [weak self] state in
+                    guard let self = self else { return }
+                    self.logger.i("[Subscriber] Listener state during cancellation: \(state)")
+                    if state == .cancelled {
+                        self.logger.i("[Subscriber] Listener cancelled successfully")
+                        cancelGroup.leave()
+                    }
+                }
+                existingSubscriberListener.cancel()
+            } else {
+                logger.i("[Subscriber] Listener already cancelled")
             }
         }
+
+        // Wait with timeout
+        let result = cancelGroup.wait(timeout: .now() + 5.0)
+        if result == .timedOut {
+            logger.e("Timeout waiting for listeners to cancel")
+        }
+
         listener = nil
         subscriberListener = nil
 

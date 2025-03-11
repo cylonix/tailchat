@@ -11,9 +11,26 @@ enum DNSError: Error {
     case outOfBounds
 }
 
-class DNSResolver {
+@propertyWrapper
+struct Atomic<Value> {
+    private var value: Value
+    private let lock = NSLock()
+
+    init(wrappedValue: Value) {
+        value = wrappedValue
+    }
+
+    var wrappedValue: Value {
+        get { lock.withLock { value } }
+        set { lock.withLock { value = newValue } }
+    }
+}
+
+@available(macOS 10.15, iOS 13.0, *)
+final class DNSResolver: @unchecked Sendable {
     private let logger = Logger(tag: "DNS")
     private let maxPacketSize = 512 // Standard DNS packet size
+    private let queue = DispatchQueue(label: "io.cylonix.tailchat.dns")
 
     func reverseLookup(address: String, server: String = "100.100.100.100") async throws -> String {
         let connection = NWConnection(
@@ -22,40 +39,46 @@ class DNSResolver {
             using: .udp
         )
 
-        let result = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<String, Error>) in
-            var hasCompleted = false
+        let result = try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<String, Error>) in
+            guard let self = self else {
+                continuation.resume(throwing: DNSError.invalidResponse)
+                return
+            }
+
+            @Atomic var hasCompleted = false
 
             connection.stateUpdateHandler = { [weak self] state in
                 guard let self = self,
                       !hasCompleted else { return }
+                self.queue.async {
+                    switch state {
+                    case .ready:
+                        self.logger.d("Connection ready")
+                        self.sendQuery(connection: connection, address: address) { result in
+                            guard !hasCompleted else { return }
+                            hasCompleted = true
 
-                switch state {
-                case .ready:
-                    self.logger.d("Connection ready")
-                    self.sendQuery(connection: connection, address: address) { result in
+                            switch result {
+                            case let .success(hostname):
+                                continuation.resume(returning: hostname)
+                            case let .failure(error):
+                                self.logger.e("Query failed: \(error)")
+                                continuation.resume(throwing: error)
+                            }
+                        }
+                    case let .failed(error):
                         guard !hasCompleted else { return }
                         hasCompleted = true
-
-                        switch result {
-                        case let .success(hostname):
-                            continuation.resume(returning: hostname)
-                        case let .failure(error):
-                            self.logger.e("Query failed: \(error)")
-                            continuation.resume(throwing: error)
-                        }
+                        self.logger.e("Connection failed: \(error)")
+                        continuation.resume(throwing: error)
+                    case .cancelled:
+                        guard !hasCompleted else { return }
+                        hasCompleted = true
+                        self.logger.e("Connection cancelled")
+                        continuation.resume(throwing: DNSError.invalidResponse)
+                    default:
+                        break
                     }
-                case let .failed(error):
-                    guard !hasCompleted else { return }
-                    hasCompleted = true
-                    self.logger.e("Connection failed: \(error)")
-                    continuation.resume(throwing: error)
-                case .cancelled:
-                    guard !hasCompleted else { return }
-                    hasCompleted = true
-                    self.logger.e("Connection cancelled")
-                    continuation.resume(throwing: DNSError.invalidResponse)
-                default:
-                    break
                 }
             }
 
