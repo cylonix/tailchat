@@ -40,9 +40,16 @@ class ChatServer {
     return _eventBus;
   }
 
-  static void setAppIsActive(bool active) {
+  static void setAppIsActive(bool active) async {
     _logger.d("app is active = $active");
     _appIsActive = active;
+    if (Platform.isIOS) {
+      if (active) {
+        await startServiceStateMonitor();
+      } else {
+        await stopServiceStateMonitor();
+      }
+    }
   }
 
   static void setIsOnFront(String chatID, bool onFront) {
@@ -82,6 +89,10 @@ class ChatServer {
 
   static Future<void> startServiceStateMonitor() async {
     await _chatService?.startServiceStateMonitor();
+  }
+
+  static Future<void> stopServiceStateMonitor() async {
+    await _chatService?.stopServiceStateMonitor();
   }
 
   static Future<void> restartServer() async {

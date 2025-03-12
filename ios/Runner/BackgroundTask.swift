@@ -45,9 +45,9 @@ class BackgroundTask {
             self?.cleanupAndEndTask()
         }
 
-        // Schedule notification for 15 seconds
+        // Schedule notification for 10 seconds
         if let notificationItem = notificationWorkItem {
-            DispatchQueue.global().asyncAfter(deadline: .now() + 15, execute: notificationItem)
+            DispatchQueue.global().asyncAfter(deadline: .now() + 10, execute: notificationItem)
         }
 
         // Schedule cleanup for 20 seconds

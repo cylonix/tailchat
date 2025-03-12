@@ -592,6 +592,7 @@ class ChatService {
   bool isServiceSocketConnected = false;
   bool _isServiceSocketConnecting = false;
   int _serviceSocketRetryCount = 0;
+  StreamSubscription<Uint8List>? _serviceSocketSub;
 
   Future<void> _connectServiceSocketWithRetry() async {
     if (_isServiceSocketConnecting) {
@@ -657,10 +658,16 @@ class ChatService {
     }
   }
 
-  void _closeServiceSocket() {
+  void _closeServiceSocket({bool destory = false}) {
+    _serviceSocketSub?.cancel();
+    _serviceSocketSub = null;
     if (_serviceSocket != null) {
       try {
-        _serviceSocket?.close();
+        if (destory) {
+          _serviceSocket?.destroy();
+        } else {
+          _serviceSocket?.close();
+        }
         _logger.i("Service socket is now closed");
         _eventBus.fire(ChatServiceStateEvent(
           from: this,
@@ -686,7 +693,8 @@ class ChatService {
         throw Exception("Failed to connect to service socket");
       }
       _logger.d("Listening to service at tcp://127.0.0.1:$port");
-      _serviceSocket?.listen((event) {
+      _serviceSocketSub?.cancel();
+      _serviceSocketSub = _serviceSocket?.listen((event) {
         _logger.i("Message from service socket: '${utf8.decode(event)}'");
       }, onError: (error) async {
         final msg = "Error from service socket connection : $error";
@@ -712,6 +720,14 @@ class ChatService {
       final msg = 'Failed to start service port monitor: $e';
       _logger.e(msg);
       _closeServiceSocket();
+    }
+  }
+
+  Future<void> stopServiceStateMonitor() async {
+    try {
+      _closeServiceSocket(destory: true);
+    } catch (e) {
+      _logger.e("Failed to stop service state montior: $e");
     }
   }
 }

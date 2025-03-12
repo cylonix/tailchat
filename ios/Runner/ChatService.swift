@@ -336,7 +336,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             guard let self = self else { return }
             let content = UNMutableNotificationContent()
             content.title = "Tailchat Service Error"
-            content.body = "Failed to start chat service after \(self.maxRestartAttempts) attempts. Tailchat will now exit."
+            content.body = "Tailchat will now exit due to error."
             content.sound = .default
 
             if #available(iOS 15.0, macOS 12.0, *) {
@@ -361,8 +361,8 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         // Force quit the app after a brief delay.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             guard let self = self else { return }
-            self.logger.e("Failed to start chat service. Exiting App.")
-            exit(1)
+            self.logger.e("Failed to start or stop chat service. Exiting App.")
+            exit(0)
         }
     }
 
@@ -1182,6 +1182,8 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         let result = cancelGroup.wait(timeout: .now() + 5.0)
         if result == .timedOut {
             logger.e("Timeout waiting for listeners to cancel")
+            logger.e("This is no expected. We are going to simply exit.")
+            stopAndExit()
         }
 
         listener = nil
