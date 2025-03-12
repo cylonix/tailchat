@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:tailchat/gen/l10n/app_localizations.dart';
 import 'api/chat_server.dart';
@@ -22,6 +23,7 @@ import 'widgets/base_input/text_input.dart';
 import 'widgets/base_input/button.dart';
 import 'widgets/base_input/user_agreement.dart';
 import 'widgets/common_widgets.dart';
+import 'widgets/shake_widget.dart';
 
 class FirstLaunchPage extends StatefulWidget {
   final Function? onFirstLaunchComplete;
@@ -33,6 +35,7 @@ class FirstLaunchPage extends StatefulWidget {
 
 class _FirstLaunchPageState extends State<FirstLaunchPage> {
   final _formKey = GlobalKey<FormState>();
+  final _shakeKey = GlobalKey<ShakeWidgetState>();
   final _usernameController = TextEditingController();
   StreamSubscription<ChatReceiveNetworkConfigEvent>? _networkConfigEventSub;
   StreamSubscription<SelfUserChangeEvent>? _configSub;
@@ -147,19 +150,24 @@ class _FirstLaunchPageState extends State<FirstLaunchPage> {
     final tr = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text('Welcome to Tailchat'),
-        centerTitle: true,
-      ),
+      appBar: isApple()
+          ? CupertinoNavigationBar(
+              automaticallyImplyLeading: false,
+              middle: const Text('Welcome to Tailchat'),
+            )
+          : AppBar(
+              automaticallyImplyLeading: false,
+              title: const Text('Welcome to Tailchat'),
+              centerTitle: true,
+            ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             spacing: 24,
             children: [
-              const SizedBox(height: 24),
               Container(
                 constraints: const BoxConstraints(maxWidth: 800),
                 child: Text(
@@ -188,14 +196,22 @@ class _FirstLaunchPageState extends State<FirstLaunchPage> {
     return Container(
       padding: EdgeInsets.all(16),
       color: const Color.fromARGB(255, 19, 17, 19),
-      child: Text(
-        'Waiting for Tailscale to start. If it\'s already enabled '
-        'and running, please check your network connection.',
-        style: TextStyle(
-          color: Colors.orangeAccent,
-          fontSize: 18,
+      child: ShakeWidget(
+        key: _shakeKey,
+        shakeCount: 5,
+        shakeOffset: 30,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Text(
+            'Waiting for Tailscale to start. If it\'s already enabled '
+            'and running, please check its status.',
+            style: TextStyle(
+              color: Colors.orangeAccent,
+              fontSize: 18,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ),
-        textAlign: TextAlign.center,
       ),
     );
   }
@@ -242,8 +258,9 @@ class _FirstLaunchPageState extends State<FirstLaunchPage> {
       ),
       subtitle: Text(
         "Username is to identify yourself to other Tailchat users. "
-        "Username of '$_systemUsername' is based on your running environment. "
+        "'$_systemUsername' is based on your running environment. "
         "Please edit it if you prefer a different username.",
+        style: Theme.of(context).textTheme.bodySmall,
       ),
     );
   }
@@ -268,13 +285,17 @@ class _FirstLaunchPageState extends State<FirstLaunchPage> {
                 subtitle: subtitles.isNotEmpty ? Text(subtitles[0]) : null,
               ),
             const SizedBox(height: 24),
-            BaseInputButton(
-              onPressed: _saveProfile,
-              width: double.infinity,
-              height: 48,
-              filledButton: true,
-              child: const Text('Continue'),
-            ),
+            isApple()
+                ? CupertinoButton.filled(
+                    onPressed: _saveProfile,
+                    child: const Text('Continue'),
+                  )
+                : BaseInputButton(
+                    onPressed: _saveProfile,
+                    width: double.infinity,
+                    filledButton: true,
+                    child: const Text('Continue'),
+                  ),
             const UserAgreement(),
             const SizedBox(height: 48),
             const Image(
@@ -291,13 +312,12 @@ class _FirstLaunchPageState extends State<FirstLaunchPage> {
   void _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
     if (_currentDevice == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Waiting for device configuration... Is Tailscale running?',
-          ),
-        ),
+      toast(
+        context,
+        'Unknown device tailnet hostname... Is Tailscale running?',
+        color: const Color.fromARGB(255, 119, 72, 1),
       );
+      _shakeKey.currentState?.shake();
       return;
     }
 

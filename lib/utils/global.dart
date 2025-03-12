@@ -141,18 +141,18 @@ class Global {
     final debugPrinter = PrettyPrinter(
       noBoxingByDefault: true,
       methodCount: 2,
-      errorMethodCount: 8, // number of method calls for stacktrace
-      lineLength: lineLength, // width of the output
-      colors: true, // colorful log messages
-      printEmojis: true, // print an emoji for each log message
+      errorMethodCount: 8,
+      lineLength: lineLength,
+      colors: true,
+      printEmojis: true,
       dateTimeFormat:
-          DateTimeFormat.dateAndTime, // print each log with a timestamp
-    ); // use pretty printer to format and print log
+          DateTimeFormat.dateAndTime,
+    );
     final debugLogger = Logger(
-      filter: ProductionFilter(), // log is wanted even in production
+      filter: ProductionFilter(),
       printer: debugPrinter,
-      level: Level.debug, // we want all the logs for now
-      output: multiOutput, // log to both file and console
+      level: Level.debug,
+      output: multiOutput,
     );
     loggerNoStack = debugLogger;
     logger = debugLogger;
@@ -237,9 +237,9 @@ class Global {
       var h = Pst.windowSize?.height ?? 0;
       var w = Pst.windowSize?.width ?? 0;
       final dh = size.height;
-      final mh = dh * 0.75;
+      final mh = (dh * 0.6) < 600.0 ? 600.0 : (dh * 0.6);
       final dw = size.width;
-      final mw = dw * 0.75;
+      final mw = (dw * 0.6) < 800.0 ? 800.0 : (dw * 0.6);
       if (h < mh || w < mw) {
         h = h < mh ? mh : h;
         w = w < mw ? mw : w;
