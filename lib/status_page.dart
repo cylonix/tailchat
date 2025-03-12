@@ -23,6 +23,7 @@ class StatusPage extends StatefulWidget {
 class _StatusPageState extends State<StatusPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
   StreamSubscription<ChatServiceStateEvent>? _chatServiceSub;
+  StreamSubscription<ChatReceiveNetworkAvailableEvent>? _networkStateSub;
   bool _isConnecting = false;
   Alert? _alert;
   static const _logger = Logger(tag: "StatusPage");
@@ -53,11 +54,21 @@ class _StatusPageState extends State<StatusPage> {
         }
       }
     });
+    _networkStateSub = ChatServer.getChatEventBus()
+        .on<ChatReceiveNetworkAvailableEvent>()
+        .listen((event) {
+      if (mounted) {
+        setState(() {
+          // Update UI.
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
     _chatServiceSub?.cancel();
+    _networkStateSub?.cancel();
     super.dispose();
   }
 
@@ -92,11 +103,19 @@ class _StatusPageState extends State<StatusPage> {
                     "Chat service montoring is disconnected.",
                     style: TextStyle(color: Colors.red),
                   ),
+            ChatServer.isNetworkAvailable
+                ? const Text(
+                    "Network is vailable",
+                    style: TextStyle(color: Colors.green),
+                  )
+                : const Text(
+                    "Network is not available.",
+                    style: TextStyle(color: Colors.red),
+                  ),
             if (_isConnecting) loadingWidget(),
             if (!_isConnecting) ...[
               if (!ChatServer.isServiceSocketConnected)
                 BaseInputButton(
-                  shrinkWrap: true,
                   onPressed: () async {
                     setState(() {
                       _isConnecting = true;
@@ -106,7 +125,6 @@ class _StatusPageState extends State<StatusPage> {
                   child: const Text("Connect"),
                 ),
               BaseInputButton(
-                shrinkWrap: true,
                 onPressed: () async {
                   setState(() {
                     _isConnecting = true;

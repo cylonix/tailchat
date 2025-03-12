@@ -13,7 +13,7 @@ import '../gen/l10n/app_localizations.dart';
 import '../models/chat/chat_event.dart';
 import '../status_page.dart';
 import '../utils/logger.dart';
-import 'common_widgets.dart';
+import 'stack_with_status.dart';
 import 'tv/icon_button.dart';
 
 class StatusWidget extends StatefulWidget {
@@ -38,7 +38,9 @@ class StatusWidget extends StatefulWidget {
 class _StatusWidgetState extends State<StatusWidget> {
   static final _logger = Logger(tag: "StatusWidget");
   StreamSubscription<ChatServiceStateEvent>? _serviceStateSub;
+  StreamSubscription<ChatReceiveNetworkAvailableEvent>? _networkStateSub;
   ChatServiceState _serviceState = ChatServiceState.disconnected;
+  bool _networkAvailable = ChatServer.isNetworkAvailable;
 
   @override
   void initState() {
@@ -50,11 +52,13 @@ class _StatusWidgetState extends State<StatusWidget> {
       _serviceState = ChatServiceState.connected;
     }
     _registerServiceStateEvent();
+    _registerNetworkStateEvent();
   }
 
   @override
   void dispose() {
     _serviceStateSub?.cancel();
+    _networkStateSub?.cancel();
     super.dispose();
   }
 
@@ -63,8 +67,22 @@ class _StatusWidgetState extends State<StatusWidget> {
     _serviceStateSub = eventBus.on<ChatServiceStateEvent>().listen((event) {
       if (event.deviceID == null || event.isSelfDevice) {
         _logger.i("update service state to ${event.state.name}");
+        if (mounted) {
+          setState(() {
+            _serviceState = event.state;
+          });
+        }
+      }
+    });
+  }
+
+  void _registerNetworkStateEvent() {
+    final eventBus = ChatServer.getChatEventBus();
+    _networkStateSub =
+        eventBus.on<ChatReceiveNetworkAvailableEvent>().listen((event) {
+      if (mounted) {
         setState(() {
-          _serviceState = event.state;
+          _networkAvailable = event.available;
         });
       }
     });
@@ -87,6 +105,30 @@ class _StatusWidgetState extends State<StatusWidget> {
     }
   }
 
+  Widget get _leading {
+    final icon = Icon(
+      widget.icon ?? Icons.connect_without_contact,
+      color: _color,
+    );
+    if (_networkAvailable) {
+      return icon;
+    }
+    return Tooltip(
+      message: "Network is not available",
+      child: StackWithStatus(
+        icon,
+        true,
+        noDecoration: true,
+        status: const Icon(
+          Icons.warning,
+          size: 16,
+          color: Colors.red,
+        ),
+        size: 16,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tr = AppLocalizations.of(context);
@@ -94,32 +136,22 @@ class _StatusWidgetState extends State<StatusWidget> {
     if (widget.compact) {
       return IconButtonWidget(
         tooltip: tr.statusTitle,
-        icon: Icon(
-          widget.icon ?? Icons.connect_without_contact,
-          color: _color,
-        ),
+        icon: _leading,
         onPressed: widget.onPressed ?? _showStatusPage,
         size: widget.size,
       );
     }
 
-    final leading = getIcon(
-      widget.icon ?? Icons.connect_without_contact,
-      color: _color,
-      appleBackgroundColor: CupertinoColors.systemGrey4,
-      adaptive: widget.adaptiveIcon,
-    );
-
     if (isApple()) {
       return CupertinoListTile(
-        leading: leading,
+        leading: _leading,
         title: Text(tr.statusTitle),
         onTap: widget.onPressed ?? _showStatusPage,
       );
     }
 
     return ListTile(
-      leading: leading,
+      leading: _leading,
       title: Text(tr.statusTitle),
       onTap: widget.onPressed ?? _showStatusPage,
     );

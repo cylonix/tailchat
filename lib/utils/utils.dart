@@ -379,7 +379,7 @@ void switchToDefaultHomePage(BuildContext context) {
   Navigator.of(context).popUntil(ModalRoute.withName('/'));
 }
 
-void toast(BuildContext context, String message) {
+void toast(BuildContext context, String message, {Color? color}) {
   ScaffoldMessenger.of(context).clearSnackBars();
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
@@ -387,6 +387,7 @@ void toast(BuildContext context, String message) {
         message,
         textAlign: TextAlign.center,
       ),
+      backgroundColor: color,
     ),
   );
 }

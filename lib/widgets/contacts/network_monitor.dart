@@ -29,7 +29,7 @@ class NetworkMonitor extends StatefulWidget {
 
 class _ContactsPageState extends State<NetworkMonitor> {
   static final _logger = Logger(tag: 'NetworkMonitor');
-  StreamSubscription<ChatReceiveNetworkConfigEvent>? _networkConfigEventSub;
+  StreamSubscription<ChatReceiveNetworkEvent>? _networkEventSub;
   Alert? _alert;
   static final hostnameChangeDialogRouteName = "HostnameChangeDialog";
 
@@ -145,6 +145,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
             _alert = Alert(
               "Failed to update device hostname to "
               "$hostname: $e",
+              setter: "network_config",
             );
           });
         }
@@ -184,6 +185,27 @@ class _ContactsPageState extends State<NetworkMonitor> {
     }
   }
 
+  void _handleNetworkAvailable(bool available) async {
+    if (available) {
+      if (mounted && _alert?.setter == "network_available_event") {
+        setState(() {
+          _alert = null;
+        });
+        toast(context, "Network is now available", color: Colors.green);
+      }
+      return;
+    }
+    if (mounted && _alert == null) {
+      setState(() {
+        _alert = Alert(
+          "Network is not available",
+          setter: "network_available_event",
+        );
+      });
+      toast(context, "Network is not available", color: Colors.red);
+    }
+  }
+
   void _handleNetworkConfig(ChatReceiveNetworkConfigEvent event) async {
     final currentDevice = Pst.selfDevice?.hostname ?? "";
     final currentAddress = Pst.selfDevice?.address ?? "";
@@ -203,6 +225,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
               _alert = Alert(
                 "Cannot detect tailnet hostname and address. "
                 "Is Tailscale running?",
+                setter: "network_config",
               );
             });
           }
@@ -252,12 +275,12 @@ class _ContactsPageState extends State<NetworkMonitor> {
     if (hostname.isEmpty) {
       if (mounted) {
         setState(() {
-          _alert = Alert("Is Tailscale down?");
+          _alert = Alert("Is Tailscale down?", setter: "network_config");
         });
       }
       return;
     }
-    if (_alert != null) {
+    if (_alert?.setter == "network_config") {
       if (mounted) {
         toast(context, 'Hostname detected: "$hostname"');
         setState(() {
@@ -299,8 +322,11 @@ class _ContactsPageState extends State<NetworkMonitor> {
       if (contact != null && contact.id != selfContactID) {
         if (mounted) {
           setState(() {
-            _alert = Alert('Address conflict: ${contact.username} '
-                'has $hostname with the same $address.');
+            _alert = Alert(
+              'Address conflict: ${contact.username} '
+              'has $hostname with the same $address.',
+              setter: "network_config",
+            );
           });
         }
         return;
@@ -308,31 +334,34 @@ class _ContactsPageState extends State<NetworkMonitor> {
       _logger.d("Hostname changed for the same address.");
       if (mounted) {
         setState(() {
-          _alert = Alert("Hostname changed from $currentDevice to $hostname",
-              actions: [
-                AlertAction(
-                  "Ignore",
-                  onPressed: () => setState(
-                    () {
-                      _alert = null;
-                    },
-                  ),
-                  icon: isApple() ? CupertinoIcons.xmark : Icons.close,
-                  destructive: true,
+          _alert = Alert(
+            "Hostname changed from $currentDevice to $hostname",
+            setter: "network_config",
+            actions: [
+              AlertAction(
+                "Ignore",
+                onPressed: () => setState(
+                  () {
+                    _alert = null;
+                  },
                 ),
-                AlertAction(
-                  "Update",
-                  onPressed: () => _showUpdateSelfDeviceDialog(
-                    currentDevice,
-                    currentAddress,
-                    address,
-                    hostname,
-                  ),
-                  icon: isApple()
-                      ? CupertinoIcons.arrow_up_right_square
-                      : Icons.sync_rounded,
+                icon: isApple() ? CupertinoIcons.xmark : Icons.close,
+                destructive: true,
+              ),
+              AlertAction(
+                "Update",
+                onPressed: () => _showUpdateSelfDeviceDialog(
+                  currentDevice,
+                  currentAddress,
+                  address,
+                  hostname,
                 ),
-              ]);
+                icon: isApple()
+                    ? CupertinoIcons.arrow_up_right_square
+                    : Icons.sync_rounded,
+              ),
+            ],
+          );
         });
       }
       return;
@@ -352,26 +381,28 @@ class _ContactsPageState extends State<NetworkMonitor> {
         _logger.d("Change alert to add new device");
         setState(() {
           _alert = Alert(
-              "Hostname changed from $currentDevice to $hostname and "
-              "address changed from $currentAddress to $address.",
-              actions: [
-                AlertAction(
-                  "Ignore",
-                  onPressed: () => setState(() {
-                    _alert = null;
-                  }),
-                  icon: isApple() ? CupertinoIcons.xmark : Icons.close,
-                  destructive: true,
+            "Hostname changed from $currentDevice to $hostname and "
+            "address changed from $currentAddress to $address.",
+            setter: "network_config",
+            actions: [
+              AlertAction(
+                "Ignore",
+                onPressed: () => setState(() {
+                  _alert = null;
+                }),
+                icon: isApple() ? CupertinoIcons.xmark : Icons.close,
+                destructive: true,
+              ),
+              AlertAction(
+                "Update to the new device",
+                onPressed: () => _showAddNewDeviceDialog(
+                  selfContact2,
+                  newDevice,
                 ),
-                AlertAction(
-                  "Update to the new device",
-                  onPressed: () => _showAddNewDeviceDialog(
-                    selfContact2,
-                    newDevice,
-                  ),
-                  icon: isApple() ? CupertinoIcons.add : Icons.add,
-                ),
-              ]);
+                icon: isApple() ? CupertinoIcons.add : Icons.add,
+              ),
+            ],
+          );
         });
       }
       return;
@@ -409,7 +440,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
 
   @override
   void dispose() {
-    _networkConfigEventSub?.cancel();
+    _networkEventSub?.cancel();
     super.dispose();
   }
 
@@ -429,8 +460,19 @@ class _ContactsPageState extends State<NetworkMonitor> {
         ),
       );
     }
-    _networkConfigEventSub = ChatServer.getChatEventBus()
-        .on<ChatReceiveNetworkConfigEvent>()
-        .listen((event) => _handleNetworkConfig(event));
+    if (!ChatServer.isNetworkAvailable) {
+      Future.microtask(() => _handleNetworkAvailable(false));
+    }
+    _networkEventSub = ChatServer.getChatEventBus()
+        .on<ChatReceiveNetworkEvent>()
+        .listen((event) {
+      if (event is ChatReceiveNetworkConfigEvent) {
+        _handleNetworkConfig(event);
+        return;
+      }
+      if (event is ChatReceiveNetworkAvailableEvent) {
+        _handleNetworkAvailable(event.available);
+      }
+    });
   }
 }

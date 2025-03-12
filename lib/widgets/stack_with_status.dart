@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 class StackWithStatus extends Stack {
   StackWithStatus(Widget child, bool toStack,
-      {super.key, Widget? status, double? size})
+      {super.key, Widget? status, double? size, bool noDecoration = false})
       : super(
           children: [
             child,
@@ -14,13 +14,15 @@ class StackWithStatus extends Stack {
                 right: 0,
                 child: Container(
                   padding: const EdgeInsets.all(1),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
+                  decoration: noDecoration
+                      ? null
+                      : BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
                   constraints: BoxConstraints(
-                    minWidth: size ?? 12,
-                    minHeight: size ?? 12,
+                    maxWidth: size ?? 12,
+                    maxHeight: size ?? 12,
                   ),
                   child: status,
                 ),

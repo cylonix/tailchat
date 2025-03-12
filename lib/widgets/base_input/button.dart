@@ -88,8 +88,8 @@ class _BaseInputButtonWidgetState extends State<BaseInputButton> {
 
   CupertinoButtonSize get _cupertinoButtonSize {
     return widget.shrinkWrap
-        ? CupertinoButtonSize.medium
-        : CupertinoButtonSize.large;
+        ? CupertinoButtonSize.small
+        : CupertinoButtonSize.medium;
   }
 
   Widget get _button {

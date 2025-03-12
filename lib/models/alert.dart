@@ -52,15 +52,15 @@ class Alert {
   Widget? get avatar {
     switch (variant) {
       case (AlertVariant.success):
-        return Icon(isApple() ? CupertinoIcons.checkmark : Icons.done);
+        return Icon(isApple() ? CupertinoIcons.checkmark_circle : Icons.done);
       case (AlertVariant.error):
         return Icon(
-          isApple() ? CupertinoIcons.exclamationmark_octagon : Icons.error,
+          isApple() ? CupertinoIcons.exclamationmark_circle : Icons.error,
           color: Colors.red,
         );
       case (AlertVariant.warning):
         return Icon(
-          isApple() ? CupertinoIcons.exclamationmark_triangle : Icons.warning,
+          isApple() ? CupertinoIcons.exclamationmark_circle : Icons.warning,
           color: Colors.amber,
         );
       default:

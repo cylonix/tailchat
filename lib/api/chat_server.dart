@@ -32,6 +32,7 @@ class ChatServer {
   static final _eventBus = EventBus();
   static String? _activeChatID;
   static bool _appIsActive = false;
+  static bool isNetworkAvailable = false;
   static final _logger = Logger(tag: "ChatServer");
   static ChatService? _chatService;
   static ContactsRepository? _contactsRepository;
@@ -188,6 +189,16 @@ class ChatServer {
     );
     if (event is Map<dynamic, dynamic>) {
       switch (event['type']) {
+        case "network_available":
+          _logger.i("Network available: $event");
+          try {
+            final v = event['available'] as bool? ?? false;
+            isNetworkAvailable = v;
+            _eventBus.fire(ChatReceiveNetworkAvailableEvent(v));
+          } catch (e) {
+            _logger.e("Failed to handle network available change: $e");
+          }
+          break;
         case "network_config":
           _logger.i("Network config: $event");
           await _handleReceiveNetworkConfig(event['devices']);

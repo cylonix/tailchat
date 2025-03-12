@@ -18,7 +18,7 @@ class StackIcons extends SizedBox {
           child: Stack(
             alignment: Alignment.bottomLeft,
             children: [
-              Icon(icon1, size: (size ?? 24) * 0.6, color: color1),
+              Icon(icon1, size: (size ?? 24) * 0.8, color: color1),
               Positioned(
                 right: 0,
                 top: 0,

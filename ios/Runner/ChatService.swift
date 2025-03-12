@@ -93,10 +93,12 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             if isAvailable, self.isRunning {
                 self.isNetworkAvailable = true
                 self.logger.i("Network became available.")
+                self.updateNetworkAvailable()
                 // self.restartServer()
             } else {
                 self.isNetworkAvailable = false
                 self.logger.i("Network became unavailable.")
+                self.updateNetworkAvailable()
                 // self.stopServer()
             }
         }
@@ -146,6 +148,19 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         logger.e("Failed to update network configuration: \(error)")
         networkConfig = nil
         updateNetworkConfig()
+    }
+
+    private func updateNetworkAvailable() {
+        if let eventSink = eventSink {
+            logger.d("Send network available state: \(Logger.opt(isNetworkAvailable))")
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.logger.d("Sending network available state: \(Logger.opt(self.isNetworkAvailable))")
+                eventSink(["type": "network_available", "available": self.isNetworkAvailable])
+            }
+        } else {
+            logger.i("EventSink is not available")
+        }
     }
 
     private func updateNetworkConfig() {
@@ -1200,6 +1215,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         if eventSink != nil {
             logger.i("EventSink set")
             updateNetworkConfig()
+            updateNetworkAvailable()
             #if os(iOS)
                 sendApnInfo()
             #endif

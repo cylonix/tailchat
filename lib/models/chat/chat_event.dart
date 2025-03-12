@@ -80,7 +80,9 @@ class ChatSimpleUISettingChangeEvent {
   ChatSimpleUISettingChangeEvent({required this.enable});
 }
 
-class ChatReceiveNetworkConfigEvent {
+abstract class ChatReceiveNetworkEvent {}
+
+class ChatReceiveNetworkConfigEvent extends ChatReceiveNetworkEvent {
   final String? address;
   final String? hostname;
   final int? port;
@@ -97,6 +99,17 @@ class ChatReceiveNetworkConfigEvent {
     return "hostname=$hostname port=$port";
   }
 }
+
+class ChatReceiveNetworkAvailableEvent extends ChatReceiveNetworkEvent {
+  final bool available;
+  ChatReceiveNetworkAvailableEvent(this.available);
+
+  @override
+  String toString() {
+    return "available=$available";
+  }
+}
+
 
 enum ChatServiceState {
   connected,
