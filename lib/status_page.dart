@@ -10,6 +10,7 @@ import 'api/chat_service.dart';
 import 'gen/l10n/app_localizations.dart';
 import 'models/alert.dart';
 import 'utils/logger.dart';
+import 'utils/utils.dart';
 import 'widgets/alert_chip.dart';
 import 'widgets/common_widgets.dart';
 import 'widgets/main_app_bar.dart';
@@ -82,7 +83,7 @@ class _StatusPageState extends State<StatusPage> {
       ),
       body: Center(
         child: Column(
-          spacing: 16,
+          spacing: 32,
           children: [
             const SizedBox(height: 32),
             if (_alert != null)
@@ -94,15 +95,6 @@ class _StatusPageState extends State<StatusPage> {
                   });
                 },
               ),
-            ChatServer.isServiceSocketConnected
-                ? const Text(
-                    "Chat service monitoring is connected",
-                    style: TextStyle(color: Colors.green),
-                  )
-                : const Text(
-                    "Chat service montoring is disconnected.",
-                    style: TextStyle(color: Colors.red),
-                  ),
             ChatServer.isNetworkAvailable
                 ? const Text(
                     "Network is vailable",
@@ -112,28 +104,58 @@ class _StatusPageState extends State<StatusPage> {
                     "Network is not available.",
                     style: TextStyle(color: Colors.red),
                   ),
-            if (_isConnecting) loadingWidget(),
-            if (!_isConnecting) ...[
-              if (!ChatServer.isServiceSocketConnected)
-                BaseInputButton(
-                  onPressed: () async {
-                    setState(() {
-                      _isConnecting = true;
-                    });
-                    await ChatServer.startServiceStateMonitor();
-                  },
-                  child: const Text("Connect"),
+            Card(
+              child: Container(
+                constraints: BoxConstraints(
+                  minWidth: isMediumScreen(context) ? 600 : 360,
+                  minHeight: 200,
                 ),
-              BaseInputButton(
-                onPressed: () async {
-                  setState(() {
-                    _isConnecting = true;
-                  });
-                  await ChatServer.restartServer();
-                },
-                child: const Text("Restart Server"),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 32),
+                    ChatServer.isServiceSocketConnected
+                        ? const Text(
+                            "Chat service monitoring is connected",
+                            style: TextStyle(color: Colors.green),
+                          )
+                        : const Text(
+                            "Chat service montoring is disconnected.",
+                            style: TextStyle(color: Colors.red),
+                          ),
+                    const SizedBox(height: 32),
+                    if (_isConnecting) loadingWidget(),
+                    if (!_isConnecting)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!ChatServer.isServiceSocketConnected)
+                            BaseInputButton(
+                              shrinkWrap: true,
+                              onPressed: () async {
+                                setState(() {
+                                  _isConnecting = true;
+                                });
+                                await ChatServer.startServiceStateMonitor();
+                              },
+                              child: const Text("Connect"),
+                            ),
+                          BaseInputButton(
+                            shrinkWrap: true,
+                            onPressed: () async {
+                              setState(() {
+                                _isConnecting = true;
+                              });
+                              await ChatServer.restartServer();
+                            },
+                            child: const Text("Restart"),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ],
         ),
       ),

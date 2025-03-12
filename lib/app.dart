@@ -89,23 +89,7 @@ class _AppState extends State<_App> {
 
   Widget get _app {
     return MaterialApp(
-      builder: (context, child) {
-        if (isXLargeScreen(context)) {
-          _textScaleFactor ??= 1.3;
-        }
-        if (_textScaleFactor == null) {
-          return child ?? Container();
-        }
-        final MediaQueryData data = MediaQuery.of(context);
-        return MediaQuery(
-          data: data.copyWith(
-            textScaler: _textScaleFactor != null
-                ? TextScaler.linear(_textScaleFactor!)
-                : null,
-          ),
-          child: child ?? Container(),
-        );
-      },
+      builder: _builder,
       onGenerateTitle: (BuildContext context) =>
           AppLocalizations.of(context).appTitle,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -118,21 +102,41 @@ class _AppState extends State<_App> {
       },
       navigatorObservers: [Global.routeObserver],
       navigatorKey: Global.navigatorKey,
-      onGenerateRoute: (settings) {
-        if (settings.name?.startsWith('/chat/') ?? false) {
-          final session = ChatSession.fromJson(
-            settings.arguments as Map<String, dynamic>,
-          );
-          return MaterialPageRoute(
-            builder: (context) => ChatPage(
-              key: Key(session.sessionID),
-              session: session,
-            ),
-            settings: settings,
-          );
-        }
-        return null;
-      },
+      onGenerateRoute: _onGenerateRoute,
+    );
+  }
+
+  Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
+    if (settings.name?.startsWith('/chat/') ?? false) {
+      final session = ChatSession.fromJson(
+        settings.arguments as Map<String, dynamic>,
+      );
+      return MaterialPageRoute(
+        builder: (context) => ChatPage(
+          key: Key(session.sessionID),
+          session: session,
+        ),
+        settings: settings,
+      );
+    }
+    return null;
+  }
+
+  Widget _builder(BuildContext context, Widget? child) {
+    if (isXLargeScreen(context)) {
+      _textScaleFactor ??= 1.3;
+    }
+    if (_textScaleFactor == null) {
+      return child ?? Container();
+    }
+    final MediaQueryData data = MediaQuery.of(context);
+    return MediaQuery(
+      data: data.copyWith(
+        textScaler: _textScaleFactor != null
+            ? TextScaler.linear(_textScaleFactor!)
+            : null,
+      ),
+      child: child ?? Container(),
     );
   }
 }
