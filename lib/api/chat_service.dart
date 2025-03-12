@@ -684,6 +684,10 @@ class ChatService {
   }
 
   Future<void> startServiceStateMonitor() async {
+    if (isServiceSocketConnected) {
+      _logger.d("Service is already connected and being monitored.");
+      return;
+    }
     try {
       final delay = _initialRetryDelay;
       if (_serviceSocket == null) {
