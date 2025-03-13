@@ -32,7 +32,7 @@ class ChatServer {
   static final _eventBus = EventBus();
   static String? _activeChatID;
   static bool _appIsActive = false;
-  static bool isNetworkAvailable = false;
+  static bool isNetworkAvailable = Platform.isLinux ? true : false;
   static final _logger = Logger(tag: "ChatServer");
   static ChatService? _chatService;
   static ContactsRepository? _contactsRepository;
@@ -362,6 +362,13 @@ class ChatServer {
         case "NETWORK":
           final config = line.replaceFirst("NETWORK:", "");
           await _handleReceiveNetworkConfig(config);
+          break;
+        case "NETWORK_AVAILABLE":
+          final v = id == "TRUE";
+          if (isNetworkAvailable != v) {
+            isNetworkAvailable = v;
+            _eventBus.fire(ChatReceiveNetworkAvailableEvent(v));
+          }
           break;
         default:
           _logger.e("Unknown message type $line");

@@ -5,22 +5,35 @@ package io.cylonix.tailchat
 
 import android.content.Context
 import android.net.ConnectivityManager
+import android.net.LinkProperties
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
-import kotlinx.coroutines.*
-import java.net.InetAddress
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.Inet4Address
+import java.net.InetAddress
 import java.net.NetworkInterface
 
 interface NetworkMonitorDelegate {
     fun onNetworkConfigUpdated(infos: List<NetworkInfo>)
+
     fun onNetworkConfigError(error: NetworkError)
+
+    fun onNetworkAvailabilityChanged(available: Boolean)
 }
 
 class NetworkMonitor(
     private val context: Context,
-    private val delegate: NetworkMonitorDelegate
+    private val delegate: NetworkMonitorDelegate,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + Job())
     private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -29,41 +42,94 @@ class NetworkMonitor(
 
     fun start() {
         logger.d("Start network state monitoring")
-        val request = NetworkRequest.Builder()
-            .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
-            .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
-            .build()
-
-        connectivityManager.registerNetworkCallback(request, object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                scope.launch {
-                    logger.d("VPN network available: $network")
-                    vpnNetwork = network
-                    checkNetworkConfig(network)
-                }
-            }
-
-            override fun onLost(network: Network) {
-                scope.launch {
-                    logger.d("VPN network lost: $network")
-                    if (vpnNetwork == network) {
-                        vpnNetwork = null
-                        delegate.onNetworkConfigUpdated(emptyList())
+        connectivityManager.registerDefaultNetworkCallback(
+            object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    scope.launch {
+                        logger.d("The default network is now: $network")
+                        delegate.onNetworkAvailabilityChanged(true)
                     }
                 }
-            }
 
-            override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
-                scope.launch {
-                    val isVPN = caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
-                    logger.d("Network capabilities changed: $network, VPN: $isVPN")
-                    if (isVPN) {
+                override fun onLost(network: Network) {
+                    scope.launch {
+                        logger.d("The application no longer has a default network. The last default network was $network")
+                        delegate.onNetworkAvailabilityChanged(false)
+                    }
+                }
+
+                override fun onCapabilitiesChanged(
+                    network: Network,
+                    networkCapabilities: NetworkCapabilities,
+                ) {
+                    scope.launch {
+                        logger.d("The default network changed capabilities: " + networkCapabilities)
+                        delegate.onNetworkAvailabilityChanged(
+                            networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                                (
+                                    networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                                        networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) ||
+                                        networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_SATELLITE) ||
+                                        networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_USB) ||
+                                        networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                                        networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                                ),
+                        )
+                    }
+                }
+
+                override fun onLinkPropertiesChanged(
+                    network: Network,
+                    linkProperties: LinkProperties,
+                ) {
+                    logger.d("The default network changed link properties: " + linkProperties)
+                }
+            },
+        )
+
+        val request =
+            NetworkRequest
+                .Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
+                .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+                .build()
+
+        connectivityManager.registerNetworkCallback(
+            request,
+            object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    scope.launch {
+                        logger.d("VPN network available: $network")
                         vpnNetwork = network
                         checkNetworkConfig(network)
                     }
                 }
-            }
-        })
+
+                override fun onLost(network: Network) {
+                    scope.launch {
+                        logger.d("VPN network lost: $network")
+                        if (vpnNetwork == network) {
+                            vpnNetwork = null
+                            delegate.onNetworkConfigUpdated(emptyList())
+                        }
+                    }
+                }
+
+                override fun onCapabilitiesChanged(
+                    network: Network,
+                    caps: NetworkCapabilities,
+                ) {
+                    scope.launch {
+                        val isVPN = caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+                        logger.d("Network capabilities changed: $network, VPN: $isVPN")
+                        if (isVPN) {
+                            vpnNetwork = network
+                            checkNetworkConfig(network)
+                        }
+                    }
+                }
+            },
+        )
     }
 
     private suspend fun checkNetworkConfig(network: Network) {
@@ -74,13 +140,15 @@ class NetworkMonitor(
             // Find local CGNAT address first
             val localAddress = findCGNATAddress()
             if (localAddress != null) {
-                lookupJobs.add(scope.async {
-                    NetworkInfo(
-                        address = localAddress,
-                        hostname = resolveDNS(localAddress),
-                        isLocal = true
-                    )
-                })
+                lookupJobs.add(
+                    scope.async {
+                        NetworkInfo(
+                            address = localAddress,
+                            hostname = resolveDNS(localAddress),
+                            isLocal = true,
+                        )
+                    },
+                )
             }
 
             // Get routes from VPN interface
@@ -93,18 +161,21 @@ class NetworkMonitor(
             routes.forEach { route ->
                 logger.d("Route: $route")
                 val address = route.destination?.address?.hostAddress
-                if (address != null && !seen.contains(address) &&
+                if (address != null &&
+                    !seen.contains(address) &&
                     route.destination?.prefixLength == 32 &&
-                    isCGNATAddress(address)) {
-
+                    isCGNATAddress(address)
+                ) {
                     seen.add(address)
-                    lookupJobs.add(scope.async {
-                        NetworkInfo(
-                            address = address,
-                            hostname = resolveDNS(address),
-                            isLocal = false
-                        )
-                    })
+                    lookupJobs.add(
+                        scope.async {
+                            NetworkInfo(
+                                address = address,
+                                hostname = resolveDNS(address),
+                                isLocal = false,
+                            )
+                        },
+                    )
                 }
             }
 
@@ -115,17 +186,16 @@ class NetworkMonitor(
         }
     }
 
-    private fun findCGNATAddress(): String? {
-        return NetworkInterface.getNetworkInterfaces()
+    private fun findCGNATAddress(): String? =
+        NetworkInterface
+            .getNetworkInterfaces()
             .asSequence()
             .filter { iface ->
                 !iface.isLoopback && (iface.isUp || iface.isVirtual)
-            }
-            .flatMap { it.inetAddresses.asSequence() }
+            }.flatMap { it.inetAddresses.asSequence() }
             .filter { !it.isLoopbackAddress && it is Inet4Address }
             .map { it.hostAddress }
             .firstOrNull { isCGNATAddress(it) }
-    }
 
     private fun isCGNATAddress(address: String): Boolean {
         val parts = address.split(".")

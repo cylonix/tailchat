@@ -63,6 +63,7 @@ class ChatService :
     private val logger = Logger("ChatService")
     private lateinit var networkMonitor: NetworkMonitor
     private var networkInfo: List<NetworkInfo>? = null
+    private var networkAvailable = false
     private val gson = Gson()
 
     override fun onCreate() {
@@ -89,6 +90,7 @@ class ChatService :
         }
         logger.i("Service started. Send network config.")
         sendNetworkInfo()
+        sendNetworkAvailable()
         logger.i("Service started. Send buffered messages.")
         sendBufferedMessages()
         return START_STICKY // Keep the service alive even if the app crashes
@@ -108,6 +110,11 @@ class ChatService :
         sendMessage("NETWORK:$json\n")
     }
 
+    private fun sendNetworkAvailable() {
+        val v = if (networkAvailable) "TRUE" else "FALSE"
+        sendMessage("NETWORK_AVAILABLE:$v\n")
+    }
+
     // Mark - NetworkMonitorDelegate implementation
     override fun onNetworkConfigUpdated(infos: List<NetworkInfo>) {
         logger.i("Network config updated: $infos")
@@ -119,6 +126,14 @@ class ChatService :
         logger.e("Network config error: $error")
         networkInfo = null
         sendNetworkInfo()
+    }
+
+    override fun onNetworkAvailabilityChanged(available: Boolean) {
+        logger.i("Network availability changed: $available")
+        if (networkAvailable != available) {
+            networkAvailable = available
+            sendNetworkAvailable()
+        }
     }
 
     private fun getAppState(): Boolean = sharedPreferences.getBoolean(appStateKey, true)

@@ -62,7 +62,7 @@ class AppearanceSettings extends StatelessWidget {
             child: Column(
               children: [
                 if (showThemeSetting) ...[
-                  const ThemeSettingWidget(adaptiveIcon: true),
+                  const ThemeSettingWidget(),
                   const Divider(height: 1),
                 ],
                 //const ARMode(),

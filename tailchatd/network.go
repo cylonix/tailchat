@@ -268,7 +268,7 @@ func (nm *NetworkMonitor) watchNetworkChanges() {
 			logger.Printf("Route update: %v\n", update.Route)
 			nm.updateNetworkInfo()
 		case <-nm.done:
-			logger.Println("DONE wacthing network changes.")
+			logger.Println("DONE watching network changes.")
 			return
 		}
 	}

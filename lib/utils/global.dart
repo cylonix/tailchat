@@ -145,8 +145,7 @@ class Global {
       lineLength: lineLength,
       colors: true,
       printEmojis: true,
-      dateTimeFormat:
-          DateTimeFormat.dateAndTime,
+      dateTimeFormat: DateTimeFormat.dateAndTime,
     );
     final debugLogger = Logger(
       filter: ProductionFilter(),
@@ -243,6 +242,7 @@ class Global {
       if (h < mh || w < mw) {
         h = h < mh ? mh : h;
         w = w < mw ? mw : w;
+        logger.d("setting window size to $w x $h");
         DesktopWindow.setWindowSize(Size(w, h));
       }
     }

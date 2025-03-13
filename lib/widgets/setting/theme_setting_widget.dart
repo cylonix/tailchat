@@ -87,6 +87,7 @@ class _ThemeSettingWidgetState extends State<ThemeSettingWidget> {
       leading: _leading,
       title: _title,
       onTap: _onTap,
+      trailing: _trailing,
     );
   }
 

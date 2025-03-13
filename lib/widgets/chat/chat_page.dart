@@ -1368,8 +1368,8 @@ class _ChatPageState extends State<ChatPage>
     );
   }
 
-  Widget _getMenuItem(IconData icon, String menu) {
-    return ListTile(leading: Icon(icon), title: Text(menu));
+  Widget _getMenuItem(IconData icon, String menu, {TextStyle? style}) {
+    return ListTile(leading: Icon(icon), title: Text(menu, style: style));
   }
 
   PopupMenuItem get _saveToGalleryMenuItem {
@@ -1392,7 +1392,11 @@ class _ChatPageState extends State<ChatPage>
     final tr = AppLocalizations.of(context);
     return PopupMenuItem(
       value: "delete",
-      child: _getMenuItem(Icons.delete_rounded, tr.deleteText),
+      child: _getMenuItem(
+        Icons.delete_rounded,
+        tr.deleteText,
+        style: TextStyle(color: Colors.red),
+      ),
     );
   }
 
@@ -1403,6 +1407,7 @@ class _ChatPageState extends State<ChatPage>
       child: _getMenuItem(
         Icons.delete_forever_rounded,
         tr.deleteFromAllPeersText,
+        style: TextStyle(color: Colors.red),
       ),
     );
   }
@@ -1452,19 +1457,23 @@ class _ChatPageState extends State<ChatPage>
     );
   }
 
+  Future<bool> _confirmDelete({String? content, String? okText}) async {
+    return await utils.showAlertDialog(
+          context,
+          "Confirm Delete",
+          content ?? "Sure to delete the message?",
+          okText: okText ?? "Yes Delete",
+          showCancel: true,
+          isOKButtonDestructive: true,
+        ) ??
+        false;
+  }
+
   PullDownMenuItem _deleteMessageAppleMenuItem(types.Message message) {
     final tr = AppLocalizations.of(context);
     return PullDownMenuItem(
       onTap: () async {
-        final delete = await utils.showAlertDialog(
-              context,
-              "Confirm Delete",
-              "Sure to delete the message?",
-              okText: "Yes Delete",
-              showCancel: true,
-              isOKButtonDestructive: true,
-            ) ??
-            false;
+        final delete = await _confirmDelete();
         if (delete) {
           _deleteMessage(message);
         }
@@ -1479,15 +1488,11 @@ class _ChatPageState extends State<ChatPage>
     final tr = AppLocalizations.of(context);
     return PullDownMenuItem(
       onTap: () async {
-        final delete = await utils.showAlertDialog(
-              context,
-              "Confirm Delete",
-              "Sure to delete the message and also delete from all receivers?",
-              okText: "Yes Delete for all",
-              showCancel: true,
-              isOKButtonDestructive: true,
-            ) ??
-            false;
+        final delete = await _confirmDelete(
+          content: "Sure to delete the message and "
+              "also delete from all receivers?",
+          okText: "Yes Delete for all",
+        );
         if (delete) {
           _deleteMessage(message, forAll: true);
         }
@@ -1685,10 +1690,19 @@ class _ChatPageState extends State<ChatPage>
         _copyMessageText(message);
         break;
       case "delete":
-        _deleteMessage(message);
+        if (await _confirmDelete()) {
+          _deleteMessage(message);
+        }
         break;
       case "delete-all":
-        _deleteMessage(message, forAll: true);
+        final delete = await _confirmDelete(
+          content: "Sure to delete the message and "
+              "also delete from all receivers?",
+          okText: "Yes Delete for all",
+        );
+        if (delete) {
+          _deleteMessage(message, forAll: true);
+        }
         break;
       case "forward":
         _forwardMessage(message);

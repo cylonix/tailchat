@@ -461,7 +461,10 @@ class _ContactsPageState extends State<NetworkMonitor> {
       );
     }
     if (!ChatServer.isNetworkAvailable) {
-      Future.microtask(() => _handleNetworkAvailable(false));
+      _alert ??= Alert(
+        "Network is not available",
+        setter: "network_available_event",
+      );
     }
     _networkEventSub = ChatServer.getChatEventBus()
         .on<ChatReceiveNetworkEvent>()

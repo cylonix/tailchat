@@ -477,7 +477,7 @@ class Pst {
     if (Platform.isAndroid || Platform.isIOS) {
       return true;
     }
-    final s = Size(size.height.roundToDouble(), size.width.roundToDouble());
+    final s = Size(size.width.roundToDouble(), size.height.roundToDouble());
     if (windowSize == s || !windowSizeLoaded) {
       return true;
     }

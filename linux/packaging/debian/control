@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: EZBLOCK Authors
 Build-Depends: debhelper-compat (= 12)
 Standards-Version: 4.6.0
-Homepage: https://cylonix.io/tailchat
+Homepage: https://cylonix.io/web/view/product/tailchat.html
 Rules-Requires-Root: no
 
 Package: tailchat
