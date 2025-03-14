@@ -5,16 +5,17 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      - APN_AUTH_TYPE=${APN_AUTH_TYPE:-certificate}  # 'certificate' or 'token'
-      - APN_CERT_PATH=/etc/apn/cert.cer
-      - APN_CERT_PASSWORD=${APN_CERT_PASSWORD:-}
+      - APN_AUTH_TYPE=${APN_AUTH_TYPE:-token}  # 'certificate' or 'token'
+      - APN_KEY_PATH=/etc/apn/aps.p8
+      - APN_KEY_ID=${APN_KEY_ID:-}
+      - APN_TEAM_ID=${APN_TEAM_ID:-}
       - APN_BUNDLE_ID=${APN_BUNDLE_ID:-io.cylonix.tailchat}
       - APN_DEVELOPMENT=${APN_DEVELOPMENT:-true}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     volumes:
-      - ${APN_CERT_FILE:-./cert.cer}:/etc/apn/cert.cer:ro
+      - ${APN_KEY_FILE:-./aps.p8}:/etc/apn/aps.p8:ro
     ports:
       - "${PORT:-9000}:9000"
     depends_on:

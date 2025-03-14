@@ -176,15 +176,15 @@ func (s *PNServer) sendApplePush(ctx context.Context, req *PushRequest, receiver
 
 	// Check for specific APNs status codes
 	switch res.StatusCode {
-	case http.StatusGone: // 410 - Token is no longer valid
-		if err := s.redis.Del(ctx, req.SenderHostname, req.ReceiverHostname).Err(); err != nil {
+	case http.StatusGone: // 410 - Token is no longer valid. Delete sender and receiver tokens.
+		if err := s.redis.Del(ctx, req.SenderID, req.ReceiverID).Err(); err != nil {
 			s.logger.Printf("Failed to delete invalid tokens: %v", err)
 		}
 		return fmt.Errorf("device token is no longer valid")
 
-	case http.StatusBadRequest:
+	case http.StatusBadRequest: // 400 - Bad device token or not for topic. Delete sender and receiver token.
 		if res.Reason == apns2.ReasonBadDeviceToken || res.Reason == apns2.ReasonDeviceTokenNotForTopic {
-			if err := s.redis.Del(ctx, req.SenderHostname, req.ReceiverHostname).Err(); err != nil {
+			if err := s.redis.Del(ctx, req.SenderID, req.ReceiverID).Err(); err != nil {
 				s.logger.Printf("Failed to delete invalid tokens: %v", err)
 			}
 			return fmt.Errorf("invalid device token: %s", res.Reason)
@@ -313,7 +313,7 @@ func (s *PNServer) handlePushRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate required fields
-	if req.SenderHostname == "" || req.ReceiverHostname == "" {
+	if req.SenderID == "" || req.ReceiverID == "" {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
@@ -327,9 +327,9 @@ func (s *PNServer) handlePushRequest(w http.ResponseWriter, r *http.Request) {
 
 	// Rate limit check (30 seconds between pushes. Shorter if sender is valid)
 	now := time.Now().Unix()
-	limit := 30
+	limit := pushRateLimit
 	if senderValid {
-		limit = 15
+		limit = fasterRateLimit
 	}
 	if int(now-tokenInfo.LastPushSent) < limit {
 		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)

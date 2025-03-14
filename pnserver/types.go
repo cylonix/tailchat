@@ -38,19 +38,19 @@ type PNServer struct {
 }
 
 type PushRequest struct {
-	Sender           string `json:"sender"`
-	Receiver         string `json:"receiver"`
-	SenderHostname   string `json:"sender_hostname"`
-	ReceiverHostname string `json:"receiver_hostname"`
-	SenderID         string `json:"sender_id"`
-	ReceiverID       string `json:"receiver_id"`
-	MessageType      string `json:"message_type"`
-	Message          string `json:"message"`
+	Sender         string `json:"sender"`          // For push notification display. Never stored.
+	Receiver       string `json:"receiver"`        // For push notification display. Never stored.
+	SenderHostname string `json:"sender_hostname"` // For push notification display. Never stored.
+	SenderID       string `json:"sender_id"`
+	ReceiverID     string `json:"receiver_id"`
+	MessageType    string `json:"message_type"`
+	Message        string `json:"message"` // For push notification display. Never stored.
 }
 
 const (
-	tokenUpdateInterval = 1 * time.Minute
-	pushRateLimit       = 10 * time.Second
+	tokenUpdateInterval = 15 * time.Minute
+	pushRateLimit       = 30 // seconds
+	fasterRateLimit     = 5  // seconds
 )
 
 func parseInt(s string) int {
