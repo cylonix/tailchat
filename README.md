@@ -20,7 +20,7 @@ No message storage servers. No relay servers except for derp relay servers used 
 For iOS devices, iOS suspends apps that go into the background. The peer will need to use other communication channel
 to request to reconnect when the iOS user switches away from tailchat. Since switching apps can be a very frequent event, sender will automatically request to reconnect with push notifications. A per-device generated UUID and the push notification token assigned to the iOS device are saved in the push notification server. The UUID and the push notification token cannot be used to identify a device name or user. Chat message is never sent to the push notification server. For details, please refer to the link to the push notification server below:
 
-[Push notification server code]("https://github.com/cylonix/tailchat/blob/main/pnserver/pnserver.go")
+[Push notification server code](https://github.com/cylonix/tailchat/blob/main/pnserver)
 
 ### 🔒 Built on Tailnet
 
