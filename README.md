@@ -6,7 +6,7 @@
 
 **Note**: Tailchat is not affiliated with, endorsed by, or sponsored by Tailscale Inc. Tailscale® and Tailnet are trademarks of Tailscale Inc.
 
-
+[Install Tailchat and Join Tailchat beta](https://cylonix.io/web/view/tailchat/download.html)
 <center>
 <img src="lib/assets/images/tailchat.png" alt="Tailchat" width=128></img>
 </center>
