@@ -94,7 +94,7 @@ Future<bool?> showAlertDialog(
   return AlertDialogWidget(
     title: title,
     contents: [
-      Content(content: content),
+      if (content.isNotEmpty) Content(content: content),
       ...contents,
     ],
     actions: [

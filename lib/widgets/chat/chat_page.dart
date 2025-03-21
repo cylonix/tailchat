@@ -800,12 +800,11 @@ class _ChatPageState extends State<ChatPage>
               : null;
       ft = r.failureMsg != null ? "${tr.failureDeviceCountText} ($f):" : null;
     }
-    final peer = _peerDescription ?? "peer";
     final title = (r?.success ?? false)
-        ? "Succeeded to send to $peer"
+        ? "Success"
         : s > 0
             ? "Failed to send to some devices"
-            : "Failed to send to $peer";
+            : "Failed to send";
     final contents = [
       if (st != null)
         Content(
@@ -830,8 +829,6 @@ class _ChatPageState extends State<ChatPage>
     ];
     return AlertDialogWidget(
       title: title,
-      titleStyle:
-          (r?.success ?? false) ? null : const TextStyle(color: Colors.red),
       actions: [
         ...actions,
         AlertAction(
@@ -840,10 +837,9 @@ class _ChatPageState extends State<ChatPage>
           onPressed: () => Navigator.pop(context, true),
         ),
       ],
-      child: ExpansionTile(
-        title: const Text("Details:"),
-        children: contents.map((c) => Text(c.content, style: c.style)).toList(),
-      ),
+      contents: contents,
+      contentsTitle: "Show Detail Errors",
+      contentsExpanded: false,
     ).show(context);
   }
 

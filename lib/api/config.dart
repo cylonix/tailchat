@@ -55,11 +55,11 @@ bool get enableTVByDefault {
 }
 
 String? get officialSupportUrl {
-  return "https://cylonix.io";
+  return "https://cylonix.io/web/view/product/tailchat.html";
 }
 
 String? get androidAppLink {
-  return "https://play.google.com/store/apps/details?id=io.cylonix.tailchat";
+  return "https://play.google.com/apps/testing/io.cylonix.tailchat";
 }
 
 String get appName {
@@ -67,7 +67,7 @@ String get appName {
 }
 
 String? get iosAppLink {
-  return "https://apps.apple.com/app/id1561359487";
+  return "https://testflight.apple.com/join/7eWmjBBJ";
 }
 
 class Pst {
