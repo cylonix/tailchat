@@ -1,6 +1,7 @@
 // Copyright (c) EZBLOCK Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
+import Darwin
 import Foundation
 import Network
 import UserNotifications
@@ -37,6 +38,9 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     private var isNetworkAvailable = false
     private var stateCheckWorkItem: DispatchWorkItem?
 
+    private var mainSockfd: Int32 = -1
+    private var subSockfd: Int32 = -1
+
     func startService() {
         logger.i("Starting service if not yet running.")
         if isDeleted {
@@ -49,6 +53,15 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             return
         }
         isRunning = true
+
+        let monitor = NWPathMonitor()
+        monitor.pathUpdateHandler = { path in
+            let interfaces = path.availableInterfaces.map { $0.name }
+            let isVpnActive = interfaces.contains { $0.starts(with: "utun") }
+            self.logger.i("Path: \(path.status), VPN active: \(isVpnActive), Interfaces: \(interfaces) at \(Date())")
+        }
+
+        monitor.start(queue: .global())
 
         logger.i("Service is not yet running. Starting it.")
         startNetworkMonitor()
@@ -183,6 +196,413 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
     }
 
+    // POSIX-based startServer with blocking sockets
+    private var mainAcceptThread: Thread?
+    private var subAcceptThread: Thread?
+    private var activeConnections: [Int32: Thread] = [:] // Track clientfd -> thread
+    private let connectionLock = NSLock() // Thread safety
+    func startServerPosix() {
+        logger.i("Starting POSIX server listeners with blocking sockets")
+
+        mainSockfd = startPosixListener(port: port)
+        guard mainSockfd >= 0 else {
+            logger.e("Failed to start main POSIX listener on port \(port)")
+            return
+        }
+
+        subSockfd = startPosixListener(port: subscriberPort)
+        guard subSockfd >= 0 else {
+            logger.e("Failed to start subscriber POSIX listener on port \(subscriberPort)")
+            close(mainSockfd)
+            return
+        }
+
+        // Start dedicated threads for accepting connections
+        mainAcceptThread = Thread { [weak self] in
+            self?.acceptConnectionsPosix(sockfd: self!.mainSockfd, isMain: true)
+        }
+        mainAcceptThread?.name = "MainAcceptThread"
+        mainAcceptThread?.start()
+
+        subAcceptThread = Thread { [weak self] in
+            self?.acceptConnectionsPosix(sockfd: self!.subSockfd, isMain: false)
+        }
+        subAcceptThread?.name = "SubAcceptThread"
+        subAcceptThread?.start()
+
+        logger.i("POSIX listeners started on ports \(port) and \(subscriberPort) with dedicated threads at \(Date())")
+    }
+
+    private func startPosixListener(port: UInt16) -> Int32 {
+        let sockfd = socket(AF_INET, SOCK_STREAM, 0)
+        guard sockfd >= 0 else {
+            logger.e("Failed to create POSIX socket for port \(port): \(errno)")
+            return -1
+        }
+
+        var reuse: Int32 = 1
+        setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size))
+
+        var addr = sockaddr_in(
+            sin_len: __uint8_t(MemoryLayout<sockaddr_in>.size),
+            sin_family: sa_family_t(AF_INET),
+            sin_port: in_port_t(port).bigEndian,
+            sin_addr: in_addr(s_addr: INADDR_ANY),
+            sin_zero: (0, 0, 0, 0, 0, 0, 0, 0)
+        )
+        let bindResult = withUnsafePointer(to: &addr) {
+            Darwin.bind(sockfd, UnsafeRawPointer($0).assumingMemoryBound(to: sockaddr.self), socklen_t(MemoryLayout<sockaddr_in>.size))
+        }
+        guard bindResult == 0 else {
+            logger.e("Failed to bind POSIX socket on port \(port): \(errno)")
+            close(sockfd)
+            return -1
+        }
+
+        let listenResult = listen(sockfd, 5)
+        guard listenResult == 0 else {
+            logger.e("Failed to POSIX listen on port \(port): \(errno)")
+            close(sockfd)
+            return -1
+        }
+
+        logger.i("POSIX listener bound and listening on port \(port), fd=\(sockfd) at \(Date())")
+        return sockfd
+    }
+
+    // POSIX blocking connection handling
+    private func acceptConnectionsPosix(sockfd: Int32, isMain: Bool) {
+        Thread.current.name = isMain ? "MainAccept-\(sockfd)" : "SubAccept-\(sockfd)"
+        logger.i("Starting POSIX accept loop on port \(isMain ? port : subscriberPort), thread: \(Thread.current.name ?? "unnamed")")
+
+        while isRunning {
+            var clientAddr = sockaddr()
+            var addrLen = socklen_t(MemoryLayout<sockaddr>.size)
+            let clientfd = accept(sockfd, &clientAddr, &addrLen)
+            guard clientfd >= 0 else {
+                if errno != EINTR {
+                    logger.e("Accept failed on POSIX port \(isMain ? port : subscriberPort): \(errno)")
+                }
+                continue
+            }
+
+            // Extract remote address
+            let remoteAddress = withUnsafePointer(to: &clientAddr) { ptr -> String in
+                var sockaddrIn = ptr.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { $0.pointee }
+                var ipString = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+                guard let ip = inet_ntop(AF_INET, &sockaddrIn.sin_addr, &ipString, socklen_t(INET_ADDRSTRLEN)) else {
+                    return "Unknown IP"
+                }
+                let port = CFSwapInt16BigToHost(sockaddrIn.sin_port)
+                return "\(String(cString: ip)):\(port)"
+            }
+
+            logger.i("Accepted POSIX connection from \(remoteAddress) on port \(isMain ? port : subscriberPort), clientfd=\(clientfd) at \(Date())")
+
+            // Spawn a dedicated thread for this connection
+            let connectionThread = Thread { [weak self] in
+                self?.handleConnectionPosix(clientfd: clientfd, isMain: isMain)
+                self?.connectionLock.lock()
+                if let thread = self?.activeConnections[clientfd] {
+                    if !thread.isCancelled {
+                        self?.logger.i("Closed POSIX clientfd \(clientfd) for port \(isMain ? self!.port : self!.subscriberPort)")
+                        close(clientfd)
+                        thread.cancel()
+                    }
+                    self?.activeConnections.removeValue(forKey: clientfd)
+                }
+                self?.connectionLock.unlock()
+            }
+            connectionThread.name = "Conn-\(clientfd)"
+            connectionLock.lock()
+            activeConnections[clientfd] = connectionThread
+            connectionLock.unlock()
+            connectionThread.start()
+        }
+        logger.i("Stopped accepting POSIX connections on port \(isMain ? port : subscriberPort)")
+    }
+
+    private func handleConnectionPosix(clientfd: Int32, isMain: Bool) {
+        Thread.current.name = "Handle-\(clientfd)"
+        logger.i("Handling POSIX connection on clientfd \(clientfd), thread: \(Thread.current.name ?? "unnamed")")
+        #if os(iOS)
+            if let uuid = apnUUID, let hostname = localHostname {
+                sendApnInfoPosix(clientfd: clientfd, hostname: hostname, uuid: uuid)
+            }
+        #endif
+        receiveMessagesPosix(clientfd: clientfd, isMain: isMain)
+        logger.i("DONE handling POSIX connection on clientfd \(clientfd), thread: \(Thread.current.name ?? "unnamed")")
+    }
+
+    // POSIX receive messages
+    private func receiveMessagesPosix(clientfd: Int32, isMain _: Bool) {
+        logger.d("Receive messages from POSIX connection")
+        var fullBuffer = Data()
+        var buffer = [UInt8](repeating: 0, count: 16 * 1024)
+        while isRunning {
+            let bytesRead = recv(clientfd, &buffer, buffer.count, 0)
+            switch bytesRead {
+            case -1:
+                if errno == EAGAIN || errno == EWOULDBLOCK {
+                    logger.i("POSIX connection stopped.")
+                    return
+                }
+                logger.e("Error reading from POSIX clientfd \(clientfd): \(errno)")
+                return
+
+            case 0:
+                logger.i("Client disconnectd on POSIX clientfd \(clientfd)")
+                return
+
+            default:
+                let data = Data(buffer[0 ..< bytesRead])
+                fullBuffer.append(data)
+                while let messageIndex = fullBuffer.firstIndex(of: 10) {
+                    let message = String(data: fullBuffer.subdata(in: 0 ..< messageIndex), encoding: .utf8)
+                    fullBuffer = fullBuffer.subdata(in: messageIndex + 1 ..< fullBuffer.count)
+                    if let message = message {
+                        logger.d("POSIX received message length \(message.count): \(preview(message))")
+                        if let error = handleMessagePosix(clientfd: clientfd, message: message, fullBuffer: &fullBuffer) {
+                            logger.e("POSIX Error processing message: \(Logger.opt(error))")
+                            return
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func handleMessagePosix(clientfd: Int32, message: String, fullBuffer: inout Data) -> Error? {
+        let message = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = message.components(separatedBy: ":")
+        guard parts.count > 1 else {
+            return NSError(
+                domain: "ChatService", code: 1001,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid message format"]
+            )
+        }
+        var error: Error?
+        var shouldNotify = !isAppActive()
+        switch parts[0] {
+        case "CTRL":
+            error = broadcastOrBufferMessage(message: message)
+            shouldNotify = false
+        case "TEXT":
+            error = broadcastOrBufferMessage(message: message)
+            if parts.count > 3, parts[2] == "SENDER" {
+                shouldNotify = false
+            }
+        case "FILE_START":
+            error = handleFileTransferPosix(clientfd: clientfd, message: message, fullBuffer: &fullBuffer)
+        case "PING":
+            logger.d("Received PING: \(message)")
+            shouldNotify = false
+        default:
+            error = NSError(
+                domain: "ChatService", code: 1002,
+                userInfo: [NSLocalizedDescriptionKey: "Unrecognized message type"]
+            )
+        }
+        logger.d("POSIX DONE handling message error=\(Logger.opt(error))")
+        if error == nil {
+            if shouldNotify {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.showNotification(title: "New Message Received", body: "")
+                }
+            }
+            sendAckPosix(clientfd: clientfd, id: parts[1], status: "DONE")
+        }
+        return error
+    }
+
+    private func handleFileTransferPosix(clientfd: Int32, message: String, fullBuffer: inout Data) -> Error? {
+        let parts = message.components(separatedBy: ":")
+        guard parts.count == 4 else {
+            return NSError(
+                domain: "ChatService", code: 1003,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid file start message format: \(message) \(parts.count)"]
+            )
+        }
+
+        let filename = parts[2]
+        guard let fileSize = Int64(parts[3]) else {
+            return NSError(
+                domain: "ChatService", code: 1004,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid file size: \(parts[2])"]
+            )
+        }
+        do {
+            let docDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let chatDir = docDir.appendingPathComponent("tailchat", isDirectory: true)
+
+            try FileManager.default.createDirectory(at: chatDir, withIntermediateDirectories: true)
+
+            let filePath = chatDir.appendingPathComponent(filename).path
+            let fileURL = URL(fileURLWithPath: filePath)
+
+            if FileManager.default.fileExists(atPath: filePath) {
+                try FileManager.default.removeItem(at: fileURL)
+            }
+            FileManager.default.createFile(atPath: filePath, contents: nil)
+
+            let fileHandle = try FileHandle(forWritingTo: fileURL)
+            if let error = receiveFilePosix(clientfd: clientfd, fileHandle: fileHandle, fileSize: fileSize, filePath: filePath, fullBuffer: &fullBuffer, id: parts[1]) {
+                return error
+            }
+        } catch {
+            logger.e("Error opening file: \(error)")
+            return error
+        }
+        return nil
+    }
+
+    private func receiveFilePosix(
+        clientfd: Int32, fileHandle: FileHandle, fileSize: Int64, filePath: String,
+        fullBuffer: inout Data, id: String = ""
+    ) -> Error? {
+        var received: Int64 = 0
+        // Consume data from fullBuffer first
+        if !fullBuffer.isEmpty {
+            do {
+                let remainingBytes = fileSize - received
+                var bytesToWrite = fullBuffer
+                if Int64(fullBuffer.count) > remainingBytes {
+                    bytesToWrite = fullBuffer.subdata(in: 0 ..< Int(remainingBytes))
+                    fullBuffer = fullBuffer.subdata(in: Int(remainingBytes) ..< fullBuffer.count)
+                } else {
+                    fullBuffer.removeAll()
+                }
+                try fileHandle.seekToEnd()
+                try fileHandle.write(contentsOf: bytesToWrite)
+                received += Int64(bytesToWrite.count)
+                if received >= fileSize {
+                    try fileHandle.close()
+                    logger.i("File transfer complete: \(filePath)")
+                    return nil
+                }
+            } catch {
+                logger.e("Error writing to file: \(error)")
+                return error
+            }
+        }
+
+        // Continue receiving data from connection
+        let start = Date()
+        var lastAckTime = Date()
+        var buffer = [UInt8](repeating: 0, count: 64 * 1024)
+        while received < fileSize {
+            let bytesRead = recv(clientfd, &buffer, buffer.count, 0)
+            switch bytesRead {
+            case -1:
+                if errno == EAGAIN || errno == EWOULDBLOCK {
+                    // Should we continue to try?
+                    continue
+                }
+                logger.e("Error reading from clientfd \(clientfd): \(errno)")
+                return NSError(
+                    domain: "ChatService", code: 1006,
+                    userInfo: [NSLocalizedDescriptionKey: "Connection closed before file transfer is complete"]
+                )
+
+            case 0:
+                logger.i("Client disconnected on clientfd \(clientfd)")
+                return NSError(
+                    domain: "ChatService", code: 1006,
+                    userInfo: [NSLocalizedDescriptionKey: "Connection closed before file transfer is complete"]
+                )
+
+            default:
+                let data = Data(buffer[0 ..< bytesRead])
+                do {
+                    var totalRead = received
+                    var bytesToWrite = data
+                    let remainingBytes = fileSize - totalRead
+                    if Int64(data.count) > remainingBytes {
+                        bytesToWrite = data.subdata(in: 0 ..< Int(remainingBytes))
+                        fullBuffer.append(data.subdata(in: Int(remainingBytes) ..< data.count))
+                    }
+                    try fileHandle.seekToEnd()
+                    try fileHandle.write(contentsOf: bytesToWrite)
+                    totalRead += Int64(bytesToWrite.count)
+                    received = totalRead
+                    let now = Date()
+                    if totalRead >= fileSize {
+                        sendFileMessageUpdate(filePath: filePath, totalRead: fileSize, fileSize: fileSize, time: Int64(round(now.timeIntervalSince(start) * 1000)))
+                        try fileHandle.close()
+                        logger.i("File transfer complete: \(filePath)")
+                        return nil
+                    }
+                    if now.timeIntervalSince(lastAckTime) >= ackInterval {
+                        lastAckTime = now
+                        sendAckPosix(clientfd: clientfd, id: id, status: "\(totalRead)")
+                        sendFileMessageUpdate(filePath: filePath, totalRead: totalRead, fileSize: fileSize, time: Int64(round(now.timeIntervalSince(start) * 1000)))
+                    }
+                } catch {
+                    logger.e("Error receiving file: \(error)")
+                    return error
+                }
+            }
+        }
+        return nil
+    }
+
+    // POSIX sendAck
+    private func sendAckPosix(clientfd: Int32, id: String, status: String) {
+        let message = "ACK:\(id):\(status)\n"
+        let data = message.utf8CString
+        data.withUnsafeBufferPointer { ptr in
+            let bytesSent = send(clientfd, ptr.baseAddress, data.count - 1, 0)
+            if bytesSent < 0 {
+                logger.e("Failed to send POSIX ACK on clientfd \(clientfd): \(errno)")
+                close(clientfd)
+            } else {
+                logger.i("Sent POSIX ACK: \(message)")
+            }
+        }
+    }
+
+    // POSIX sendApnInfo
+    private func sendApnInfoPosix(clientfd: Int32, hostname: String, uuid: String) {
+        let message = "TEXT:NULL_ID:PN_INFO:\(hostname) \(uuid)\n"
+        let apnInfo = message.utf8CString
+        apnInfo.withUnsafeBufferPointer { ptr in
+            let bytesSent = send(clientfd, ptr.baseAddress, apnInfo.count - 1, 0)
+            if bytesSent < 0 {
+                logger.e("Failed to send POSIX APN info on clientfd \(clientfd): \(errno)")
+                close(clientfd)
+            } else {
+                logger.i("Sent POSIX APN info")
+            }
+        }
+    }
+
+    func stopServerPosix() {
+        if mainSockfd >= 0 {
+            close(mainSockfd)
+            mainSockfd = -1
+            logger.i("Closed main POSIX listener on port \(port)")
+        }
+        if subSockfd >= 0 {
+            close(subSockfd)
+            subSockfd = -1
+            logger.i("Closed subscriber POSIX listener on port \(subscriberPort)")
+        }
+        // Terminate active connection threads
+        connectionLock.lock()
+        for (clientfd, thread) in activeConnections {
+            if !thread.isCancelled {
+                close(clientfd) // Unblock recv()
+                thread.cancel() // Mark for termination
+                logger.i("Requested termination of thread for POSIX clientfd \(clientfd)")
+            }
+        }
+        activeConnections.removeAll()
+        connectionLock.unlock()
+        mainAcceptThread?.cancel()
+        subAcceptThread?.cancel()
+    }
+
     // Long running service to listen for incoming connections and each connection
     // is handled in a separate queue and run in synchronous mode.
     private func startServer() {
@@ -205,6 +625,12 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
 
         logger.i("Start-stop server lock acquired. Starting server")
+        #if os(iOS)
+            startServerPosix()
+            isServerStarting = false
+            logger.i("Finished starting server.")
+            return
+        #endif
 
         // Retarting listeners base on network availability does not work as
         // expected. Will do more investigation and experiments to decide the
@@ -235,6 +661,10 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         stateCheckWorkItem = workItem
 
         do {
+            logger.i("Testing POSIX socket binding on port \(port)")
+            let posixSuccess = testRawSocketBinding(port: port, logger: logger)
+            logger.i("POSIX test result for port \(port): \(posixSuccess)")
+
             // Main listener setup
             let parameters = NWParameters.tcp
             parameters.allowLocalEndpointReuse = true
@@ -256,6 +686,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
 
             let content = NWEndpoint.Port(rawValue: port)!
             listener = try NWListener(using: parameters, on: content)
+            logger.i("Setting state handler for main listener")
             listener?.stateUpdateHandler = handleStateUpdate
             listener?.newConnectionHandler = { [weak self] connection in
                 let logger = Logger(tag: "ChatService")
@@ -277,7 +708,25 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             }
 
             listener?.start(queue: DispatchQueue.global(qos: .background))
-            logger.i("Server listener started on port \(port)")
+            logger.i("Server listener started on port \(port) \(Date())")
+            if let error = listener?.debugDescription.range(of: "error") {
+                logger.e("Debug hint of error in listener: \(listener?.debugDescription ?? "nil")")
+            }
+
+            if let state = listener?.state {
+                logger.i("Manual state check post-start: \(state) at \(Date())")
+            }
+
+            if listener?.stateUpdateHandler != nil {
+                logger.i("Main listener handler is set at \(Date())")
+            } else {
+                logger.e("Main listener handler is nil post-start!")
+            }
+
+            // Subscriber listener setup...
+            logger.i("Testing POSIX socket binding on port \(subscriberPort)")
+            let subscriberPosixSuccess = testRawSocketBinding(port: subscriberPort, logger: logger)
+            logger.i("POSIX test result for port \(subscriberPort): \(subscriberPosixSuccess)")
 
             // Subscriber listener setup
             let subscriberParameters = NWParameters.tcp
@@ -303,9 +752,9 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             logger.i("Subscriber Server listener started on port \(subscriberPort)")
 
             // Schedule the check
-            DispatchQueue.global().asyncAfter(deadline: .now() + 2, execute: workItem)
+            DispatchQueue.global().asyncAfter(deadline: .now() + 10, execute: workItem)
             logger.i("[StateCheck] Scheduled state check work item")
-       } catch { 
+        } catch { 
             logger.e("Failed to start listener servers: \(error). Retry in two seconds...")
             DispatchQueue.global().asyncAfter(deadline: .now() + 2, execute: workItem)
         }
@@ -319,11 +768,11 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         let subscriberReady = subscriberListener?.state == .ready
 
         if !listenerReady {
-            logger.e("Main listener is not ready")
+            logger.e("Main listener is not ready state=\(listener?.state)")
         }
 
         if !subscriberReady {
-            logger.e("Subscriber listener is not ready")
+            logger.e("Subscriber listener is not ready state=\(subscriberListener?.state)")
         }
 
         if listenerReady, subscriberReady {
@@ -377,7 +826,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             guard let self = self else { return }
             self.logger.e("Failed to start or stop chat service. Exiting App.")
-            exit(0)
+            // exit(0)
         }
     }
 
@@ -442,6 +891,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     }
 
     private func handleStateUpdate(state: NWListener.State) {
+        logger.i("Handler called with state: \(state) at \(Date())")
         switch state {
         case .setup:
             logger.i("Listener entering setup state")
@@ -1097,7 +1547,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
     }
 
-    func stopService() { 
+    func stopService() {
         if !isRunning { 
             logger.w("Service already stopped. Skip...")
             return
@@ -1137,6 +1587,9 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
 
         logger.i("Got startStopServer lock. Stopping server...")
+
+        // Stop Posix sockets.
+        stopServerPosix()
 
         // Close all main connections first
         connectionMutex.sync {
@@ -1234,4 +1687,50 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             logger.i("ChatMessageSink unset")
         }
     }
+}
+
+func testRawSocketBinding(port: UInt16, logger: Logger) -> Bool {
+    // Create socket
+    let sockfd = socket(AF_INET, SOCK_STREAM, 0)
+    guard sockfd >= 0 else {
+        logger.e("Failed to create socket: \(errno)")
+        return false
+    }
+
+    // Set SO_REUSEADDR to avoid "Address already in use" from lingering sockets
+    var reuse: Int32 = 1
+    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size))
+
+    // Prepare sockaddr_in
+    var addr = sockaddr_in(
+        sin_len: __uint8_t(MemoryLayout<sockaddr_in>.size),
+        sin_family: sa_family_t(AF_INET),
+        sin_port: in_port_t(port).bigEndian,
+        sin_addr: in_addr(s_addr: INADDR_ANY),
+        sin_zero: (0, 0, 0, 0, 0, 0, 0, 0)
+    )
+
+    // Bind with proper casting
+    let bindResult = withUnsafePointer(to: &addr) { addrPtr in
+        bind(sockfd, UnsafeRawPointer(addrPtr).assumingMemoryBound(to: sockaddr.self), socklen_t(MemoryLayout<sockaddr_in>.size))
+    }
+
+    if bindResult == 0 {
+        logger.i("POSIX socket bound successfully to port \(port) at \(Date())")
+        // Optionally listen to confirm it’s usable
+        let listenResult = listen(sockfd, 5)
+        if listenResult == 0 {
+            logger.i("POSIX socket listening on port \(port)")
+        } else {
+            logger.e("POSIX listen failed on port \(port): \(errno)")
+        }
+    } else {
+        logger.e("POSIX bind failed on port \(port): \(errno) at \(Date())")
+    }
+
+    // Clean up: close the socket
+    close(sockfd)
+    logger.i("POSIX socket closed for port \(port) at \(Date())")
+
+    return bindResult == 0
 }
