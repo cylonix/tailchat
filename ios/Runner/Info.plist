@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>AppGroupId</key>
+	<string>$(CUSTOM_GROUP_ID)</string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>io.cylonix.tailchat.chatServiceTask</string>
+	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -22,6 +28,17 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>ShareMedia-$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
@@ -32,11 +49,16 @@
 	<string>Microphone is accessed only if user chooses to record voice message in the chat.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Photos are accessed only if user selects photos to send in the chat.</string>
+	<key>NSUserNotificationAlertStyle</key>
+	<string>alert</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>We need to send you notifications about incoming messages and service status</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>
+		<string>fetch</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
@@ -55,27 +77,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSUserNotificationAlertStyle</key>
-	<string>alert</string>
-	<key>NSUserNotificationUsageDescription</key>
-	<string>We need to send you notifications about incoming messages and service status</string>
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
 	<array>
-		<string>io.cylonix.tailchat.chatServiceTask</string>
-	</array>
-
-	<key>AppGroupId</key>
-	<string>$(CUSTOM_GROUP_ID)</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>ShareMedia-$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-			</array>
-		</dict>
+		<string>io.cylonix.sase.tailchat.newConnection</string>
+		<string>io.cylonix.sase.tailchat.stateChange</string>
+		<string>io.cylonix.sase.tailchat.newMessage</string>
 	</array>
 </dict>
 </plist>

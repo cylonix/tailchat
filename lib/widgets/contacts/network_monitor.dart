@@ -224,7 +224,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
             setState(() {
               _alert = Alert(
                 "Cannot detect tailnet hostname and address. "
-                "Is Tailscale running?",
+                "Is mesh network like Tailscale or Cylonix running?",
                 setter: "network_config",
               );
             });
@@ -275,7 +275,10 @@ class _ContactsPageState extends State<NetworkMonitor> {
     if (hostname.isEmpty) {
       if (mounted) {
         setState(() {
-          _alert = Alert("Is Tailscale down?", setter: "network_config");
+          _alert = Alert(
+            "Is mesh network like Tailscale or Cylonix down?",
+            setter: "network_config",
+          );
         });
       }
       return;

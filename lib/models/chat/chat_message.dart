@@ -9,7 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 import '../../api/config.dart';
 import '../../api/chat_server.dart';
-import '../../utils/global.dart';
+import '../../utils/logger.dart';
 import '../contacts/user_profile.dart';
 import 'chat_event.dart';
 import 'chat_storage.dart';
@@ -20,6 +20,7 @@ class ChatMessage {
   String? originalPath;
   types.Message message;
   ChatMessage({required this.chatID, required this.message, this.originalPath});
+  static const _logger = Logger(tag: "ChatMessage");
 
   static types.User toAuthor(UserProfile up, {types.Role? role}) {
     return types.User(
@@ -187,7 +188,7 @@ class ChatMessage {
   }
 
   void notify() {
-    Global.logger.d("notifying message ${message.id}");
+    _logger.d("notifying message ${message.id}");
     ChatServer.getChatEventBus().fire(ChatAddEvent(
       chatID: chatID,
       message: message,
@@ -221,7 +222,7 @@ class ChatMessage {
       }
       await File(absolutePath).create(recursive: true);
       await file.copy(absolutePath);
-      Global.logger.d("File has been copied from $path to $newPath");
+      _logger.d("File has been copied from $path to $newPath");
       return true;
     }
     return false;

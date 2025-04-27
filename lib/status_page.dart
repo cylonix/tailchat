@@ -136,7 +136,21 @@ class _StatusPageState extends State<StatusPage> {
                                 setState(() {
                                   _isConnecting = true;
                                 });
-                                await ChatServer.startServiceStateMonitor();
+                                try {
+                                  await ChatServer.startServiceStateMonitor(
+                                    _onChatServiceError,
+                                  );
+                                  await ChatServer.subscribeToMessages(
+                                    _onChatServiceError,
+                                  );
+                                } catch (e) {
+                                  _logger.e(
+                                      "Failed to connect to chat service: $e");
+                                  setState(() {
+                                    _isConnecting = false;
+                                    _alert = Alert(e.toString());
+                                  });
+                                }
                               },
                               child: const Text("Connect"),
                             ),
@@ -160,5 +174,14 @@ class _StatusPageState extends State<StatusPage> {
         ),
       ),
     );
+  }
+
+  void _onChatServiceError(dynamic error) {
+    _logger.e("Chat service error: $error");
+    if (mounted) {
+      setState(() {
+        _alert = Alert("Chat service error: $error");
+      });
+    }
   }
 }

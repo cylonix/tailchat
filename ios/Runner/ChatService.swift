@@ -41,6 +41,28 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     private var mainSockfd: Int32 = -1
     private var subSockfd: Int32 = -1
 
+    static let appGroup = "group.io.cylonix.sase.ios"
+    static let cylonixServiceKey = "tailchat_service_enabled"
+    static public var isCylonixServiceActive: Bool {
+        guard let userDefaults = UserDefaults(suiteName: Self.appGroup) else {
+            Logger(tag: "ChatService").w("Could not access app group: \(Self.appGroup)")
+            return false
+        }
+        let state = userDefaults.bool(forKey: Self.cylonixServiceKey)
+        Logger(tag: "ChatService").i("Cylonix service state: \(state)")
+        return state
+    }
+    static public var cylonixSharedFolderPath: String? {
+        let fileManager = FileManager.default
+        guard let sharedContainerURL = fileManager.containerURL(forSecurityApplicationGroupIdentifier: Self.appGroup) else {
+            Logger(tag: "ChatService").e("Failed to get shared container URL")
+            return nil
+        }
+        let sharedFolderPath = sharedContainerURL.appendingPathComponent("tailchat").path
+        Logger(tag: "ChatService").i("Cylonix shared folder path: \(sharedFolderPath)")
+        return sharedFolderPath
+    }
+
     func startService() {
         logger.i("Starting service if not yet running.")
         if isDeleted {
@@ -48,7 +70,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             return
         }
 
-        if isRunning { 
+        if isRunning {
             logger.w("Service already running. Skip...")
             return
         }
@@ -578,6 +600,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     }
 
     func stopServerPosix() {
+        logger.i("Stopping POSIX server listeners")
         if mainSockfd >= 0 {
             close(mainSockfd)
             mainSockfd = -1
@@ -620,14 +643,19 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         // Wait for ongoing shutdown to finish if any.
         startStopServerLock.lock()
         defer {
+            isServerStarting = false
             logger.d("Releasing startStopServer lock")
             startStopServerLock.unlock()
         }
 
         logger.i("Start-stop server lock acquired. Starting server")
+        // Check if Cylonix app is handling the service
+        if Self.isCylonixServiceActive {
+            logger.i("Cylonix app is already providing tailchat service. Skip starting listeners.")
+            return
+        }
         #if os(iOS)
             startServerPosix()
-            isServerStarting = false
             logger.i("Finished starting server.")
             return
         #endif
@@ -691,7 +719,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             listener?.newConnectionHandler = { [weak self] connection in
                 let logger = Logger(tag: "ChatService")
                 logger.i("New connection from \(connection.endpoint)")
-                guard let self = self else { 
+                guard let self = self else {
                     logger.e("Self is nil. Ignoring connection: \(connection.endpoint)")
                     connection.cancel()
                     return
@@ -754,12 +782,11 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             // Schedule the check
             DispatchQueue.global().asyncAfter(deadline: .now() + 10, execute: workItem)
             logger.i("[StateCheck] Scheduled state check work item")
-        } catch { 
+        } catch {
             logger.e("Failed to start listener servers: \(error). Retry in two seconds...")
             DispatchQueue.global().asyncAfter(deadline: .now() + 2, execute: workItem)
         }
 
-        isServerStarting = false
         logger.i("Finished starting server.")
     }
 
@@ -835,7 +862,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     private let restartCountLock = NSLock()
     private let restartLock = NSLock()
     private var isServerRestarting: Bool = false
-    func restartServer() { 
+    func restartServer() {
         restartLock.lock()
         if isServerRestarting {
             restartLock.unlock()
@@ -909,7 +936,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             logger.e("Listener failed. Error: \(error.localizedDescription)")
             logger.e("Listener network error code: \(error)")
             logger.e("Listener Detailed error: \(String(describing: error))")
-            if isRunning { 
+            if isRunning {
                 restartServer()
             }
             logger.i("Finshed listener failed state handling.")
@@ -938,7 +965,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             }
         case let .failed(error):
             logger.e("Subscriber listener failed with error: \(error)")
-            if isRunning { 
+            if isRunning {
                 restartServer()
             }
             logger.i("Finished subscriber listener failed state handling.")
@@ -952,7 +979,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     typealias MessageHandler = (NWConnection, String, inout Data) -> Error?
     private func handleConnection(connection: NWConnection) {
         logger.i("New connection received from \(connection.endpoint)")
-        if isShuttingDown { 
+        if isShuttingDown {
             logger.i("Rejecting new connection during shutdown from \(connection.endpoint)")
             connection.cancel()
             return
@@ -981,7 +1008,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     }
 
     private func handleSubscriberConnection(connection: NWConnection) {
-        if isShuttingDown { 
+        if isShuttingDown {
             logger.i("Rejecting new subscriber connection during shutdown from \(connection.endpoint)")
             connection.cancel()
             return
@@ -1080,7 +1107,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
     }
 
-    private func receiveLoop(connection: NWConnection, messageHandler: MessageHandler) { 
+    private func receiveLoop(connection: NWConnection, messageHandler: MessageHandler) {
         var fullBuffer = Data()
         while true {
             let semaphore = DispatchSemaphore(value: 0)
@@ -1156,7 +1183,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
         logger.d("DONE handling message error=\(Logger.opt(error))")
         if error == nil {
-            if shouldNotify { 
+            if shouldNotify {
                 DispatchQueue.main.async { [weak self] in
                     guard let self = self else { return }
                     self.showNotification(title: "New Message Received", body: "")
@@ -1318,9 +1345,9 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         return nil
     }
 
-    private func sendFileMessageUpdate(filePath: String, totalRead: Int64, fileSize: Int64, time: Int64) { 
+    private func sendFileMessageUpdate(filePath: String, totalRead: Int64, fileSize: Int64, time: Int64) {
         if let eventSink = eventSink {
-            DispatchQueue.main.async { 
+            DispatchQueue.main.async {
                 eventSink(
                     [
                         "type": "file_receive",
@@ -1425,7 +1452,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     private func broadcastOrBufferMessage(message: String) -> Error? {
         if let eventSink = chatMessageEventSink {
             logger.i("UI app is running, sending message to eventSink: length \(message.count): \(preview(message))")
-            DispatchQueue.main.async { 
+            DispatchQueue.main.async {
                 eventSink(message)
             }
         } else {
@@ -1510,7 +1537,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
             if let string = String(data: data, encoding: .utf8) {
                 return string.components(separatedBy: "\n")
             }
-        } catch { 
+        } catch {
             logger.e("Error loading messages from buffer file: \(error)")
         }
         return []
@@ -1535,7 +1562,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         do {
             let messages = getBufferedMessages()
             for message in messages {
-                DispatchQueue.main.async { 
+                DispatchQueue.main.async {
                     eventSink(String(message))
                 }
             }
@@ -1548,7 +1575,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
     }
 
     func stopService() {
-        if !isRunning { 
+        if !isRunning {
             logger.w("Service already stopped. Skip...")
             return
         }
@@ -1567,7 +1594,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         stateCheckWorkItem?.cancel()
         stateCheckWorkItem = nil
 
-        if !stopServerLock.try() { 
+        if !stopServerLock.try() {
             logger.i("Already shutting down. Skip...")
             return
         }
@@ -1583,6 +1610,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         startStopServerLock.lock()
         defer {
             logger.d("Releasing startStopServer lock")
+            isShuttingDown = false
             startStopServerLock.unlock()
         }
 
@@ -1656,9 +1684,6 @@ class ChatService: NSObject, NetworkMonitorDelegate {
 
         listener = nil
         subscriberListener = nil
-
-        // Reset shutdown flag
-        isShuttingDown = false
 
         logger.i("Server stopped")
     }

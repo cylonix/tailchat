@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:event_bus/event_bus.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:http/http.dart' as http;
 
@@ -29,28 +30,59 @@ import 'send_chat.dart';
 
 class ChatServer {
   static var _serverStarted = false;
+  static var _serverStarting = false;
   static final _eventBus = EventBus();
   static String? _activeChatID;
   static bool _appIsActive = false;
   static bool isNetworkAvailable = Platform.isLinux ? true : false;
   static final _logger = Logger(tag: "ChatServer");
-  static ChatService? _chatService;
   static ContactsRepository? _contactsRepository;
+  static bool hasSubscribedToMessages = false;
+  static bool isCylonixEnabled = false;
+  static String? sharedFolderPath;
+  static StreamSubscription? _serviceMessageSub;
 
   static EventBus getChatEventBus() {
     return _eventBus;
   }
 
-  static void setAppIsActive(bool active) async {
+  static Future<void> setAppIsActive(
+    bool active,
+    Function(dynamic) onError,
+  ) async {
     _logger.d("app is active = $active");
     _appIsActive = active;
     if (Platform.isIOS) {
-      if (active) {
-        await startServiceStateMonitor();
-      } else {
-        await stopServiceStateMonitor();
+      try {
+        if (active) {
+          final wasEnabled = isCylonixEnabled;
+          await _resetCylonixEnabled();
+          if (wasEnabled != isCylonixEnabled) {
+            await _cylonixEnabledStateChanged(onError);
+            return;
+          }
+        }
+        _logger.d("Cylonix enabled: $isCylonixEnabled");
+        if (!isCylonixEnabled) {
+          active
+              ? await startServiceStateMonitor(onError)
+              : await ChatService.stopServiceStateMonitor();
+        }
+      } catch (e) {
+        _logger.e("Failed to start/stop service state monitor: $e");
+        rethrow;
       }
     }
+  }
+
+  static Future<void> _cylonixEnabledStateChanged(
+    Function(dynamic) onError,
+  ) async {
+    _logger.i("cylonixEnabledStateChanged enabled=$isCylonixEnabled");
+    await ChatService.stopService();
+    _serverStarted = false;
+    await startServer(onError);
+    await subscribeToMessages(onError, force: true);
   }
 
   static void setIsOnFront(String chatID, bool onFront) {
@@ -65,59 +97,120 @@ class ChatServer {
     _activeChatID = null;
   }
 
-  static void startServer() async {
+  static Future<void> startServer(Function(dynamic) onError) async {
     _logger.i("Starting chat server");
+    if (_serverStarting) {
+      _logger.i("chat server is starting. skip...");
+      return;
+    }
     if (_serverStarted) {
       _logger.i("chat server has been started or is starting. skip...");
       return;
     }
-    _serverStarted = true;
-    _chatService ??= ChatService();
-    ChatService.initMethodChannelHandlers();
-    _contactsRepository ??= await ContactsRepository.getInstance();
-    if (isMobile() || Platform.isMacOS) {
-      _logger.i("Starting chat service");
-      await ChatService.startService();
-      if (isApple()) {
-        _logger.i("Starting to listen to chat service events");
-        ChatService.subscribeToEvents().listen(_handleEvent);
+    try {
+      _serverStarting = true;
+      _logger.i("Initializing chat service");
+      _contactsRepository ??= await ContactsRepository.getInstance();
+      if (isMobile() || Platform.isMacOS) {
+        _logger.i("Starting chat service");
+        await ChatService.startService();
+        if (isApple()) {
+          _logger.i("Starting to listen to chat service events");
+          ChatService.subscribeToEvents().listen(_handleEvent);
+        }
       }
+      ChatService.eventBus.on<ChatServiceStateEvent>().listen(_handleEvent);
+      await startServiceStateMonitor(onError, force: true);
+      _logger.i("Done starting service");
+      _serverStarted = true;
+    } finally {
+      _serverStarting = false;
     }
-    ChatService.eventBus.on<ChatServiceStateEvent>().listen(_handleEvent);
-    await _chatService?.startServiceStateMonitor();
-    _logger.i("Done starting service");
-  }
-
-  static Future<void> startServiceStateMonitor() async {
-    await _chatService?.startServiceStateMonitor();
-  }
-
-  static Future<void> stopServiceStateMonitor() async {
-    await _chatService?.stopServiceStateMonitor();
   }
 
   static Future<void> restartServer() async {
-    await _chatService?.restartServer();
+    await ChatService.restartServer();
+  }
+
+  static Future<void> init(Function(dynamic) onError) async {
+    ChatService.platform.setMethodCallHandler((MethodCall call) async {
+      switch (call.method) {
+        case 'cylonixServiceStateChanged':
+          _logger.i("Cylonix service state changed");
+          try {
+            await _resetCylonixEnabled();
+            await _cylonixEnabledStateChanged(onError);
+          } catch (e) {
+            _logger.e("Failed to start service state monitor: $e");
+            onError(e);
+          }
+          break;
+      }
+    });
+  }
+
+  static Future<void> _resetCylonixEnabled() async {
+    isCylonixEnabled = false;
+    sharedFolderPath = null;
+    if (Platform.isIOS) {
+      _logger.i("Reset Cylonix enabled");
+      isCylonixEnabled = await ChatService.isCylonixEnabled();
+      if (isCylonixEnabled) {
+        sharedFolderPath = await ChatService.getCylonixSharedFolderPath();
+      }
+    }
+  }
+
+  static Future<void> startServiceStateMonitor(
+    Function(dynamic) onError, {
+    bool force = false,
+  }) async {
+    _logger.i("Starting service state monitor");
+    await ChatService.startServiceStateMonitor(
+      address: address,
+      disconnectIfExists: force,
+      onError: onError,
+    );
   }
 
   static get isServiceSocketConnected {
-    _logger.i("Service connected: ${_chatService?.isServiceSocketConnected}");
-    return _chatService?.isServiceSocketConnected ?? false;
+    _logger.i("Service connected: ${ChatService.isServiceSocketConnected}");
+    return ChatService.isServiceSocketConnected;
   }
 
-  static bool hasSubscribedToMessages = false;
-  static void subscribeToMessages() {
+  static Future<void> subscribeToMessages(
+    Function(dynamic) onError, {
+    bool force = false,
+  }) async {
     if (hasSubscribedToMessages) {
-      _logger.d("Already subscribed to messages. Skip.");
-      return;
+      if (force) {
+        _serviceMessageSub?.cancel();
+        _logger.d("Force to subscribe to messages.");
+      } else {
+        _logger.d("Already subscribed to messages. Skip.");
+        return;
+      }
     }
     hasSubscribedToMessages = true;
-    if (isMobile() || Platform.isMacOS) {
-      _logger.i("Starting to listen to chat messages");
-      ChatService.subscribeToMessages().listen(_handleChatServiceMessage);
+    await _resetCylonixEnabled();
+    if ((isMobile() || Platform.isMacOS) && !isCylonixEnabled) {
+      _logger.i("Start to listen to chat messages");
+      _serviceMessageSub =
+          ChatService.subscribeToMessages().listen(_handleChatServiceMessage);
     } else {
-      _logger.i("Starting to listening to subscriber socket");
-      _chatService?.listenToSubscriberSocket(_handleMessage);
+      _logger.i("Start to listen to subscriber socket");
+      try {
+        ChatService.listenToSubscriberSocket(
+          _handleMessage,
+          address: address,
+          disconnectIfExists: true,
+          onError: onError,
+        );
+      } catch (e) {
+        _logger.e("Failed to listen to subscriber socket: $e");
+        hasSubscribedToMessages = false;
+        rethrow;
+      }
     }
   }
 
@@ -138,7 +231,7 @@ class ChatServer {
     String? newAddress,
     int? newPort,
     int? newSubscriberPort,
-  }) {
+  }) async {
     hostname = newHostname;
     address = newAddress;
     port = newPort;
@@ -149,6 +242,24 @@ class ChatServer {
       port: port,
       subscriberPort: subscriberPort,
     ));
+    if (address != null) {
+      await _resetCylonixEnabled();
+      if (isCylonixEnabled) {
+        try {
+          ChatService.listenToSubscriberSocket(
+            _handleMessage,
+            address: address,
+            disconnectIfExists: true,
+          );
+          ChatService.startServiceStateMonitor(
+            address: address,
+            disconnectIfExists: true,
+          );
+        } catch (e) {
+          _logger.e("Failed to listen to subscriber socket: $e");
+        }
+      }
+    }
   }
 
   static Future<bool> sendPushNotificationToken(
@@ -274,12 +385,6 @@ class ChatServer {
   static Future<void> _handleChatServiceStateEvent(
     ChatServiceStateEvent event,
   ) async {
-    ChatService? from = event.from;
-    if (from == null) {
-      _logger.e("Invalid chat service instance: $event");
-      return;
-    }
-
     final device =
         event.isSelfDevice ? Pst.selfDevice : await getDevice(event.deviceID);
 
@@ -309,7 +414,14 @@ class ChatServer {
       _logger.e("failed to update self device: $e");
     }
 
-    if (event.deviceID != null && event.deviceID != Pst.selfDevice?.id) {
+    if ((event.deviceID != null && event.deviceID != Pst.selfDevice?.id) ||
+        !event.isSelfDevice) {
+      final from = event.from;
+      if (from == null) {
+        _logger.e("Invalid chat service instance: $event");
+        return;
+      }
+
       // A remote service is connected. Let's send our information.
       if (event.state == ChatServiceState.connected) {
         final self = Pst.selfUser;
@@ -328,7 +440,7 @@ class ChatServer {
         } catch (e) {
           _logger.e(
             "failed to send message to "
-            "${from.serverAddress}:${from.port}: $e",
+            "${from.address}:${from.port}: $e",
           );
         }
       }
@@ -657,7 +769,9 @@ class ChatServer {
     var name = message.name;
     if (name != null) {
       name = ChatStorage.filenameWithMessageID(message.id, name);
-      final uri = await ChatStorage.getFileMessageUri(name);
+      final uri = sharedFolderPath != null
+          ? "$sharedFolderPath/$name"
+          : await ChatStorage.getFileMessageUri(name);
       return (uri != null) ? message.copyWith(uri: uri) : message;
     }
     return message;

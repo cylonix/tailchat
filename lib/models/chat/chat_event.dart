@@ -118,7 +118,7 @@ enum ChatServiceState {
 }
 
 class ChatServiceStateEvent {
-  final ChatService? from;
+  final ChatServiceSender? from;
   final String? userID;
   final String? deviceID;
   final ChatServiceState state;
@@ -135,7 +135,7 @@ class ChatServiceStateEvent {
 
   @override
   String toString() {
-    return "${from?.serverAddress}:${from?.port} -> ${state.name}";
+    return "${from?.address}:${from?.port} -> ${state.name}";
   }
 }
 

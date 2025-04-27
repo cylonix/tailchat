@@ -164,6 +164,9 @@ class _AdvancedSettingsWidgetState extends State<AdvancedSettingsWidget> {
       final logs = await ChatService.getLogs();
       _serviceLogs = logs.split('\n');
       _logger.d("Logs ${_serviceLogs.length} lines.");
+      if (_serviceLogs.length > 1000) {
+        _serviceLogs = _serviceLogs.sublist(_serviceLogs.length - 1000);
+      }
 
       LogEvent? currentLogEvent;
       List<String> currentLines = [];

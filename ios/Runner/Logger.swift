@@ -46,7 +46,7 @@ public class Logger {
         // Log to console using os_log
         os_log("%{public}@", log: osLog, type: .default, logMessage)
 
-        // Log to file
+        // Log to file with timestamp and tag
         logQueue.async {
             self.writeToFile(logMessage)
             self.rotateLogFileIfNeeded()

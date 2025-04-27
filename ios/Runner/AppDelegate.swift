@@ -19,13 +19,16 @@ import UserNotifications
 #endif
 
 @available(macOS 10.15, iOS 13.0, *)
-class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProtocol { 
+class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProtocol {
     private var methodChannel: FlutterMethodChannel?
     private var eventChannel: FlutterEventChannel?
     private var chatMessageChannel: FlutterEventChannel?
     private var chatMesssageEventSink: FlutterEventSink?
     private var eventSink: FlutterEventSink?
+    private var cylonixObserver: UnsafeMutableRawPointer?
+    private static let cylonixStateChangeNotification = "io.cylonix.sase.tailchat.stateChange"
     var isAppInBackground = false
+    var isServiceEnabled = false
     private let logger = Logger(tag: "AppDelegate")
 
     // MARK: - BackgroundTaskProtocol
@@ -48,6 +51,7 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
             startChatService()
             setupFlutterChannels()
             backgroundTaskHandler = BackgroundTask(delegate: self)
+            setupCylonixServiceObserver()
             return super.application(application, didFinishLaunchingWithOptions: launchOptions)
         }
 
@@ -65,8 +69,46 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
         override func applicationWillEnterForeground(_: UIApplication) {
             isAppInBackground = false
             backgroundTaskHandler?.endBackgroundTask()
+            backgroundTaskHandler?.endPeriodicalBackgroundTask()
             startChatService()
             chatService?.setAppActive(true)
+        }
+
+        private static let observerCallback: CFNotificationCallback = { _, observer, name, _, _ in
+            if let nameString = name?.rawValue as String?,
+               nameString == AppDelegate.cylonixStateChangeNotification,
+               let observer = observer
+            {
+                let appDelegate = Unmanaged<AppDelegate>.fromOpaque(observer).takeUnretainedValue()
+                appDelegate.handleCylonixServiceStateChange()
+            }
+        }
+
+        private func setupCylonixServiceObserver() {
+            let center = CFNotificationCenterGetDarwinNotifyCenter()
+            let selfPtr = Unmanaged.passRetained(self).toOpaque()
+
+            cylonixObserver = selfPtr
+
+            CFNotificationCenterAddObserver(
+                center,
+                cylonixObserver,
+                Self.observerCallback,
+                Self.cylonixStateChangeNotification as CFString,
+                nil,
+                .deliverImmediately
+            )
+
+            logger.i("Registered for Cylonix service state changes")
+        }
+
+        private func handleCylonixServiceStateChange() {
+            logger.i("Received Cylonix service state change notification")
+
+            let isNowActive = ChatService.isCylonixServiceActive
+            logger.i("Cylonix service state changed to \(isNowActive)")
+
+            methodChannel?.invokeMethod("cylonixServiceStateChanged", arguments: isNowActive)
         }
 
     #endif
@@ -131,14 +173,26 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
 
             switch call.method {
             case "startService":
+                self.logger.i("Starting chat service from App")
+                self.isServiceEnabled = true
                 self.startChatService()
                 result(nil)
             case "stopService":
+                self.logger.i("Stopping chat service from App")
+                self.isServiceEnabled = false
                 self.stopChatService()
                 result(nil)
             case "restartService":
+                self.logger.i("Restarting chat service from App")
+                self.isServiceEnabled = true
                 self.restartChatService()
                 result(nil)
+            case "isCylonixServiceActive":
+                self.logger.i("Checking if chat service is assisted by Cylonix")
+                result(ChatService.isCylonixServiceActive)
+            case "getCylonixSharedFolderPath":
+                self.logger.i("Getting Cylonix shared folder path")
+                result(ChatService.cylonixSharedFolderPath)
             case "logs":
                 self.getLogs()
                 result(nil)
@@ -161,6 +215,10 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
     }
 
     private func startChatService() {
+        if !isServiceEnabled {
+            logger.i("Service is not enabled. Not starting chat service.")
+            return
+        }
         logger.i("Starting chat service")
         if chatService == nil {
             let service = ChatService()
@@ -181,6 +239,10 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
     }
 
     private func restartChatService() {
+        if !isServiceEnabled {
+            logger.i("Service is not enabled. Not restarting chat service.")
+            return
+        }
         logger.i("Restarting chat service")
         if let service = chatService {
             service.restartServer()
@@ -188,6 +250,16 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
     }
 
     deinit {
+        if let observer = cylonixObserver {
+            let center = CFNotificationCenterGetDarwinNotifyCenter()
+            CFNotificationCenterRemoveObserver(
+                center,
+                observer,
+                CFNotificationName(Self.cylonixStateChangeNotification as CFString),
+                nil
+            )
+            Unmanaged<AppDelegate>.fromOpaque(observer).release()
+        }
         stopChatService()
     }
 

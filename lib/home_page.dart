@@ -89,16 +89,6 @@ class _HomePageState extends State<HomePage>
     Global.routeObserver.subscribe(this, ModalRoute.of(context)!);
   }
 
-  @override
-  void didPush() {
-    ChatServer.setAppIsActive(true);
-  }
-
-  @override
-  void didPopNext() {
-    ChatServer.setAppIsActive(true);
-  }
-
   /// For desktop side-by-side views, chat page is not pop/pushed and hence
   /// we need to clear the active chat ID whenever home page is not active.
   /// For not-side-by-side operation, this is OK as the newly pushed chat
@@ -219,10 +209,16 @@ class _HomePageState extends State<HomePage>
     _connectivitySubscriptionInitialize();
 
     // Start chat server.
-    ChatServer.startServer();
-
-    // Subscribe to messages.
-    ChatServer.subscribeToMessages();
+    try {
+      ChatServer.init(_onChatServiceError);
+      ChatServer.startServer(_onChatServiceError);
+      ChatServer.subscribeToMessages(_onChatServiceError);
+    } catch (e) {
+      _logger.e("Failed to start chat server: $e");
+      setState(() {
+        _alert = Alert("Chat service error: $e");
+      });
+    }
 
     // Check first launch.
     await checkFirstLaunch();
@@ -230,6 +226,15 @@ class _HomePageState extends State<HomePage>
     // Share callbacks.
     if (isMobile()) {
       _listenShareMediaFiles();
+    }
+  }
+
+  void _onChatServiceError(dynamic e) async {
+    _logger.e("Chat service error: $e");
+    if (mounted) {
+      setState(() {
+        _alert = Alert("Chat service error: $e");
+      });
     }
   }
 
@@ -255,7 +260,7 @@ class _HomePageState extends State<HomePage>
     switch (state) {
       case AppLifecycleState.resumed:
         _logger.d("app resumed");
-        ChatServer.setAppIsActive(true);
+        ChatServer.setAppIsActive(true, _onChatServiceError);
         // Reset connectivity subs and subscribe/check connectivity.
         _connectivitySubscriptionInitialize();
         if (isMobile()) {
@@ -264,7 +269,7 @@ class _HomePageState extends State<HomePage>
         break;
       case AppLifecycleState.paused:
         _logger.d("app paused");
-        ChatServer.setAppIsActive(false);
+        ChatServer.setAppIsActive(false, _onChatServiceError);
         break;
       case AppLifecycleState.inactive:
         _logger.d("app inactive");

@@ -108,7 +108,7 @@ class _ChatPageState extends State<ChatPage>
   types.Message? _replyMessage;
   types.Room? _room;
   types.User? _user;
-  Alert? _alert;
+  Alert? _alert, _messageAlert;
   bool _initDone = false;
   bool _canReceive = false;
   bool _showSendResult = true;
@@ -143,7 +143,6 @@ class _ChatPageState extends State<ChatPage>
     _storage = ChatStorage(chatID: _chatID.id);
     _user = ChatMessage.selfToAuthor();
     _canReceive = ChatServer.isServiceSocketConnected;
-    ChatServer.startServer();
     _pingPeers();
     _registerChatServerEvent();
     _registerSelfUserChangeEvent();
@@ -668,6 +667,7 @@ class _ChatPageState extends State<ChatPage>
           _hasPeersReady = hasPeersReady;
           _onlineUsers = onlineUsers;
           if (_hasPeersReady) {
+            _alert = null;
             _canSendChecking = false;
             _retryPendingMessage();
           }
@@ -780,12 +780,12 @@ class _ChatPageState extends State<ChatPage>
     }
   }
 
-  Future<bool?> _showSendResultDialog(
+  Future<void> _showSendResultDialog(
     ChatSendPeersResult? r, {
     List<AlertAction> actions = const [],
   }) async {
     if (!mounted) {
-      return null;
+      return;
     }
     final tr = AppLocalizations.of(context);
     String? st;
@@ -827,7 +827,7 @@ class _ChatPageState extends State<ChatPage>
           style: const TextStyle(color: Colors.red),
         ),
     ];
-    return AlertDialogWidget(
+    final dialog = AlertDialogWidget(
       title: title,
       actions: [
         ...actions,
@@ -838,9 +838,23 @@ class _ChatPageState extends State<ChatPage>
         ),
       ],
       contents: contents,
-      contentsTitle: "Show Detail Errors",
-      contentsExpanded: false,
-    ).show(context);
+      contentsTitle: "Error Details",
+      contentsExpanded: true,
+    );
+    setState(() {
+      _alert = Alert(
+        title,
+        actions: [
+          AlertAction(
+            "Show Error Dialog",
+            onPressed: () {
+              dialog.show(context);
+            },
+          ),
+        ],
+        setter: "showSendResult",
+      );
+    });
   }
 
   Future<List<Device>> _getChatPeers({
@@ -1172,11 +1186,9 @@ class _ChatPageState extends State<ChatPage>
       } catch (e) {
         _logger.e("failed to save file @ $result: $e");
         if (mounted) {
-          utils.showAlertDialog(
-            context,
-            tr.failedToSaveFileText,
-            "${tr.failedToSaveFileText} $result: $e",
-          );
+          setState(() {
+            _messageAlert = Alert("${tr.failedToSaveFileText} $result: $e");
+          });
         }
       }
     }
@@ -2240,6 +2252,7 @@ class _ChatPageState extends State<ChatPage>
       body: SafeArea(
         bottom: false,
         child: Column(
+          spacing: 4,
           children: [
             if (_alert != null)
               AlertChip(
@@ -2248,6 +2261,16 @@ class _ChatPageState extends State<ChatPage>
                 onDeleted: () {
                   setState(() {
                     _alert = null;
+                  });
+                },
+              ),
+            if (_messageAlert != null)
+              AlertChip(
+                _messageAlert!,
+                width: double.infinity,
+                onDeleted: () {
+                  setState(() {
+                    _messageAlert = null;
                   });
                 },
               ),

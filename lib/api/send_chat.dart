@@ -21,17 +21,17 @@ import 'config.dart';
 import 'contacts.dart';
 
 final _logger = Logger(tag: "send_chat");
-final _chatServiceMap = <String, ChatService>{};
+final _chatServiceMap = <String, ChatServiceSender>{};
 
-ChatService _getChatServiceForDevice(Device device) {
+ChatServiceSender _getChatServiceForDevice(Device device) {
   final id = device.id;
   if (id == "") {
     throw Exception("invalid null peer id");
   }
   var s = _chatServiceMap[id];
   if (s == null) {
-    s = ChatService(
-      serverAddress: device.hostname,
+    s = ChatServiceSender(
+      address: device.hostname,
       userID: device.userID,
       deviceID: device.id,
     );
@@ -42,7 +42,7 @@ ChatService _getChatServiceForDevice(Device device) {
 
 /// Returns true if push notification has been sent.
 Future<bool> _tryConnectOrSendPushNotifications(
-  ChatService s,
+  ChatServiceSender s,
   Device peer,
   bool forceNotification,
 ) async {
