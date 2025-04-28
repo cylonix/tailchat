@@ -1052,12 +1052,10 @@ class _ChatPageState extends State<ChatPage>
 
   /// Add a new file/image message. It will try to show and send message asap
   /// and then copy the file over to the chat folder for mobile/macos due to
-  /// file permission issue. This is to prioritize sending/showing the message,
-  /// however, if it is not that much an improvement compared to just copy first
-  /// and then send, then we probably should just copy first.
+  /// file permission issue.
   Future<void> _addNewFileMessage(ChatMessage m, String path) async {
-    await _addMessage(m.message, path: path);
     m.copyFile(path);
+    await _addMessage(m.message, path: path);
   }
 
   void _handleFileSelection() async {
