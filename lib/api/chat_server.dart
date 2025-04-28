@@ -64,13 +64,20 @@ class ChatServer {
         }
         _logger.d("Cylonix enabled: $isCylonixEnabled");
         if (!isCylonixEnabled) {
-          active
+          try {
+            active
               ? await startServiceStateMonitor(onError)
               : await ChatService.stopServiceStateMonitor();
+          } on SocketListenerExistsException catch (e) {
+            _logger.d(
+              "App might be resumed from not-paused state e.g. inactive. "
+              "Ignore SocketListenerExistsException: $e",
+            );
+          }
         }
       } catch (e) {
         _logger.e("Failed to start/stop service state monitor: $e");
-        rethrow;
+        onError(e);
       }
     }
   }
@@ -82,7 +89,13 @@ class ChatServer {
     await ChatService.stopService();
     _serverStarted = false;
     await startServer(onError);
-    await subscribeToMessages(onError, force: true);
+    try {
+      await subscribeToMessages(onError, force: true);
+    } on MustHaveAddressException catch (e) {
+      _logger.d(
+        "Address may not be ready. Ignore MustHaveAddressException: $e",
+      );
+    }
   }
 
   static void setIsOnFront(String chatID, bool onFront) {
@@ -120,7 +133,13 @@ class ChatServer {
         }
       }
       ChatService.eventBus.on<ChatServiceStateEvent>().listen(_handleEvent);
-      await startServiceStateMonitor(onError, force: true);
+      try {
+        await startServiceStateMonitor(onError, force: true);
+      } on MustHaveAddressException catch (e) {
+        _logger.d(
+          "Address may not be ready. Ignore MustHaveAddressException: $e",
+        );
+      }
       _logger.i("Done starting service");
       _serverStarted = true;
     } finally {

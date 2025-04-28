@@ -1,28 +1,58 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="12121" systemVersion="16G29" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21507" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="12089"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--View Controller-->
         <scene sceneID="EHf-IW-A2E">
             <objects>
                 <viewController id="01J-lp-oVM" sceneMemberID="viewController">
-                    <layoutGuides>
-                        <viewControllerLayoutGuide type="top" id="Ydg-fD-yQy"/>
-                        <viewControllerLayoutGuide type="bottom" id="xbc-2k-c8Z"/>
-                    </layoutGuides>
                     <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4">
-                            </imageView>
+                            <!-- Navigation Bar placeholder -->
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="nav-bar">
+                                <rect key="frame" x="0.0" y="59" width="393" height="44"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="44" id="nav-height"/>
+                                </constraints>
+                            </view>
+                            <!-- Content area placeholder -->
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="content">
+                                <rect key="frame" x="0.0" y="103" width="393" height="666"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                            </view>
+                            <!-- Bottom bar placeholder -->
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bottom-bar">
+                                <rect key="frame" x="0.0" y="769" width="393" height="49"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="49" id="bottom-height"/>
+                                </constraints>
+                            </view>
                         </subviews>
-                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1a2-6s-vTC"/>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="4X2-HB-R7a"/>
+                            <constraint firstItem="nav-bar" firstAttribute="top" secondItem="Bcu-3y-fUS" secondAttribute="top" id="nav-top"/>
+                            <constraint firstItem="nav-bar" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" id="nav-leading"/>
+                            <constraint firstItem="nav-bar" firstAttribute="trailing" secondItem="Bcu-3y-fUS" secondAttribute="trailing" id="nav-trailing"/>
+
+                            <constraint firstItem="content" firstAttribute="top" secondItem="nav-bar" secondAttribute="bottom" id="content-top"/>
+                            <constraint firstItem="content" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" id="content-leading"/>
+                            <constraint firstItem="content" firstAttribute="trailing" secondItem="Bcu-3y-fUS" secondAttribute="trailing" id="content-trailing"/>
+
+                            <constraint firstItem="bottom-bar" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" id="bottom-leading"/>
+                            <constraint firstItem="bottom-bar" firstAttribute="trailing" secondItem="Bcu-3y-fUS" secondAttribute="trailing" id="bottom-trailing"/>
+                            <constraint firstItem="bottom-bar" firstAttribute="bottom" secondItem="Bcu-3y-fUS" secondAttribute="bottom" id="bottom-bottom"/>
+                            <constraint firstItem="bottom-bar" firstAttribute="top" secondItem="content" secondAttribute="bottom" id="content-bottom"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -32,6 +62,8 @@
         </scene>
     </scenes>
     <resources>
-        <image name="LaunchImage" width="168" height="185"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
     </resources>
 </document>

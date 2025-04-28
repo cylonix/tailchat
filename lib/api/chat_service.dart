@@ -126,7 +126,9 @@ class ChatService {
     }
     if (address == null) {
       _logger.e("Cylonix service requires address to be set");
-      throw Exception("Cylonix service requires address to be set");
+      throw MustHaveAddressException(
+        "Cylonix service requires address to be set",
+      );
     }
     _logger.i("Cylonix service is enabled. Using address $address");
     return address;
@@ -233,7 +235,7 @@ class ChatService {
           _serviceSocketListener?.close();
         } else {
           log.e("Service is already connected and being monitored.");
-          throw Exception(
+          throw SocketListenerExistsException(
             "Service is already connected and being monitored.",
           );
         }
@@ -290,6 +292,7 @@ class ChatService {
   static Future<void> stopServiceStateMonitor() async {
     try {
       _serviceSocketListener?.close();
+      _serviceSocketListener = null;
     } catch (e) {
       _logger.e("Failed to stop service state montior: $e");
     }
@@ -316,7 +319,7 @@ class SocketListener {
   final void Function()? onConnecting;
   final void Function()? onConnected;
   final void Function()? onDisconnected;
-  final _initialRetryDelay = const Duration(seconds: 2);
+  final _initialRetryDelay = const Duration(seconds: 1);
   int _retryCount = 0;
   bool isConnecting = false;
   Socket? _socket;
@@ -810,5 +813,25 @@ class ChatServiceSender extends SocketListener {
       _logger.e('Error sending file: $e');
       rethrow;
     }
+  }
+}
+
+class MustHaveAddressException implements Exception {
+  final String message;
+  MustHaveAddressException(this.message);
+
+  @override
+  String toString() {
+    return "MustHaveAddressException: $message";
+  }
+}
+
+class SocketListenerExistsException implements Exception {
+  final String message;
+  SocketListenerExistsException(this.message);
+
+  @override
+  String toString() {
+    return "SocketListenerExistsException: $message";
   }
 }

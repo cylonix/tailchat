@@ -835,6 +835,7 @@ class _ChatPageState extends State<ChatPage>
           tr.ok,
           isDefault: true,
           onPressed: () => Navigator.pop(context, true),
+          icon: utils.isApple() ? CupertinoIcons.checkmark : Icons.check,
         ),
       ],
       contents: contents,
@@ -842,14 +843,26 @@ class _ChatPageState extends State<ChatPage>
       contentsExpanded: true,
     );
     setState(() {
-      _alert = Alert(
+      _messageAlert = Alert(
         title,
         actions: [
+          ...actions,
           AlertAction(
-            "Show Error Dialog",
+            "Details",
             onPressed: () {
               dialog.show(context);
             },
+            icon: utils.isApple() ? CupertinoIcons.info : Icons.info,
+          ),
+          AlertAction(
+            "Delete",
+            onPressed: () => {
+              setState(() {
+                _messageAlert = null;
+              })
+            },
+            destructive: true,
+            icon: utils.isApple() ? CupertinoIcons.clear : Icons.clear,
           ),
         ],
         setter: "showSendResult",
@@ -986,6 +999,10 @@ class _ChatPageState extends State<ChatPage>
           actions: [
             AlertAction(
               tr.dontShowAgainText,
+              destructive: true,
+              icon: utils.isApple()
+                  ? CupertinoIcons.stop_circle
+                  : Icons.stop_circle,
               onPressed: () {
                 Navigator.of(context).pop(false);
                 _showSendResult = false;
@@ -1588,6 +1605,9 @@ class _ChatPageState extends State<ChatPage>
           result.success || _isSingleDeviceChat
               ? tr.sendAgainText
               : tr.retrySendingToFailedDevicesText,
+          icon: utils.isApple()
+              ? CupertinoIcons.arrow_up_circle
+              : Icons.arrow_upward,
           onPressed: () async {
             Navigator.of(context).pop(true);
             if (result.success) {
@@ -1602,6 +1622,9 @@ class _ChatPageState extends State<ChatPage>
         AlertAction(
           "Delete message",
           destructive: true,
+          icon: utils.isApple()
+              ? CupertinoIcons.delete
+              : Icons.delete_forever_rounded,
           onPressed: () async {
             final delete = await AlertDialogWidget(
                   title: "Confirm delete",
