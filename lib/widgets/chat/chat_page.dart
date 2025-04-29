@@ -470,7 +470,7 @@ class _ChatPageState extends State<ChatPage>
       if (!mounted) return;
 
       if (result.success) {
-        _logger.i("Connct success");
+        _logger.i("Connect success");
         setState(() {
           _canSendChecking = false;
           if (_alert?.setter == 'onTryToConnect') {

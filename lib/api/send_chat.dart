@@ -92,6 +92,19 @@ Future<Status> sendPingToPeer(Device peer, {bool retry = false}) async {
       canRetry = !(await _tryConnectOrSendPushNotifications(s, peer, retry));
     }
     await s.sendPing();
+    if (!peer.isOnline) {
+      _logger.d(
+        "peer ${peer.hostname} is not online. Update connected status",
+      );
+      ChatService.eventBus.fire(
+        ChatServiceStateEvent(
+          from: s,
+          userID: peer.userID,
+          deviceID: peer.id,
+          state: ChatServiceState.connected,
+        ),
+      );
+    }
     return Status.ok;
   } catch (e) {
     if (canRetry) {
@@ -130,6 +143,19 @@ Future<Status> sendPeerMessage({
       'machine': self.id,
       'message': message,
     }));
+    if (!peer.isOnline) {
+      _logger.d(
+        "peer ${peer.hostname} is not online. Update connected status",
+      );
+      ChatService.eventBus.fire(
+        ChatServiceStateEvent(
+          from: s,
+          userID: peer.userID,
+          deviceID: peer.id,
+          state: ChatServiceState.connected,
+        ),
+      );
+    }
   } catch (e) {
     _logger.e("Failed to send peer message: $e");
     return Status.fail(msg: "Failed to send peer message: $e");
