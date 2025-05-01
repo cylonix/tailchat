@@ -780,8 +780,9 @@ class _ChatPageState extends State<ChatPage>
     }
   }
 
-  Future<void> _showSendResultDialog(
+  Future<void> _showSendResultDialogOrAlert(
     ChatSendPeersResult? r, {
+    bool showDialog = false,
     List<AlertAction> actions = const [],
   }) async {
     if (!mounted) {
@@ -842,11 +843,14 @@ class _ChatPageState extends State<ChatPage>
       contentsTitle: "Error Details",
       contentsExpanded: true,
     );
+    if (showDialog) {
+      await dialog.show(context);
+      return;
+    }
     setState(() {
       _messageAlert = Alert(
         title,
         actions: [
-          ...actions,
           AlertAction(
             "Details",
             onPressed: () {
@@ -855,7 +859,7 @@ class _ChatPageState extends State<ChatPage>
             icon: utils.isApple() ? CupertinoIcons.info : Icons.info,
           ),
           AlertAction(
-            "Delete",
+            "Clear",
             onPressed: () => {
               setState(() {
                 _messageAlert = null;
@@ -994,7 +998,7 @@ class _ChatPageState extends State<ChatPage>
       }
     } else {
       if (_showSendResult && mounted) {
-        await _showSendResultDialog(
+        await _showSendResultDialogOrAlert(
           r,
           actions: [
             AlertAction(
@@ -1596,8 +1600,9 @@ class _ChatPageState extends State<ChatPage>
     ChatSendPeersResult result,
   ) async {
     final tr = AppLocalizations.of(context);
-    await _showSendResultDialog(
+    await _showSendResultDialogOrAlert(
       result,
+      showDialog: true,
       actions: [
         AlertAction(
           result.success || _isSingleDeviceChat

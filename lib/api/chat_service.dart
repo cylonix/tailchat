@@ -337,7 +337,7 @@ class SocketListener {
     this.onConnected,
     this.onDisconnected,
   }) {
-    _logger = Logger(tag: "SocketListner:$name");
+    _logger = Logger(tag: "SocketListener:$name");
   }
 
   @override
@@ -661,6 +661,7 @@ class ChatServiceSender extends SocketListener {
       await _waitForAck("PONG");
     } catch (e) {
       _logger.e('Error sending ping: $e');
+      close();
       rethrow;
     }
   }
@@ -712,6 +713,7 @@ class ChatServiceSender extends SocketListener {
       await _waitForAck(id);
       _logger.d("$this: Sent: ${message.shortString(256)}...");
     } catch (e) {
+      close();
       _logger.e('$this: Error sending message: $e');
       rethrow;
     }
@@ -811,6 +813,7 @@ class ChatServiceSender extends SocketListener {
       await _waitForFileDone(id, fileSize, onProgress);
     } catch (e) {
       _logger.e('Error sending file: $e');
+      close();
       rethrow;
     }
   }
