@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import UserNotifications
+import BackgroundTasks
 
 class BackgroundTask {
     private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
@@ -10,12 +11,21 @@ class BackgroundTask {
     private var notificationWorkItem: DispatchWorkItem?
     private let logger = Logger(tag: "BackgroundTask")
     private weak var delegate: BackgroundTaskProtocol?
-    static let appGroup = "group.io.cylonix.sase.ios"
-    static let bufferPath = "tailchat/.tailchat_buffer.json"
+    private static let appGroup = "group.io.cylonix.sase.ios"
+    private static let bufferPath = "tailchat/.tailchat_buffer.json"
+    private static let backgroundRefreshTaskIdentifier = "io.cylonix.tailchat.refresh"
+    private static let chatsReceivedKey = "ChatsReceived"
     private let rescheduleInterval: TimeInterval = 5 * 60 // 5 minutes
 
     init(delegate: BackgroundTaskProtocol) {
         self.delegate = delegate
+    }
+
+    func registerBackgroundRefreshTask() {
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.backgroundRefreshTaskIdentifier, using: nil) { task in
+            self.handleBackgroundRefresh(task as! BGAppRefreshTask)
+        }
+        logger.i("Registered background refresh task")
     }
 
     func startBackgroundTask() {
@@ -39,8 +49,6 @@ class BackgroundTask {
     }
 
     private func scheduleNotificationAndCleanup() {
-        scheduleNextBackgroundTask()
-
         if ChatService.isCylonixServiceActive {
             checkBufferAndNotify()
             return
@@ -53,6 +61,46 @@ class BackgroundTask {
         // Schedule cleanup for 20 seconds
         if let endItem = endBackgroundWorkItem {
             DispatchQueue.global().asyncAfter(deadline: .now() + 20, execute: endItem)
+        }
+    }
+
+    private func handleBackgroundRefresh(_ task: BGAppRefreshTask) {
+        task.expirationHandler = {
+            task.setTaskCompleted(success: false)
+        }
+
+        // Check for new messages in shared UserDefaults
+        if let userDefaults = UserDefaults(suiteName: Self.appGroup),
+           let chatsReceived = userDefaults.string(forKey: Self.chatsReceivedKey)
+        {
+            let content = UNMutableNotificationContent()
+            content.title = "New Messages"
+            //content.body = chatsReceived
+            content.body = "You have new messages waiting in Tailchat"
+            content.sound = .default
+
+            if #available(iOS 15.0, *) {
+                content.interruptionLevel = .timeSensitive
+                content.relevanceScore = 0.9
+            }
+
+            let request = UNNotificationRequest(
+                identifier: "background-refresh-\(UUID().uuidString)",
+                content: content,
+                trigger: nil
+            )
+
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    self.logger.e("Failed to schedule notification: \(error)")
+                    task.setTaskCompleted(success: false)
+                } else {
+                    self.logger.i("Background refresh notification scheduled")
+                    task.setTaskCompleted(success: true)
+                }
+            }
+        } else {
+            task.setTaskCompleted(success: true)
         }
     }
 

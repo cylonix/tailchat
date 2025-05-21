@@ -55,6 +55,11 @@
 	<string>We need to send you notifications about incoming messages and service status</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>io.cylonix.tailchat.chatServiceTask</string>
+		<string>io.cylonix.tailchat.refresh</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>

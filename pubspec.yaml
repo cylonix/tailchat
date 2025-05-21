@@ -91,7 +91,10 @@ dependencies:
   pull_down_button: ^0.10.2
   qr_flutter: ^4.1.0
   random_color: ^1.0.6-nullsafety
-  receive_sharing_intent: ^1.8.1
+  receive_sharing_intent:
+    git:
+      url: https://github.com/cylonix/receive_sharing_intent.git
+      ref: cylonix
   record: ^5.2.0
   rxdart: ^0.28.0
   screen_retriever: ^0.2.0

@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import Darwin
+import Darwin.POSIX.net
+import Darwin.POSIX.netinet
 import Foundation
 import Network
 import UserNotifications
@@ -43,16 +45,17 @@ class ChatService: NSObject, NetworkMonitorDelegate {
 
     static let appGroup = "group.io.cylonix.sase.ios"
     static let cylonixServiceKey = "tailchat_service_enabled"
-    static public var isCylonixServiceActive: Bool {
-        guard let userDefaults = UserDefaults(suiteName: Self.appGroup) else {
-            Logger(tag: "ChatService").w("Could not access app group: \(Self.appGroup)")
+    public static var isCylonixServiceActive: Bool {
+        guard let userDefaults = UserDefaults(suiteName: appGroup) else {
+            Logger(tag: "ChatService").w("Could not access app group: \(appGroup)")
             return false
         }
         let state = userDefaults.bool(forKey: Self.cylonixServiceKey)
         Logger(tag: "ChatService").i("Cylonix service state: \(state)")
         return state
     }
-    static public var cylonixSharedFolderPath: String? {
+
+    public static var cylonixSharedFolderPath: String? {
         let fileManager = FileManager.default
         guard let sharedContainerURL = fileManager.containerURL(forSecurityApplicationGroupIdentifier: Self.appGroup) else {
             Logger(tag: "ChatService").e("Failed to get shared container URL")
@@ -80,6 +83,20 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         monitor.pathUpdateHandler = { path in
             let interfaces = path.availableInterfaces.map { $0.name }
             let isVpnActive = interfaces.contains { $0.starts(with: "utun") }
+            if !isVpnActive {
+                let allInterfaces = self.getAllInterfaces()
+                self.logger.i("""
+                Network Path Status: \(path.status)
+                Expensive: \(path.isExpensive)
+                Constrained: \(path.isConstrained)
+
+                Available Interfaces:
+                \(interfaces.joined(separator: "\n----\n"))
+
+                All System Interfaces:
+                \(allInterfaces)
+                """)
+            }
             self.logger.i("Path: \(path.status), VPN active: \(isVpnActive), Interfaces: \(interfaces) at \(Date())")
         }
 
@@ -88,6 +105,52 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         logger.i("Service is not yet running. Starting it.")
         startNetworkMonitor()
         startServer()
+    }
+
+    private func getAllInterfaces() -> String {
+        var interfaceList: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&interfaceList) == 0 else {
+            logger.e("Failed to get interface list")
+            return "Failed to get interfaces"
+        }
+        defer { freeifaddrs(interfaceList) }
+
+        var interfaces: [String] = []
+        var current = interfaceList
+
+        while let interface = current {
+            let name = String(cString: interface.pointee.ifa_name)
+            let flags = interface.pointee.ifa_flags
+            let isUp = (flags & UInt32(IFF_UP)) != 0
+            let isRunning = (flags & UInt32(IFF_RUNNING)) != 0
+
+            if let addr = interface.pointee.ifa_addr {
+                let family = addr.pointee.sa_family
+                var ipAddress = "unknown"
+
+                if family == UInt8(AF_INET) {
+                    var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                    let success = getnameinfo(addr, socklen_t(addr.pointee.sa_len),
+                                              &hostname, socklen_t(hostname.count),
+                                              nil, 0, NI_NUMERICHOST)
+                    if success == 0 {
+                        ipAddress = String(cString: hostname)
+                    }
+                }
+
+                let info = """
+                Interface: \(name)
+                Status: \(isUp ? "UP" : "DOWN")/\(isRunning ? "RUNNING" : "NOT RUNNING")
+                Address: \(ipAddress)
+                Family: \(family)
+                """
+                interfaces.append(info)
+            }
+
+            current = interface.pointee.ifa_next
+        }
+
+        return interfaces.joined(separator: "\n----\n")
     }
 
     #if os(iOS)

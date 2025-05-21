@@ -337,7 +337,7 @@ extension StringPlus on String {
 
   /// Short string that can handle multi-byte codes.
   shortRunes(int max, {int start = 0}) {
-    if (runes.length >= max + start) {
+    if (runes.length < max + start) {
       return this;
     }
     return String.fromCharCodes(runes.toList().sublist(start, max));

@@ -1051,10 +1051,11 @@ packages:
   receive_sharing_intent:
     dependency: "direct main"
     description:
-      name: receive_sharing_intent
-      sha256: ec76056e4d258ad708e76d85591d933678625318e411564dcb9059048ca3a593
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: cylonix
+      resolved-ref: "2ff6841599203c69d9e39dc622a9f06faa9a9449"
+      url: "https://github.com/cylonix/receive_sharing_intent.git"
+    source: git
     version: "1.8.1"
   record:
     dependency: "direct main"

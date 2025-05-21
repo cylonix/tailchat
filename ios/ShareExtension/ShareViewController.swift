@@ -7,7 +7,8 @@ class ShareViewController: RSIShareViewController {
 
     // Use this method to return false if you don't want to redirect to host app automatically.
     // Default is true
-    override func shouldAutoRedirect() -> Bool { 
+    override func shouldAutoRedirect() -> Bool {
+        print("Tailchat: ShareViewController: shouldAutoRedirect")
         return true
     }
 

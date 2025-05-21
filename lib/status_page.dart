@@ -128,6 +128,7 @@ class _StatusPageState extends State<StatusPage> {
                     if (!_isConnecting)
                       Row(
                         mainAxisSize: MainAxisSize.min,
+                        spacing: 16,
                         children: [
                           if (!ChatServer.isServiceSocketConnected)
                             BaseInputButton(

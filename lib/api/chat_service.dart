@@ -27,6 +27,7 @@ class ChatService {
   static ServiceSocketListner? _serviceSocketListener;
   static bool _isSettingUpSubsciberSocket = false;
   static bool _isSettingUpServiceSocket = false;
+  static bool _autoReconnectSubscriberSocket = true;
 
   static Future<bool> isCylonixEnabled() async {
     if (Platform.isIOS) {
@@ -98,9 +99,8 @@ class ChatService {
   }
 
   static void handleLogs(String? logs) {
-    if (logs != null) {
-      logCompleter?.complete(logs);
-    }
+    logCompleter?.complete(logs ?? "");
+    logCompleter = null;
   }
 
   static Stream<dynamic> subscribeToMessages() {
@@ -134,8 +134,22 @@ class ChatService {
     return address;
   }
 
+  static Future<void> stopSubscriberSocket() async {
+    if (_subscriberSocketListener != null) {
+      _logger.d("Subscriber socket disconnecting...");
+      _autoReconnectSubscriberSocket = false;
+      _subscriberSocketListener?.close();
+      _subscriberSocketListener = null;
+    } else {
+      _logger.d("Subscriber socket is not connected. Skip.");
+    }
+  }
+
   static Future<void> listenToSubscriberSocket(
-    void Function(String) dataHandler, {
+    void Function(
+      String, {
+      Function(String)? sendResponse,
+    }) dataHandler, {
     String? address,
     int? port,
     bool disconnectIfExists = false,
@@ -158,9 +172,13 @@ class ChatService {
           );
         }
       }
-      retry() {
+      retry() async {
+        if (!_autoReconnectSubscriberSocket) {
+          _logger.i("Auto reconnect is disabled. Skip.");
+          return;
+        }
         try {
-          listenToSubscriberSocket(
+          await listenToSubscriberSocket(
             dataHandler,
             address: address,
             port: port,
@@ -173,10 +191,16 @@ class ChatService {
         }
       }
 
+      _autoReconnectSubscriberSocket = true;
       final listener = SubscriberSocketListener(
         address: await _getLocalAddress(address),
         port: port,
-        onData: dataHandler,
+        onData: (data) => dataHandler(data, sendResponse: (response) {
+          _logger.d("Sending response: $response");
+          _subscriberSocketListener?.write(response);
+          _subscriberSocketListener?.flush();
+          _logger.d("Response sent");
+        }),
         onDisconnected: () {
           _logger.i("Subscriber socket is now closed.");
           _subscriberSocketListener?.close();
@@ -213,9 +237,9 @@ class ChatService {
       log.d("Service socket is already being set up. Skip.");
       return;
     }
-    retry() {
+    retry() async {
       try {
-        startServiceStateMonitor(
+        await startServiceStateMonitor(
           address: address,
           port: port,
           disconnectIfExists: disconnectIfExists,

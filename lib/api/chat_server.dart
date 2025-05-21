@@ -33,7 +33,7 @@ class ChatServer {
   static var _serverStarting = false;
   static final _eventBus = EventBus();
   static String? _activeChatID;
-  static bool _appIsActive = false;
+  static bool _appIsActive = true; // Must be true to start the app.
   static bool isNetworkAvailable = Platform.isLinux ? true : false;
   static final _logger = Logger(tag: "ChatServer");
   static ContactsRepository? _contactsRepository;
@@ -63,17 +63,20 @@ class ChatServer {
           }
         }
         _logger.d("Cylonix enabled: $isCylonixEnabled");
-        if (!isCylonixEnabled) {
-          try {
-            active
+        try {
+          active
               ? await startServiceStateMonitor(onError)
               : await ChatService.stopServiceStateMonitor();
-          } on SocketListenerExistsException catch (e) {
-            _logger.d(
-              "App might be resumed from not-paused state e.g. inactive. "
-              "Ignore SocketListenerExistsException: $e",
-            );
-          }
+        } on SocketListenerExistsException catch (e) {
+          _logger.d(
+            "App might be resumed from not-paused state e.g. inactive. "
+            "Ignore SocketListenerExistsException: $e",
+          );
+        }
+        if (isCylonixEnabled) {
+          active
+              ? await subscribeToMessages(onError)
+              : _cancelSubscriberSocket();
         }
       } catch (e) {
         _logger.e("Failed to start/stop service state monitor: $e");
@@ -233,6 +236,12 @@ class ChatServer {
     }
   }
 
+  static void _cancelSubscriberSocket() {
+    _logger.i("Cancel subscriber socket");
+    ChatService.stopSubscriberSocket();
+    hasSubscribedToMessages = false;
+  }
+
   static void _handleChatServiceMessage(dynamic message) {
     if (message is String) {
       _handleMessage(message);
@@ -263,7 +272,7 @@ class ChatServer {
     ));
     if (address != null) {
       await _resetCylonixEnabled();
-      if (isCylonixEnabled) {
+      if (isCylonixEnabled && _appIsActive) {
         try {
           ChatService.listenToSubscriberSocket(
             _handleMessage,
@@ -466,7 +475,10 @@ class ChatServer {
     }
   }
 
-  static void _handleMessage(String message) async {
+  static void _handleMessage(
+    String message, {
+    Function(String)? sendResponse,
+  }) async {
     _logger.d("Got message ${message.shortString(256)}...");
     final lines = message.split("\n");
     for (var line in lines) {
@@ -504,6 +516,7 @@ class ChatServer {
         default:
           _logger.e("Unknown message type $line");
       }
+      sendResponse?.call('ACK:$id:DONE\n');
     }
   }
 

@@ -27,6 +27,7 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
     private var eventSink: FlutterEventSink?
     private var cylonixObserver: UnsafeMutableRawPointer?
     private static let cylonixStateChangeNotification = "io.cylonix.sase.tailchat.stateChange"
+    private static let chatsReceivedNotification = "io.cylonix.sase.chatsReceived"
     var isAppInBackground = false
     var isServiceEnabled = false
     private let logger = Logger(tag: "AppDelegate")
@@ -51,6 +52,7 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
             startChatService()
             setupFlutterChannels()
             backgroundTaskHandler = BackgroundTask(delegate: self)
+            backgroundTaskHandler?.registerBackgroundRefreshTask()
             setupCylonixServiceObserver()
             return super.application(application, didFinishLaunchingWithOptions: launchOptions)
         }
@@ -98,6 +100,14 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
                 nil,
                 .deliverImmediately
             )
+            CFNotificationCenterAddObserver(
+                center,
+                cylonixObserver,
+                Self.chatsReceivedCallback,
+                Self.chatsReceivedNotification as CFString,
+                nil,
+                .deliverImmediately
+            )
 
             logger.i("Registered for Cylonix service state changes")
         }
@@ -111,6 +121,49 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
             methodChannel?.invokeMethod("cylonixServiceStateChanged", arguments: isNowActive)
         }
 
+        private static let chatsReceivedCallback: CFNotificationCallback = { _, observer, name, _, _ in
+            if let nameString = name?.rawValue as String?,
+               nameString == AppDelegate.chatsReceivedNotification,
+               let observer = observer
+            {
+                let appDelegate = Unmanaged<AppDelegate>.fromOpaque(observer).takeUnretainedValue()
+                appDelegate.handleChatsReceived()
+            }
+        }
+
+        private func handleChatsReceived() {
+            logger.i("Received new chats notification")
+
+            guard let userDefaults = UserDefaults(suiteName: "group.io.cylonix.sase.ios"),
+                  let message = userDefaults.string(forKey: "ChatsReceived")
+            else {
+                return
+            }
+
+            let content = UNMutableNotificationContent()
+            content.title = "New Messages"
+            content.body = message
+            content.sound = .default
+
+            if #available(iOS 15.0, *) {
+                content.interruptionLevel = .timeSensitive
+                content.relevanceScore = 0.9
+            }
+
+            let request = UNNotificationRequest(
+                identifier: "new-chats-\(UUID().uuidString)",
+                content: content,
+                trigger: nil
+            )
+
+            UNUserNotificationCenter.current().add(request) { [weak self] error in
+                if let error = error {
+                    self?.logger.e("Failed to schedule chat notification: \(error)")
+                } else {
+                    self?.logger.i("Chat notification scheduled successfully")
+                }
+            }
+        }
     #endif
 
     #if os(macOS)

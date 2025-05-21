@@ -26,7 +26,7 @@
 				<key>NSExtensionActivationSupportsMovieWithMaxCount</key>
 				<integer>100</integer>
 				<key>NSExtensionActivationSupportsFileWithMaxCount</key>
-				<integer>10</integer>
+				<integer>1</integer>
 			</dict>
 		</dict>
 		<key>NSExtensionMainStoryboard</key>
