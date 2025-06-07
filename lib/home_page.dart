@@ -5,7 +5,6 @@ import 'dart:async';
 
 // Please keep imports in alphabetical order
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -210,7 +209,13 @@ class _HomePageState extends State<HomePage>
 
     // Start chat server.
     try {
-      ChatServer.init(_onChatServiceError);
+      ChatServer.init(_onChatServiceError, (alert) {
+        if (mounted) {
+          setState(() {
+            _alert = alert;
+          });
+        }
+      });
       ChatServer.startServer(_onChatServiceError);
       ChatServer.subscribeToMessages(_onChatServiceError);
     } catch (e) {

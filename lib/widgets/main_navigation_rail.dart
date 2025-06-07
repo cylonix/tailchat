@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import 'dart:async';
+import 'package:collection/collection.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -181,6 +182,19 @@ class _MainNavigationRailState extends State<MainNavigationRail> {
     return UserAvatar(
       user: Pst.selfUser,
       radius: 24,
+      onTap: () {
+        final user = Pst.selfUser;
+        if (user != null) {
+          final index = MainBottomBarPage.values
+              .firstWhereOrNull(
+                (e) => e.name == MainBottomBarPage.contacts.name,
+              )
+              ?.index;
+          if (index != null) {
+            widget.onSelected?.call(index);
+          }
+        }
+      },
     );
   }
 

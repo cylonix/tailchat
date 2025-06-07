@@ -33,7 +33,7 @@ migrate_working_dir/
 .pub/
 /build/
 
-# Symbolication related
+# Symbolization related
 app.*.symbols
 
 # Obfuscation related

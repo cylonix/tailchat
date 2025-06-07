@@ -487,6 +487,70 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
             completionHandler()
         }
     #endif
+    #if os(iOS)
+        override func application(_: UIApplication,
+                                  continue userActivity: NSUserActivity,
+                                  restorationHandler _: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool
+        {
+            // Only handle universal links
+            if userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+               let url = userActivity.webpageURL
+            {
+                handleAppLink(url)
+                return true
+            }
+            return false
+        }
+
+    #elseif os(macOS)
+        override func application(_: NSApplication,
+                                  open urls: [URL])
+        {
+            // Handle app links
+            logger.i("Application opened with URLs: \(urls)")
+            if let url = urls.first {
+                handleAppLink(url)
+            }
+        }
+
+        override func application(_: NSApplication,
+                                  continue userActivity: NSUserActivity,
+                                  restorationHandler _: @escaping ([NSUserActivityRestoring]) -> Void) -> Bool
+        {
+            if userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+               let url = userActivity.webpageURL
+            {
+                handleAppLink(url)
+                return true
+            }
+            return false
+        }
+    #endif
+
+    private func handleAppLink(_ url: URL) {
+        logger.d("Handling app link: \(url)")
+
+        // Example: https://cylonix.io/tailchat/add/{name}/{device_name}
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
+            logger.e("Invalid URL format")
+            return
+        }
+
+        // Convert URL parameters to a map for Flutter
+        var params: [String: String] = [:]
+        components.queryItems?.forEach { item in
+            if let value = item.value {
+                params[item.name] = value
+            }
+        }
+
+        // Send to Flutter via method channel
+        methodChannel?.invokeMethod("handleAppLink", arguments: [
+            "path": components.path,
+            "params": params,
+            "pathComponents": url.pathComponents,
+        ])
+    }
 }
 
 protocol BackgroundTaskProtocol: AnyObject {

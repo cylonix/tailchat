@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:collection/collection.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:downloadsfolder/downloadsfolder.dart' as sse;
 import 'package:duration/duration.dart';
@@ -130,7 +131,7 @@ class _ChatPageState extends State<ChatPage>
   int _tryToConnectAttempts = 0;
   static final int _maxTryToConnectAttempts = 3;
   final _initialTryToConnectBackoff = 1; // seconds
-  final _maxTryToConnectBackoff = 1800; // 30 mins in seconds
+  final _maxTryToConnectBackoff = 30; // 30 mins in seconds
 
   @override
   bool get wantKeepAlive => true;
@@ -165,12 +166,12 @@ class _ChatPageState extends State<ChatPage>
 
   @override
   void didPush() {
-    _onAcive();
+    _onActive();
   }
 
   @override
   void didPopNext() {
-    _onAcive();
+    _onActive();
   }
 
   @override
@@ -187,7 +188,7 @@ class _ChatPageState extends State<ChatPage>
     return Logger(tag: "Chat $_title $_subtitle");
   }
 
-  void _onAcive() {
+  void _onActive() {
     _logger.d("-> Active");
     _isActive = true;
     ChatServer.setIsOnFront(_chatID.id, true);
@@ -197,6 +198,7 @@ class _ChatPageState extends State<ChatPage>
     _logger.d("-> Inactive");
     _isActive = false;
     _tryToConnectPeersTimer?.cancel();
+    _tryToConnectPeersTimer = null;
     _tryToConnectAttempts = 0;
     ChatServer.setIsOnFront(_chatID.id, false);
   }
@@ -210,7 +212,6 @@ class _ChatPageState extends State<ChatPage>
     _progressEventSub?.cancel();
     _selfUserChangeSub?.cancel();
     _chatServiceStateSub?.cancel();
-    _timer.cancel();
     Global.routeObserver.unsubscribe(this);
   }
 
@@ -335,7 +336,7 @@ class _ChatPageState extends State<ChatPage>
         });
       }
     });
-    // TODO: has only one listner so that we don't have to check isMyMessageID.
+    // TODO: has only one listener so that we don't have to check isMyMessageID.
     _progressEventSub = eventBus.on<ProgressChangeEvent>().listen((event) {
       final messageID = event.messageID;
       _logger.i("Progress event $event");
@@ -386,19 +387,34 @@ class _ChatPageState extends State<ChatPage>
 
   Timer _startTimer() {
     return Timer.periodic(const Duration(seconds: 15), (timer) {
+      print("Periodic timer tick");
       _handlePeriodicTimer();
     });
   }
 
   bool _isUpdatingStatus = false;
   Future<void> _handlePeriodicTimer() async {
-    if (!mounted || _isUpdatingStatus) return;
+    if (_isUpdatingStatus) return;
 
     _isUpdatingStatus = true;
     try {
       await _checkExpired();
-      if (await _updateChatPeersStatus()) {
-        _retryPendingMessage();
+      if (_messages.firstWhereOrNull(
+            (m) => m.status == types.Status.toretry,
+          ) ==
+          null) {
+        return;
+      }
+      final ready = await _updateChatPeersStatus();
+      if (!ready) {
+        _logger.d("Peers not ready. Try to connect again.");
+        if (_tryToConnectPeersTimer == null) {
+          _tryToConnect(onConnected: _retryPendingMessage);
+        } else {
+          _logger.d("Already trying to connect. Skip...");
+        }
+      } else {
+        _cancelTryToConnect();
       }
     } finally {
       _isUpdatingStatus = false;
@@ -409,40 +425,35 @@ class _ChatPageState extends State<ChatPage>
     _tryToConnectPeersTimer?.cancel();
     _tryToConnectPeersTimer = null;
     _tryToConnectAttempts = 0;
-    setState(() {
-      _cancelCurrentTryingToConnect = true;
-      _canSendChecking = false;
-    });
+    _cancelCurrentTryingToConnect = true;
+    _canSendChecking = false;
+    if (mounted) {
+      setState(() {});
+    }
   }
 
-  void _tryToConnect() {
-    _doTryToConnect();
+  void _tryToConnect({VoidCallback? onConnected}) {
+    _tryToConnectAttempts = 0;
+    _doTryToConnect(onConnected: onConnected);
   }
 
-  Future<void> _doTryToConnect() async {
+  Future<void> _doTryToConnect({VoidCallback? onConnected}) async {
     if (_canSendChecking) {
       _logger.d("Already checking. Stop trying to connect.");
       return;
     }
+    _cancelCurrentTryingToConnect = false;
+    _canSendChecking = true;
     if (mounted) {
-      setState(() {
-        _cancelCurrentTryingToConnect = false;
-        _canSendChecking = true;
-      });
-      await _onTryToConnect();
+      setState(() {});
     }
+    await _onTryToConnect(onConnected: onConnected);
   }
 
-  Future<void> _onTryToConnect() async {
+  Future<void> _onTryToConnect({VoidCallback? onConnected}) async {
     _tryToConnectPeersTimer?.cancel();
     _tryToConnectPeersTimer = null;
-
-    if (!_isActive || !mounted) {
-      _logger.d("Not yet mounted or inactive. Skip trying to connect.");
-      return;
-    }
     if (_cancelCurrentTryingToConnect) {
-      _logger.d("Cancel current trying to connect requested. Skip...");
       return;
     }
 
@@ -466,43 +477,48 @@ class _ChatPageState extends State<ChatPage>
         return;
       }
       final result = await tryConnectToPeers(peers);
-
-      if (!mounted) return;
-
       if (result.success) {
+        _canSendChecking = false;
         _logger.i("Connect success");
-        setState(() {
-          _canSendChecking = false;
-          if (_alert?.setter == 'onTryToConnect') {
-            _alert = null;
-          }
-        });
+        if (mounted) {
+          setState(() {
+            if (_alert?.setter == 'onTryToConnect') {
+              _alert = null;
+            }
+          });
+        }
+        onConnected?.call();
         return;
       }
 
       _tryToConnectAttempts++;
       if (_tryToConnectAttempts >= _maxTryToConnectAttempts) {
-        _logger.e("Failed to connect after $_maxTryToConnectAttempts attempt");
-        setState(() {
-          _canSendChecking = false;
-        });
+        _canSendChecking = false;
+        if (mounted) {
+          _logger.e(
+            "Failed to connect after $_maxTryToConnectAttempts attempt",
+          );
+          setState(() {});
+        }
         return;
       }
 
       var backoff = _initialTryToConnectBackoff << _tryToConnectAttempts;
       backoff = backoff.clamp(0, _maxTryToConnectBackoff);
 
-      // Use a weak reference to prevent memory leaks
-      final weakThis = WeakReference(this);
+      _logger.d(
+        "Scheduling retry in $backoff seconds. Attempt: $_tryToConnectAttempts",
+      );
       _tryToConnectPeersTimer = Timer(
         Duration(seconds: backoff),
         () {
-          final self = weakThis.target;
-          if (self != null && self.mounted) {
-            self._onTryToConnect();
-          }
+          _logger.d("Retrying to connect after $backoff seconds");
+          _onTryToConnect(onConnected: onConnected);
         },
       );
+      if (!mounted) {
+        return;
+      }
 
       final peer = _peerDescription ?? "peer";
       setState(() {
@@ -553,7 +569,8 @@ class _ChatPageState extends State<ChatPage>
   @override
   void dispose() {
     _tryToConnectPeersTimer?.cancel();
-    _timer.cancel();
+    _tryToConnectPeersTimer = null;
+    //_timer.cancel(); // Allow timer to run for periodic updates even if the page is disposed.
     _cancelSubs();
     ChatServer.setIsOnFront(_chatID.id, false);
     super.dispose();
@@ -662,18 +679,17 @@ class _ChatPageState extends State<ChatPage>
         "Update chat peer status: $_hasPeersReady -> $hasPeersReady "
         "online [$_onlineUsers] -> [$onlineUsers]",
       );
+      _hasPeersReady = hasPeersReady;
+      _onlineUsers = onlineUsers;
+      if (_hasPeersReady) {
+        _alert = null;
+        _canSendChecking = false;
+      }
       if (mounted) {
-        setState(() {
-          _hasPeersReady = hasPeersReady;
-          _onlineUsers = onlineUsers;
-          if (_hasPeersReady) {
-            _alert = null;
-            _canSendChecking = false;
-            _retryPendingMessage();
-          }
-        });
+        setState(() {});
       }
     }
+    if (_hasPeersReady) _retryPendingMessage();
     return hasPeersReady;
   }
 
@@ -877,15 +893,9 @@ class _ChatPageState extends State<ChatPage>
   Future<List<Device>> _getChatPeers({
     bool alertUser = true,
   }) async {
-    if (!mounted) {
-      return [];
-    }
     final peers = await _chatID.chatPeers;
-    if (!mounted) {
-      return [];
-    }
     if (peers == null) {
-      if (alertUser) {
+      if (alertUser && mounted) {
         final tr = AppLocalizations.of(context);
         SnackbarWidget.e(tr.noDeviceAvailableToChatMessageText).show(context);
       }
@@ -940,10 +950,6 @@ class _ChatPageState extends State<ChatPage>
     bool isRetry = false,
     String? path,
   }) async {
-    if (!mounted) {
-      return message;
-    }
-    final tr = AppLocalizations.of(context);
     String? name = message.name;
     path ??= await _getPath(message.uri);
     final self = Pst.selfDevice;
@@ -992,12 +998,14 @@ class _ChatPageState extends State<ChatPage>
       if (message is types.DeleteMessage) {
         await _deleteMessage(message);
         if (mounted) {
+          final tr = AppLocalizations.of(context);
           Toast.s(tr.deleteFromAllPeersSuccessText).show(context);
         }
         return null;
       }
     } else {
       if (_showSendResult && mounted) {
+        final tr = AppLocalizations.of(context);
         await _showSendResultDialogOrAlert(
           r,
           actions: [

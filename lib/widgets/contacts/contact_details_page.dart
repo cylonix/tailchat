@@ -16,6 +16,7 @@ import '../../utils/logger.dart';
 import '../../utils/utils.dart';
 import '../alert_chip.dart';
 import '../dialog_action.dart';
+import '../qrcode/qr_code_image.dart';
 import '../top_row.dart';
 import 'contact_dialog.dart';
 import 'device_dialog.dart';
@@ -125,26 +126,78 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 8,
           children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.circle,
-                  size: 12,
-                  color: _contact.isOnline ? Colors.green : Colors.grey,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _contact.isOnline ? 'Online' : 'Offline',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ],
+            ListTile(
+              leading: Icon(
+                Icons.circle,
+                size: 12,
+                color: _contact.isOnline ? Colors.green : Colors.grey,
+              ),
+              title: Text(
+                _contact.isOnline ? 'Online' : 'Offline',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              subtitle: Text(
+                'Last seen: $lastSeenMsg',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Last seen: $lastSeenMsg',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            if (_contact.id == Pst.selfUser?.id && Pst.selfDevice != null)
+              ListTile(
+                leading: const Icon(Icons.qr_code),
+                title: const Text(
+                  "Show My QR Code",
+                ),
+                subtitle: const Text(
+                  "Others can scan to add you as a contact",
+                ),
+                onTap: () => showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  constraints: BoxConstraints(
+                    minHeight: 400,
+                    maxHeight: MediaQuery.of(context).size.height * 0.9,
+                  ),
+                  builder: (c) {
+                    final url = "https://cylonix.io/tailchat/add/"
+                        "${_contact.username}/${Pst.selfDevice!.hostname}";
+                    return Column(
+                      children: [
+                        ListTile(
+                          title: const Text(
+                            "My QR Code",
+                            textAlign: TextAlign.center,
+                          ),
+                          subtitle: const Text(
+                            "Scan to add me as a contact",
+                            textAlign: TextAlign.center,
+                          ),
+                          trailing: TextButton(
+                            onPressed: () => Navigator.pop(c),
+                            child: const Text("Close"),
+                          ),
+                        ),
+                        SizedBox(height: 32),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: SelectableText(
+                            url,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        QrCodeImage(
+                          url,
+                          image: (_contact.profileUrl ?? "").isNotEmpty
+                              ? NetworkImage(_contact.profileUrl!)
+                              : null,
+                          showSaveAsButton: false,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
           ],
         ),
       ),

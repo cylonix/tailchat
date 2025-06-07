@@ -96,24 +96,24 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
 
 SPEC CHECKSUMS:
-  audio_session: 48ab6500f7a5e7c64363e206565a5dfe5a0c1441
-  connectivity_plus: 4adf20a405e25b42b9c9f87feff8f4b6fde18a4e
-  desktop_window: de6acd6053564bdccd9f4b9473d25bf4f2ad9bdf
-  device_info_plus: 4fb280989f669696856f8b129e4a5e3cd6c48f76
-  downloadsfolder: 9a9a5fb6eee0abe38756e788bb248d1c21490a6e
-  file_picker: 7584aae6fa07a041af2b36a2655122d42f578c1a
-  file_selector_macos: 6280b52b459ae6c590af5d78fc35c7267a3c4b31
-  flutter_local_notifications: 13862b132e32eb858dea558a86d45d08daeacfe7
+  audio_session: dea1f41890dbf1718f04a56f1d6150fd50039b72
+  connectivity_plus: 0a976dfd033b59192912fa3c6c7b54aab5093802
+  desktop_window: fb7c4f12c1129f947ac482296b6f14059d57a3c3
+  device_info_plus: 1b14eed9bf95428983aed283a8d51cce3d8c4215
+  downloadsfolder: f8c4d35588cc58b607898ebbbdbeb5c0e7f04a46
+  file_picker: e716a70a9fe5fd9e09ebc922d7541464289443af
+  file_selector_macos: cc3858c981fe6889f364731200d6232dac1d812d
+  flutter_local_notifications: 7062189aabf7f50938a7b8b6614ffa97656eb0bf
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
-  just_audio: eb8b016ac4493159ab24db4f7215e55303b39a84
-  open_file_mac: 01874b6d6a2c1485ac9b126d7105b99102dea2cf
-  package_info_plus: f0052d280d17aa382b932f399edf32507174e870
-  path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
-  record_darwin: 30509266ae213af8afdb09a8ae7467cb64c1377e
-  screen_retriever_macos: 452e51764a9e1cdb74b3c541238795849f21557f
-  share_plus: 510bf0af1a42cd602274b4629920c9649c52f4cc
-  shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
-  url_launcher_macos: 0fba8ddabfc33ce0a9afe7c5fef5aab3d8d2d673
+  just_audio: 9b67ca7b97c61cfc9784ea23cd8cc55eb226d489
+  open_file_mac: 0e554648e2a87ce59e9438e3e5ca3e552e90d89a
+  package_info_plus: 12f1c5c2cfe8727ca46cbd0b26677728972d9a5b
+  path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
+  record_darwin: a0d515a0ef78c440c123ea3ac76184c9927a94d6
+  screen_retriever_macos: 776e0fa5d42c6163d2bf772d22478df4b302b161
+  share_plus: 1fa619de8392a4398bfaf176d441853922614e89
+  shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
+  url_launcher_macos: c82c93949963e55b228a30115bd219499a6fe404
 
 PODFILE CHECKSUM: 9ebaf0ce3d369aaa26a9ea0e159195ed94724cf3
 

@@ -11,6 +11,7 @@ import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:http/http.dart' as http;
 
 import '../api/notification.dart';
+import '../models/alert.dart';
 import '../models/chat/chat_event.dart';
 import '../models/chat/chat_id.dart';
 import '../models/chat/chat_message.dart';
@@ -154,7 +155,10 @@ class ChatServer {
     await ChatService.restartServer();
   }
 
-  static Future<void> init(Function(dynamic) onError) async {
+  static Future<void> init(
+    Function(dynamic) onError,
+    Function(Alert) onAlert,
+  ) async {
     ChatService.platform.setMethodCallHandler((MethodCall call) async {
       switch (call.method) {
         case 'cylonixServiceStateChanged':
@@ -165,6 +169,71 @@ class ChatServer {
           } catch (e) {
             _logger.e("Failed to start service state monitor: $e");
             onError(e);
+          }
+          break;
+        case 'handleAppLink':
+          try {
+            final json = call.arguments as Map<dynamic, dynamic>;
+            final path = json['path'] as String?;
+            if (path == null || !path.startsWith("/tailchat/")) {
+              throw Exception("Invalid app link path: $path");
+            }
+            final pathComponents = json['pathComponents'] as List<dynamic>?;
+            if (pathComponents == null || pathComponents.length != 5) {
+              throw Exception("Invalid app link: $json");
+            }
+            // skip the first two components '/' and 'tailchat'
+            final op = pathComponents[2] as String;
+            if (op != "add") {
+              throw Exception("Unsupported app link operation: $op");
+            }
+            final name = pathComponents[3] as String;
+            final deviceName = pathComponents[4] as String;
+            if (name.isEmpty || deviceName.isEmpty) {
+              throw Exception("Invalid contact: $json");
+            }
+            if ((await _contactsRepository?.getDevice(
+                  Device.generateID(deviceName),
+                )) !=
+                null) {
+              _logger.i("Device $deviceName already exists. Skip.");
+              onAlert(Alert(
+                "Skipping adding contact through the link. "
+                "Device '$deviceName' already exists.",
+                variant: AlertVariant.warning,
+              ));
+              return;
+            }
+            final contact = Contact(username: name);
+            final device = Device(
+              userID: contact.id,
+              address: "",
+              hostname: deviceName,
+            );
+            if ((await _contactsRepository?.getContact(contact.id)) != null) {
+              await _contactsRepository?.addDevice(device);
+              _logger.i(
+                "Added device through app link to existing contact $name: "
+                "$device",
+              );
+              onAlert(Alert(
+                "Added device '$deviceName' to contact '$name' through app "
+                "link.",
+                variant: AlertVariant.success,
+              ));
+            } else {
+              contact.devices.add(device);
+              await _contactsRepository?.addContact(contact);
+              onAlert(Alert(
+                "Added contact '$name' with device '$deviceName' through app "
+                "link.",
+                variant: AlertVariant.success,
+              ));
+              _logger.i("Added contact from app link: $contact");
+            }
+          } catch (e) {
+            _logger.e("Failed to handle app link: $e");
+            onError("Failed to add contact through app link: $e");
           }
           break;
       }

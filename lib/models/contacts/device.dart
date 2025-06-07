@@ -4,6 +4,8 @@
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 
+const defaultPort = 50311;
+
 class Device {
   final String id;
   String userID;
@@ -20,7 +22,7 @@ class Device {
     required this.userID,
     required this.address,
     required this.hostname,
-    required this.port,
+    this.port = defaultPort,
     this.os = "",
     this.pnUUID,
     this.isAvailable = false,
