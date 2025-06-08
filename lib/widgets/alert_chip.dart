@@ -15,8 +15,9 @@ class AlertChip extends Card {
     Color? backgroundColor,
     double? fontSize,
     double? width,
+    EdgeInsetsGeometry? margin,
   }) : super(
-          margin: EdgeInsets.all(0),
+          margin: margin ?? EdgeInsets.all(0),
           color: backgroundColor ?? alert.background,
           child: Builder(
             builder: (context) {

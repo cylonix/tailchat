@@ -92,10 +92,10 @@ class ChatPage extends StatefulWidget {
   }
 
   @override
-  State<ChatPage> createState() => _ChatPageState();
+  State<ChatPage> createState() => ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage>
+class ChatPageState extends State<ChatPage>
     with AutomaticKeepAliveClientMixin, RouteAware {
   List<types.Message> _messages = [];
   StreamSubscription<ChatEvent>? _chatAddEventSub;
@@ -131,7 +131,7 @@ class _ChatPageState extends State<ChatPage>
   int _tryToConnectAttempts = 0;
   static final int _maxTryToConnectAttempts = 3;
   final _initialTryToConnectBackoff = 1; // seconds
-  final _maxTryToConnectBackoff = 30; // 30 mins in seconds
+  final _maxTryToConnectBackoff = 30; // 30 seconds
 
   @override
   bool get wantKeepAlive => true;
@@ -166,37 +166,41 @@ class _ChatPageState extends State<ChatPage>
 
   @override
   void didPush() {
-    _onActive();
+    onActive();
   }
 
   @override
   void didPopNext() {
-    _onActive();
+    onActive();
   }
 
   @override
   void didPop() {
-    _onInactive();
+    onInactive();
   }
 
   @override
   void didPushNext() {
-    _onInactive();
+    onInactive();
   }
 
   Logger get _logger {
     return Logger(tag: "Chat $_title $_subtitle");
   }
 
-  void _onActive() {
+  void onActive() {
     _logger.d("-> Active");
     _isActive = true;
+    _timer.cancel();
+    _timer = _startTimer();
     ChatServer.setIsOnFront(_chatID.id, true);
   }
 
-  void _onInactive() {
+  void onInactive() {
     _logger.d("-> Inactive");
     _isActive = false;
+    _timer.cancel();
+    _timer = _startTimer();
     _tryToConnectPeersTimer?.cancel();
     _tryToConnectPeersTimer = null;
     _tryToConnectAttempts = 0;
@@ -268,10 +272,11 @@ class _ChatPageState extends State<ChatPage>
       return;
     }
     final c = await getContact(_session.peerUserID);
-    if (c != null && mounted) {
-      setState(() {
-        _peerContact = c;
-      });
+    if (c != null) {
+      _peerContact = c;
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
@@ -386,8 +391,7 @@ class _ChatPageState extends State<ChatPage>
   }
 
   Timer _startTimer() {
-    return Timer.periodic(const Duration(seconds: 15), (timer) {
-      print("Periodic timer tick");
+    return Timer.periodic(Duration(seconds: _isActive ? 15 : 30), (timer) {
       _handlePeriodicTimer();
     });
   }
@@ -395,7 +399,6 @@ class _ChatPageState extends State<ChatPage>
   bool _isUpdatingStatus = false;
   Future<void> _handlePeriodicTimer() async {
     if (_isUpdatingStatus) return;
-
     _isUpdatingStatus = true;
     try {
       await _checkExpired();
@@ -403,15 +406,17 @@ class _ChatPageState extends State<ChatPage>
             (m) => m.status == types.Status.toretry,
           ) ==
           null) {
+        if (!_isActive) _timer.cancel();
         return;
       }
       final ready = await _updateChatPeersStatus();
       if (!ready) {
-        _logger.d("Peers not ready. Try to connect again.");
+        _logger.d("Timer: peers not ready. Try to connect again.");
+        _cancelCurrentTryingToConnect = false;
         if (_tryToConnectPeersTimer == null) {
           _tryToConnect(onConnected: _retryPendingMessage);
         } else {
-          _logger.d("Already trying to connect. Skip...");
+          _logger.d("Timer: already trying to connect. Skip...");
         }
       } else {
         _cancelTryToConnect();
@@ -500,6 +505,9 @@ class _ChatPageState extends State<ChatPage>
           );
           setState(() {});
         }
+        _logger.e(
+          "Failed to connect after $_maxTryToConnectAttempts attempt",
+        );
         return;
       }
 
@@ -658,11 +666,17 @@ class _ChatPageState extends State<ChatPage>
 
   Future<bool> _updateChatPeersStatus() async {
     final self = Pst.selfDevice;
+    var peers = <Device>[];
     if (self == null) {
       return false;
     }
     //_logger.d("Updating chat peer status...");
-    final peers = await _getChatPeers();
+    try {
+      peers = await _getChatPeers();
+    } catch (e) {
+      _logger.e("Failed to get chat peers: $e");
+      return false;
+    }
     final hasPeersReady = peers.any((p) => p.isOnline);
     var onlineUsersMap = <String, bool>{};
     if (self.isAvailable) {
@@ -1890,6 +1904,9 @@ class _ChatPageState extends State<ChatPage>
     if (_peerContact?.name != null) {
       return _peerContact!.name;
     }
+    if (_session.peerName != null) {
+      return _session.peerName!;
+    }
     if (_initDone && mounted) {
       final tr = AppLocalizations.of(context);
       return tr.chatText;
@@ -1901,7 +1918,7 @@ class _ChatPageState extends State<ChatPage>
     if (_isGroupChat) {
       return null;
     }
-    return _peerDevice?.title;
+    return _peerDevice?.title ?? _session.peerDeviceName;
   }
 
   ChatL10n get _chatL10n {
@@ -2082,7 +2099,7 @@ class _ChatPageState extends State<ChatPage>
     final bool canRecord = !(Platform.isLinux || Platform.isWindows);
     //_logger.d("rebuild with messages[${_messages.length}]");
     return Chat(
-      key: widget.key, // Force a chat widget rebuild
+      key: Key(_chatID.id),
       customMessageBuilder: _customMessageBuilder,
       detailStatusBuilder: _detailStatusBuilder,
       isTV: _isTV,
@@ -2179,11 +2196,14 @@ class _ChatPageState extends State<ChatPage>
     if (_isGroupChat) {
       return null;
     }
-    final name = _peerContact?.name.capitalize();
+    var name = _peerContact?.name ?? _session.peerName;
+    name = name?.capitalize();
     if (name == null) {
       return null;
     }
-    final device = _peerDevice != null ? "@${_peerDevice?.title}" : "";
+
+    var device = _peerDevice?.title ?? _session.peerDeviceName;
+    device = device != null ? "@$device" : "";
     return '$name$device';
   }
 
@@ -2281,6 +2301,30 @@ class _ChatPageState extends State<ChatPage>
   Widget build(BuildContext context) {
     super.build(context);
 
+    final alerts = [
+      if (_alert != null)
+        AlertChip(
+          _alert!,
+          width: double.infinity,
+          onDeleted: () {
+            setState(() {
+              _alert = null;
+            });
+          },
+        ),
+      if (_messageAlert != null)
+        AlertChip(
+          _messageAlert!,
+          width: double.infinity,
+          onDeleted: () {
+            setState(() {
+              _messageAlert = null;
+            });
+          },
+        ),
+      _peerStatusWidget,
+    ].nonNulls.toList();
+
     return Scaffold(
       appBar: _appBar,
       body: SafeArea(
@@ -2288,27 +2332,28 @@ class _ChatPageState extends State<ChatPage>
         child: Column(
           spacing: 4,
           children: [
-            if (_alert != null)
-              AlertChip(
-                _alert!,
-                width: double.infinity,
-                onDeleted: () {
-                  setState(() {
-                    _alert = null;
-                  });
-                },
+            if (alerts.length > 1)
+              ExpansionTile(
+                initiallyExpanded: false,
+                childrenPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
+                title: AlertChip(
+                  _alert != null || _messageAlert != null
+                      ? Alert("Error")
+                      : Alert("Status", variant: AlertVariant.info),
+                ),
+                children: alerts
+                    .map(
+                      (a) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: a,
+                      ),
+                    )
+                    .toList(),
               ),
-            if (_messageAlert != null)
-              AlertChip(
-                _messageAlert!,
-                width: double.infinity,
-                onDeleted: () {
-                  setState(() {
-                    _messageAlert = null;
-                  });
-                },
-              ),
-            if (_peerStatusWidget != null) _peerStatusWidget!,
+            if (alerts.length == 1) alerts[0],
             Expanded(child: _chatWidget),
           ],
         ),

@@ -7,9 +7,8 @@
 **Note**: Tailchat is not affiliated with, endorsed by, or sponsored by Tailscale Inc. Tailscale® and Tailnet are trademarks of Tailscale Inc.
 
 [Install Tailchat and Join Tailchat beta](https://cylonix.io/web/view/tailchat/download.html)
-<center>
-<img src="lib/assets/images/tailchat.png" alt="Tailchat" width=128></img>
-</center>
+
+![Tailchat](lib/assets/images/tailchat.png)
 
 ## Core Features
 
@@ -90,7 +89,7 @@ make deb
 ### Build macos or ios package
 
 Please follow flutter macos and ios app building instructions with xcode.
+
 - <https://docs.flutter.dev/deployment/macos>
+
 - <https://docs.flutter.dev/deployment/ios>
-
-

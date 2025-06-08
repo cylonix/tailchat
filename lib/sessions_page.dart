@@ -72,6 +72,7 @@ class SessionsPageState extends State<SessionsPage>
   SessionType _selectedSessionType = SessionType.chat;
   Session? _selectedItem;
   final Map<SessionType, Session?> _selectedItemMap = {};
+  final Map<String, GlobalKey<ChatPageState>> _chatKeys = {};
   String? _userID;
   String? _filterText;
   bool isLoading = false;
@@ -495,6 +496,18 @@ class SessionsPageState extends State<SessionsPage>
   }
 
   void _setSelectedItem(SessionType type, Session? session) {
+    if (_selectedItem != null) {
+      if (_selectedItem?.sessionID == session?.sessionID &&
+          _selectedItem?.type == type) {
+        // Already selected, no need to change
+        return;
+      }
+      if (_selectedItem is ChatSession) {
+        ChatServer.setIsOnFront(_selectedItem!.sessionID, false);
+        final key = _chatKeys[_selectedItem!.sessionID];
+        key?.currentState?.onInactive();
+      }
+    }
     _selectedItem = session;
     _selectedItemMap[type] = session;
   }
@@ -663,8 +676,13 @@ class SessionsPageState extends State<SessionsPage>
 
   Widget _getChatPanel(ChatSession selected) {
     final chatID = selected.sessionID;
+    var key = _chatKeys[chatID];
+    if (key == null) {
+      key = GlobalKey<ChatPageState>();
+      _chatKeys[chatID] = key;
+    }
     return ChatPage(
-      key: Key(chatID),
+      key: key,
       session: selected,
     );
   }

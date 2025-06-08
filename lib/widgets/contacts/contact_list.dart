@@ -213,6 +213,7 @@ class _ContactListState extends State<ContactList> {
     }
     subtitle = '$subtitle$hostnames';
     return Card(
+      elevation: 0,
       child: ListTile(
         leading: Icon(
           Icons.circle,

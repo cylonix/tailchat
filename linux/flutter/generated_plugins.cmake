@@ -6,6 +6,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   desktop_window
   file_selector_linux
   flutter_audio_desktop
+  gtk
   open_file_linux
   record_linux
   screen_retriever_linux

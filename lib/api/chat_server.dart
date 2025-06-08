@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:app_links/app_links.dart';
 import 'package:collection/collection.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/services.dart';
@@ -159,6 +160,18 @@ class ChatServer {
     Function(dynamic) onError,
     Function(Alert) onAlert,
   ) async {
+    // Handle initial URI if app was launched from link
+    final appLinks = AppLinks(); // AppLinks is singleton
+
+    appLinks.uriLinkStream.listen((uri) async {
+      try {
+        await _handleAppLink(uri.pathSegments, onError, onAlert);
+      } catch (e) {
+        _logger.e("Failed to handle dynamic link: $e");
+        onError("Failed to handle dynamic link: $e");
+      }
+    });
+
     ChatService.platform.setMethodCallHandler((MethodCall call) async {
       switch (call.method) {
         case 'cylonixServiceStateChanged':
@@ -179,65 +192,74 @@ class ChatServer {
               throw Exception("Invalid app link path: $path");
             }
             final pathComponents = json['pathComponents'] as List<dynamic>?;
-            if (pathComponents == null || pathComponents.length != 5) {
-              throw Exception("Invalid app link: $json");
-            }
-            // skip the first two components '/' and 'tailchat'
-            final op = pathComponents[2] as String;
-            if (op != "add") {
-              throw Exception("Unsupported app link operation: $op");
-            }
-            final name = pathComponents[3] as String;
-            final deviceName = pathComponents[4] as String;
-            if (name.isEmpty || deviceName.isEmpty) {
-              throw Exception("Invalid contact: $json");
-            }
-            if ((await _contactsRepository?.getDevice(
-                  Device.generateID(deviceName),
-                )) !=
-                null) {
-              _logger.i("Device $deviceName already exists. Skip.");
-              onAlert(Alert(
-                "Skipping adding contact through the link. "
-                "Device '$deviceName' already exists.",
-                variant: AlertVariant.warning,
-              ));
-              return;
-            }
-            final contact = Contact(username: name);
-            final device = Device(
-              userID: contact.id,
-              address: "",
-              hostname: deviceName,
+            await _handleAppLink(
+              pathComponents,
+              onError,
+              onAlert,
             );
-            if ((await _contactsRepository?.getContact(contact.id)) != null) {
-              await _contactsRepository?.addDevice(device);
-              _logger.i(
-                "Added device through app link to existing contact $name: "
-                "$device",
-              );
-              onAlert(Alert(
-                "Added device '$deviceName' to contact '$name' through app "
-                "link.",
-                variant: AlertVariant.success,
-              ));
-            } else {
-              contact.devices.add(device);
-              await _contactsRepository?.addContact(contact);
-              onAlert(Alert(
-                "Added contact '$name' with device '$deviceName' through app "
-                "link.",
-                variant: AlertVariant.success,
-              ));
-              _logger.i("Added contact from app link: $contact");
-            }
           } catch (e) {
             _logger.e("Failed to handle app link: $e");
-            onError("Failed to add contact through app link: $e");
+            onError("Failed to handle app link: $e");
           }
           break;
       }
     });
+  }
+
+  static Future<void> _handleAppLink(
+    List<dynamic>? pathComponents,
+    Function(dynamic) onError,
+    Function(Alert) onAlert,
+  ) async {
+    if (pathComponents == null || pathComponents.length != 5) {
+      throw Exception("Invalid app link: $json");
+    }
+    // skip the first two components '/' and 'tailchat'
+    final op = pathComponents[2] as String;
+    if (op != "add") {
+      throw Exception("Unsupported app link operation: $op");
+    }
+    final name = pathComponents[3] as String;
+    final deviceName = pathComponents[4] as String;
+    if (name.isEmpty || deviceName.isEmpty) {
+      throw Exception("Invalid contact: $json");
+    }
+    if ((await _contactsRepository?.getDevice(
+          Device.generateID(deviceName),
+        )) !=
+        null) {
+      _logger.i("Device $deviceName already exists. Skip.");
+      onAlert(Alert(
+        "Skipping adding contact through the link. "
+        "Device '$deviceName' already exists.",
+        variant: AlertVariant.warning,
+      ));
+      return;
+    }
+    final contact = Contact(username: name);
+    final device = Device(
+      userID: contact.id,
+      address: "",
+      hostname: deviceName,
+    );
+    if ((await _contactsRepository?.getContact(contact.id)) != null) {
+      await _contactsRepository?.addDevice(device);
+      _logger.i(
+        "Added device through app link to existing contact $name: $device",
+      );
+      onAlert(Alert(
+        "Added device '$deviceName' to contact '$name' through app link.",
+        variant: AlertVariant.success,
+      ));
+    } else {
+      contact.devices.add(device);
+      await _contactsRepository?.addContact(contact);
+      onAlert(Alert(
+        "Added contact '$name' with device '$deviceName' through app link.",
+        variant: AlertVariant.success,
+      ));
+      _logger.i("Added contact from app link: $contact");
+    }
   }
 
   static Future<void> _resetCylonixEnabled() async {
@@ -618,7 +640,9 @@ class ChatServer {
     try {
       json = await Future.wait(json.map((device) async {
         final address = device['address'] as String;
-        final hostname = device['hostname'] as String;
+        var hostname = device['hostname'] as String;
+        hostname = hostname.replaceAll(RegExp(r'\.+$'), '');
+        device['hostname'] = hostname;
 
         if (_needsResolution(address, hostname) && isIPv4Address(address)) {
           _logger.i("Resolving hostname for $address");

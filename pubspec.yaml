@@ -38,6 +38,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
+  app_links: ^6.4.0
   bubble: ^1.2.1
   collection: ^1.19.0
   confirm_dialog: ^1.0.0

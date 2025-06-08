@@ -23,14 +23,30 @@ app-icons:
 
 generate: localization
 
+android-debug-key:
+	keytool -list -v -keystore ~/.android/debug.keystore \
+		-alias androiddebugkey -storepass android -keypass android
+
 test:
 #    flutter test --no-pub test/${TEST}
 
-.PHONY: apk
+.PHONY: apk aab debug-apk
 apk:
 	flutter build apk --split-per-abi --target-platform android-arm64
+debug-apk:
+	flutter build apk --split-per-abi --target-platform android-arm64 \
+		--debug
 aab:
 	flutter build appbundle
+
+.PHONY: test-app-links
+test-app-links:
+	@echo "Testing app links..."
+	adb shell pm get-app-links io.cylonix.tailchat
+	@echo "\nTesting intent..."
+	adb shell am start -a android.intent.action.VIEW \
+        -c android.intent.category.BROWSABLE \
+        -d "https://cylonix.io/tailchat/add" --debug
 
 .PHONY: deb
 debhelper golang-go:
