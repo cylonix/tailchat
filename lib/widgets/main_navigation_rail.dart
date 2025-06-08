@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import 'dart:async';
-import 'package:collection/collection.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -25,14 +24,19 @@ import 'top_row.dart';
 
 class MainNavigationRail extends StatefulWidget {
   final void Function(int)? onSelected;
-  const MainNavigationRail({super.key, this.onSelected});
+  final VoidCallback onNavigateToSelfContactDetails;
+  const MainNavigationRail({
+    super.key,
+    required this.onNavigateToSelfContactDetails,
+    this.onSelected,
+  });
 
   @override
   State<MainNavigationRail> createState() => _MainNavigationRailState();
 }
 
 class _MainNavigationRailState extends State<MainNavigationRail> {
-  int _selectedIndex = 0;
+  int? _selectedIndex = 0;
   bool _extended = false;
   StreamSubscription<ConfigChangeEvent>? _configSub;
   late final FocusNode _contractFocus, _expandFocus, _infoFocus;
@@ -182,19 +186,7 @@ class _MainNavigationRailState extends State<MainNavigationRail> {
     return UserAvatar(
       user: Pst.selfUser,
       radius: 24,
-      onTap: () {
-        final user = Pst.selfUser;
-        if (user != null) {
-          final index = MainBottomBarPage.values
-              .firstWhereOrNull(
-                (e) => e.name == MainBottomBarPage.contacts.name,
-              )
-              ?.index;
-          if (index != null) {
-            widget.onSelected?.call(index);
-          }
-        }
-      },
+      onTap: _navigateToSelfContactDetails,
     );
   }
 
@@ -207,12 +199,25 @@ class _MainNavigationRailState extends State<MainNavigationRail> {
     );
   }
 
+  void _navigateToSelfContactDetails() {
+    setState(() {
+      _selectedIndex = null;
+    });
+    widget.onNavigateToSelfContactDetails();
+  }
+
   Widget? get _leading {
     if (_extended) {
-      return Container(
-        margin: const EdgeInsets.all(0),
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: _userCard,
+      return Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: _navigateToSelfContactDetails,
+          child: Container(
+            margin: const EdgeInsets.all(0),
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: _userCard,
+          ),
+        ),
       );
     }
     final tr = AppLocalizations.of(context);

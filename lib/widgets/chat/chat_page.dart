@@ -1185,7 +1185,8 @@ class ChatPageState extends State<ChatPage>
         var success = false;
         final path = await ChatStorage.getAbsolutePath(uri);
         if (utils.isImage(path) || utils.isVideo(path)) {
-          success = await ImageGallerySaverPlus.saveFile(path) ?? false;
+          final result = await ImageGallerySaverPlus.saveFile(path);
+          success = result['isSuccess'] ?? false;
         } else {
           _logger.e(tr.unsupportedMediaText);
           if (mounted) {
@@ -2346,9 +2347,11 @@ class ChatPageState extends State<ChatPage>
                 ),
                 children: alerts
                     .map(
-                      (a) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: a,
+                      (a) => Column(
+                        children: [
+                          const Divider(height: 1),
+                          a,
+                        ],
                       ),
                     )
                     .toList(),

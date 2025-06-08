@@ -160,16 +160,30 @@ class ChatServer {
     Function(dynamic) onError,
     Function(Alert) onAlert,
   ) async {
-    // Handle initial URI if app was launched from link
     final appLinks = AppLinks(); // AppLinks is singleton
-
     appLinks.uriLinkStream.listen((uri) async {
       try {
+        _logger.i("AppLinks: Received URI: $uri");
+        // We may receive URIs that are not from app links but
+        // from received sharing. Double check the url.
+        if (!uri.toString().startsWith("https://cylonix.io/tailchat/")) {
+          _logger.d("Received URI is not a valid app link: $uri");
+          return;
+        }
         await _handleAppLink(uri.pathSegments, onError, onAlert);
       } catch (e) {
         _logger.e("Failed to handle dynamic link: $e");
         onError("Failed to handle dynamic link: $e");
       }
+    }, onError: (error) {
+      _logger.e("AppLinks error: $error");
+      onError("AppLinks error: $error");
+    }, onDone: () {
+      _logger.i("AppLinks stream closed");
+      onAlert(Alert(
+        "AppLinks stream closed. No more dynamic links will be handled.",
+        variant: AlertVariant.info,
+      ));
     });
 
     ChatService.platform.setMethodCallHandler((MethodCall call) async {
@@ -185,6 +199,7 @@ class ChatServer {
           }
           break;
         case 'handleAppLink':
+          _logger.i("handleAppLink: ${call.arguments}");
           try {
             final json = call.arguments as Map<dynamic, dynamic>;
             final path = json['path'] as String?;
@@ -198,7 +213,7 @@ class ChatServer {
               onAlert,
             );
           } catch (e) {
-            _logger.e("Failed to handle app link: $e");
+            _logger.e("handleAppLink: Failed: $e");
             onError("Failed to handle app link: $e");
           }
           break;
@@ -212,7 +227,7 @@ class ChatServer {
     Function(Alert) onAlert,
   ) async {
     if (pathComponents == null || pathComponents.length != 5) {
-      throw Exception("Invalid app link: $json");
+      throw Exception("Invalid app link: $pathComponents");
     }
     // skip the first two components '/' and 'tailchat'
     final op = pathComponents[2] as String;
@@ -222,13 +237,13 @@ class ChatServer {
     final name = pathComponents[3] as String;
     final deviceName = pathComponents[4] as String;
     if (name.isEmpty || deviceName.isEmpty) {
-      throw Exception("Invalid contact: $json");
+      throw Exception("Invalid contact: ${pathComponents.sublist(3)}");
     }
     if ((await _contactsRepository?.getDevice(
           Device.generateID(deviceName),
         )) !=
         null) {
-      _logger.i("Device $deviceName already exists. Skip.");
+      _logger.i("handleAppLink: Device $deviceName already exists. Skip.");
       onAlert(Alert(
         "Skipping adding contact through the link. "
         "Device '$deviceName' already exists.",
@@ -245,7 +260,7 @@ class ChatServer {
     if ((await _contactsRepository?.getContact(contact.id)) != null) {
       await _contactsRepository?.addDevice(device);
       _logger.i(
-        "Added device through app link to existing contact $name: $device",
+        "handleAppLink: added device to existing contact $name: $device",
       );
       onAlert(Alert(
         "Added device '$deviceName' to contact '$name' through app link.",
@@ -258,7 +273,7 @@ class ChatServer {
         "Added contact '$name' with device '$deviceName' through app link.",
         variant: AlertVariant.success,
       ));
-      _logger.i("Added contact from app link: $contact");
+      _logger.i("handleAppLink: added contact: $contact");
     }
   }
 

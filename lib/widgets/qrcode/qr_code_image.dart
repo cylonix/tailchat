@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart' as qrf;
 
 import '../../gen/l10n/app_localizations.dart';
@@ -61,7 +60,7 @@ class QrCodeImage extends StatelessWidget {
                 if (leading != null) leading!,
                 Material(
                   elevation: 4,
-                  borderRadius: BorderRadius.circular(32),
+                  borderRadius: BorderRadius.circular(8),
                   color: qrBackgroundColor,
                   clipBehavior: Clip.antiAlias,
                   child: qrf.QrImageView(
@@ -153,30 +152,37 @@ class QrCodeImage extends StatelessWidget {
   }
 
   void _saveToGallery(BuildContext context) async {
-    final tr = AppLocalizations.of(context);
-    Directory tempDir = await getTemporaryDirectory();
-    String tempPath = tempDir.path;
-    final ts = DateTime.now().millisecondsSinceEpoch.toString();
-    String path = '$tempPath/$ts.png';
-    if (!context.mounted) {
-      return;
-    }
     final picData = await _getQrImageData(context);
     if (picData == null) {
+      if (context.mounted) {
+        final tr = AppLocalizations.of(context);
+        await showAlertDialog(
+          context,
+          tr.prompt,
+          "${tr.errSavingImageText}: no image data found",
+        );
+      }
       return;
     }
     try {
-      await _writeToFile(picData, path);
-      final success = await ImageGallerySaverPlus.saveFile(path) ?? false;
+      final result = await ImageGallerySaverPlus.saveImage(
+        picData.buffer.asUint8List(
+          picData.offsetInBytes,
+          picData.lengthInBytes,
+        ),
+      );
+      final success = result['isSuccess'] ?? false;
       if (success) {
         if (context.mounted) {
+          final tr = AppLocalizations.of(context);
           SnackbarWidget.s(tr.imageSavedToGalleryText).show(context);
         }
       } else {
-        throw ("");
+        throw "failed to save image to gallery";
       }
     } catch (e) {
       if (context.mounted) {
+        final tr = AppLocalizations.of(context);
         await showAlertDialog(
           context,
           tr.prompt,

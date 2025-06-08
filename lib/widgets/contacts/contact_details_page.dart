@@ -174,6 +174,9 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
         return Column(
           children: [
             ListTile(
+              leading: Icon(isApple()
+                  ? CupertinoIcons.person_badge_plus
+                  : Icons.contact_page),
               title: const Text(
                 "My QR Code",
                 textAlign: TextAlign.center,

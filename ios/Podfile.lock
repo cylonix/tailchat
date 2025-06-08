@@ -1,4 +1,6 @@
 PODS:
+  - app_links (0.0.2):
+    - Flutter
   - audio_session (0.0.1):
     - Flutter
   - connectivity_plus (0.0.1):
@@ -90,6 +92,7 @@ PODS:
     - libwebp
 
 DEPENDENCIES:
+  - app_links (from `.symlinks/plugins/app_links/ios`)
   - audio_session (from `.symlinks/plugins/audio_session/ios`)
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
@@ -121,6 +124,8 @@ SPEC REPOS:
     - SwiftyGif
 
 EXTERNAL SOURCES:
+  app_links:
+    :path: ".symlinks/plugins/app_links/ios"
   audio_session:
     :path: ".symlinks/plugins/audio_session/ios"
   connectivity_plus:
@@ -165,6 +170,7 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/video_thumbnail/ios"
 
 SPEC CHECKSUMS:
+  app_links: f3e17e4ee5e357b39d8b95290a9b2c299fca71c6
   audio_session: 088d2483ebd1dc43f51d253d4a1c517d9a2e7207
   connectivity_plus: 2a701ffec2c0ae28a48cf7540e279787e77c447d
   device_info_plus: bf2e3232933866d73fe290f2942f2156cdd10342

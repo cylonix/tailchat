@@ -23,7 +23,7 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
     private var methodChannel: FlutterMethodChannel?
     private var eventChannel: FlutterEventChannel?
     private var chatMessageChannel: FlutterEventChannel?
-    private var chatMesssageEventSink: FlutterEventSink?
+    private var chatMessageEventSink: FlutterEventSink?
     private var eventSink: FlutterEventSink?
     private var cylonixObserver: UnsafeMutableRawPointer?
     private static let cylonixStateChangeNotification = "io.cylonix.sase.tailchat.stateChange"
@@ -46,11 +46,11 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
             _ application: UIApplication,
             didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
         ) -> Bool {
+            setupFlutterChannels()
             application.registerForRemoteNotifications()
             GeneratedPluginRegistrant.register(with: self)
             requestNotificationPermissions()
             startChatService()
-            setupFlutterChannels()
             backgroundTaskHandler = BackgroundTask(delegate: self)
             backgroundTaskHandler?.registerBackgroundRefreshTask()
             setupCylonixServiceObserver()
@@ -169,11 +169,11 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
     #if os(macOS)
         private var chatService: ChatService?
         override func applicationDidFinishLaunching(_: Notification) {
+            setupFlutterChannels()
             if chatService == nil {
                 chatService = ChatService()
             }
             requestNotificationPermissions()
-            setupFlutterChannels()
         }
 
         // Handle window close
@@ -278,7 +278,7 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
             chatService = service
         }
         chatService?.startService()
-        chatService?.setChatMessageSink(eventSink: chatMesssageEventSink)
+        chatService?.setChatMessageSink(eventSink: chatMessageEventSink)
         chatService?.setEventSink(eventSink: eventSink)
     }
 
@@ -340,7 +340,7 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
         let argsDescription = args.map { String(describing: $0) } ?? "nil"
         logger.i("Setting event sink \(argsDescription) from onListen")
         if args as? String == "chat_messages" {
-            chatMesssageEventSink = events
+            chatMessageEventSink = events
             chatService?.setChatMessageSink(eventSink: events)
         } else {
             eventSink = events
@@ -353,7 +353,7 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
         let argsDescription = args.map { String(describing: $0) } ?? "nil"
         logger.i("Cancelling event sink \(argsDescription) from onCancel")
         if args as? String == "chat_messages" {
-            chatMesssageEventSink = nil
+            chatMessageEventSink = nil
             chatService?.setChatMessageSink(eventSink: nil)
         } else {
             eventSink = nil
@@ -545,11 +545,16 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
         }
 
         // Send to Flutter via method channel
+        if methodChannel == nil {
+            logger.e("Method channel is not initialized")
+            return
+        }
         methodChannel?.invokeMethod("handleAppLink", arguments: [
             "path": components.path,
             "params": params,
             "pathComponents": url.pathComponents,
         ])
+        logger.i("App link handled with path: \(url.path)")
     }
 }
 

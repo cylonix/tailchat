@@ -1,4 +1,6 @@
 PODS:
+  - app_links (1.0.0):
+    - FlutterMacOS
   - audio_session (0.0.1):
     - FlutterMacOS
   - connectivity_plus (0.0.1):
@@ -38,6 +40,7 @@ PODS:
     - FlutterMacOS
 
 DEPENDENCIES:
+  - app_links (from `Flutter/ephemeral/.symlinks/plugins/app_links/macos`)
   - audio_session (from `Flutter/ephemeral/.symlinks/plugins/audio_session/macos`)
   - connectivity_plus (from `Flutter/ephemeral/.symlinks/plugins/connectivity_plus/macos`)
   - desktop_window (from `Flutter/ephemeral/.symlinks/plugins/desktop_window/macos`)
@@ -58,6 +61,8 @@ DEPENDENCIES:
   - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
 
 EXTERNAL SOURCES:
+  app_links:
+    :path: Flutter/ephemeral/.symlinks/plugins/app_links/macos
   audio_session:
     :path: Flutter/ephemeral/.symlinks/plugins/audio_session/macos
   connectivity_plus:
@@ -96,6 +101,7 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
 
 SPEC CHECKSUMS:
+  app_links: 86a57d95d4dec830373b8c85c21d1c59a4a5dc21
   audio_session: dea1f41890dbf1718f04a56f1d6150fd50039b72
   connectivity_plus: 0a976dfd033b59192912fa3c6c7b54aab5093802
   desktop_window: fb7c4f12c1129f947ac482296b6f14059d57a3c3

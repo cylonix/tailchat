@@ -7,7 +7,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import '../models/alert.dart';
 import '../utils/utils.dart';
 
-class AlertChip extends Card {
+class AlertChip extends Container {
   AlertChip(
     Alert alert, {
     super.key,
@@ -16,8 +16,10 @@ class AlertChip extends Card {
     double? fontSize,
     double? width,
     EdgeInsetsGeometry? margin,
+    EdgeInsetsGeometry? padding,
   }) : super(
-          margin: margin ?? EdgeInsets.all(0),
+          padding: padding ?? const EdgeInsets.all(4),
+          margin: margin ?? const EdgeInsets.all(0),
           color: backgroundColor ?? alert.background,
           child: Builder(
             builder: (context) {
@@ -41,6 +43,10 @@ class AlertChip extends Card {
                   ? IconButton(
                       icon: Icon(
                         isApple() ? CupertinoIcons.delete : Icons.delete,
+                        color: isApple()
+                            ? CupertinoColors.destructiveRed
+                                .resolveFrom(context)
+                            : Colors.red,
                       ),
                       onPressed: onDeleted,
                     )
@@ -80,6 +86,7 @@ class AlertChip extends Card {
                   itemBuilder: (c) => appleActions,
                   buttonAnchor: PullDownMenuAnchor.center,
                   buttonBuilder: (context, showMenu) => CupertinoButton(
+                    sizeStyle: CupertinoButtonSize.small,
                     onPressed: showMenu,
                     child: Tooltip(
                       message: "Show options",

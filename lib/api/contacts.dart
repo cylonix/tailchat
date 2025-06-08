@@ -40,11 +40,17 @@ class ContactsEvent {
 }
 
 Future<Contact?> getContact(String? id) async {
+  if (id == null || id.isEmpty) {
+    return null;
+  }
   _repository ??= await ContactsRepository.getInstance();
   return await _repository?.getContact(id);
 }
 
 Future<Device?> getDevice(String? id) async {
+  if (id == null || id.isEmpty) {
+    return null;
+  }
   _repository ??= await ContactsRepository.getInstance();
   return await _repository?.getDevice(id);
 }

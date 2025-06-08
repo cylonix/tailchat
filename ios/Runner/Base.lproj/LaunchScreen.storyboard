@@ -5,7 +5,6 @@
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
-        <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -16,43 +15,18 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <!-- Navigation Bar placeholder -->
-                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="nav-bar">
-                                <rect key="frame" x="0.0" y="59" width="393" height="44"/>
-                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="44" id="nav-height"/>
-                                </constraints>
-                            </view>
-                            <!-- Content area placeholder -->
-                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="content">
-                                <rect key="frame" x="0.0" y="103" width="393" height="666"/>
-                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                            </view>
-                            <!-- Bottom bar placeholder -->
-                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bottom-bar">
-                                <rect key="frame" x="0.0" y="769" width="393" height="49"/>
-                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="49" id="bottom-height"/>
-                                </constraints>
-                            </view>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="TailChat" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="GJd-Yh-RWb">
+                                <rect key="frame" x="134.66666666666666" y="407.66666666666669" width="123.66666666666666" height="37"/>
+                                <fontDescription key="fontDescription" type="boldSystem" pointSize="31"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
-                            <constraint firstItem="nav-bar" firstAttribute="top" secondItem="Bcu-3y-fUS" secondAttribute="top" id="nav-top"/>
-                            <constraint firstItem="nav-bar" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" id="nav-leading"/>
-                            <constraint firstItem="nav-bar" firstAttribute="trailing" secondItem="Bcu-3y-fUS" secondAttribute="trailing" id="nav-trailing"/>
-
-                            <constraint firstItem="content" firstAttribute="top" secondItem="nav-bar" secondAttribute="bottom" id="content-top"/>
-                            <constraint firstItem="content" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" id="content-leading"/>
-                            <constraint firstItem="content" firstAttribute="trailing" secondItem="Bcu-3y-fUS" secondAttribute="trailing" id="content-trailing"/>
-
-                            <constraint firstItem="bottom-bar" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" id="bottom-leading"/>
-                            <constraint firstItem="bottom-bar" firstAttribute="trailing" secondItem="Bcu-3y-fUS" secondAttribute="trailing" id="bottom-trailing"/>
-                            <constraint firstItem="bottom-bar" firstAttribute="bottom" secondItem="Bcu-3y-fUS" secondAttribute="bottom" id="bottom-bottom"/>
-                            <constraint firstItem="bottom-bar" firstAttribute="top" secondItem="content" secondAttribute="bottom" id="content-bottom"/>
+                            <constraint firstItem="GJd-Yh-RWb" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="Q3B-4B-g5h"/>
+                            <constraint firstItem="GJd-Yh-RWb" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="mOl-QA-u2N"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -61,9 +35,4 @@
             <point key="canvasLocation" x="53" y="375"/>
         </scene>
     </scenes>
-    <resources>
-        <systemColor name="systemBackgroundColor">
-            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
-    </resources>
 </document>

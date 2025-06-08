@@ -15,6 +15,7 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'api/api.dart' as api;
 import 'api/chat_server.dart';
 import 'api/config.dart';
+import 'api/contacts.dart';
 import 'api/notification.dart';
 import 'contacts_page.dart';
 import 'first_launch_page.dart';
@@ -30,6 +31,7 @@ import 'utils/logger.dart';
 import 'utils/utils.dart';
 import 'widgets/alert_chip.dart';
 import 'widgets/common_widgets.dart';
+import 'widgets/contacts/contact_details_page.dart';
 import 'widgets/contacts/network_monitor.dart';
 import 'widgets/main_app_bar.dart';
 import 'widgets/main_button.dart';
@@ -69,6 +71,7 @@ class _HomePageState extends State<HomePage>
   late final BottomBarSelection _selectPageNotifier;
   late final _buildStartCompleter = Completer<bool>();
   final localNotifications = FlutterLocalNotificationsPlugin();
+  Widget? _rightSide;
 
   @override
   bool get wantKeepAlive => true;
@@ -142,6 +145,9 @@ class _HomePageState extends State<HomePage>
     if (!mounted) {
       return;
     }
+    setState(() {
+      _rightSide = null; // Reset right side view.
+    });
     final hasClients = _pageController.hasClients;
     if (hasClients) {
       setState(() {
@@ -473,12 +479,24 @@ class _HomePageState extends State<HomePage>
               SafeArea(
                 child: MainNavigationRail(
                   onSelected: _selectPage,
+                  onNavigateToSelfContactDetails: () async {
+                    final c = await getContact(Pst.selfUser?.id);
+                    if (c != null && mounted) {
+                      setState(() {
+                        _rightSide = ContactDetailsPage(
+                          contact: c,
+                        );
+                      });
+                    }
+                  },
                 ),
               ),
               SafeArea(
                 child: VerticalDivider(thickness: 1, width: 1),
               ),
-              Expanded(child: SafeArea(child: _pages(showDrawer: false))),
+              Expanded(
+                child: SafeArea(child: _rightSide ?? _pages(showDrawer: false)),
+              ),
             ],
           )
         : SafeArea(child: _pages(showDrawer: true));

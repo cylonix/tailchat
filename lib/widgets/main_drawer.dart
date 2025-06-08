@@ -4,6 +4,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tailchat/api/contacts.dart';
+import 'package:tailchat/widgets/contacts/contact_details_page.dart';
 
 import '../about_page.dart';
 import '../api/config.dart';
@@ -154,9 +156,26 @@ class _MainDrawerState extends State<MainDrawer> {
           shrinkWrap: true,
           padding: const EdgeInsets.all(0),
           children: <Widget>[
-            TopRow(
-              child: UserProfileHeader(
-                user: Pst.selfUser,
+            Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                onTap: () async {
+                  final c = await getContact(Pst.selfUser?.id);
+                  if (c != null && context.mounted) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => ContactDetailsPage(
+                          contact: c,
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: TopRow(
+                  child: UserProfileHeader(
+                    user: Pst.selfUser,
+                  ),
+                ),
               ),
             ),
             const Divider(height: 1),
@@ -167,8 +186,7 @@ class _MainDrawerState extends State<MainDrawer> {
             if (_showStatus) const StatusWidget(),
             _settings,
             if (_isTV) ..._tvMenuItems,
-            if (!_isAR)
-              _about,
+            if (!_isAR) _about,
           ],
         ),
       ),
