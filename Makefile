@@ -46,7 +46,7 @@ test-app-links:
 	@echo "\nTesting intent..."
 	adb shell am start -a android.intent.action.VIEW \
         -c android.intent.category.BROWSABLE \
-        -d "https://cylonix.io/tailchat/add" --debug
+        -d "https://cylonix.io/tailchat/add"
 
 .PHONY: deb
 debhelper golang-go:

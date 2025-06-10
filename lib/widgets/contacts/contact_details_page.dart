@@ -80,6 +80,7 @@ class _ContactDetailsPageState extends State<ContactDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        title: Text(_contact.name.capitalize()),
         actions: [
           IconButton(
             icon: Icon(isApple() ? CupertinoIcons.pencil : Icons.edit),

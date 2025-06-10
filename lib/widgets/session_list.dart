@@ -98,6 +98,20 @@ class _SessionListState extends State<SessionList> {
     if (Pst.enableTV ?? false) {
       return _listViewForTV;
     }
+    if (_sessions.isEmpty) {
+      return Container(
+        alignment: Alignment.topCenter,
+        padding: const EdgeInsets.only(left: 16, right: 16, top: 64),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            "Please create a chat by tapping the '+' button.",
+            style: Theme.of(context).textTheme.bodyLarge,
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
     return ListView.builder(
       controller: ScrollController(),
       shrinkWrap: true,

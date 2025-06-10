@@ -159,6 +159,7 @@ class ChatServer {
   static Future<void> init(
     Function(dynamic) onError,
     Function(Alert) onAlert,
+    Function() onNavigateToHome,
   ) async {
     final appLinks = AppLinks(); // AppLinks is singleton
     appLinks.uriLinkStream.listen((uri) async {
@@ -170,7 +171,8 @@ class ChatServer {
           _logger.d("Received URI is not a valid app link: $uri");
           return;
         }
-        await _handleAppLink(uri.pathSegments, onError, onAlert);
+        onNavigateToHome();
+        await _handleAppLink(uri.path, onError, onAlert);
       } catch (e) {
         _logger.e("Failed to handle dynamic link: $e");
         onError("Failed to handle dynamic link: $e");
@@ -206,9 +208,9 @@ class ChatServer {
             if (path == null || !path.startsWith("/tailchat/")) {
               throw Exception("Invalid app link path: $path");
             }
-            final pathComponents = json['pathComponents'] as List<dynamic>?;
+            onNavigateToHome();
             await _handleAppLink(
-              pathComponents,
+              path,
               onError,
               onAlert,
             );
@@ -222,24 +224,25 @@ class ChatServer {
   }
 
   static Future<void> _handleAppLink(
-    List<dynamic>? pathComponents,
+    String path,
     Function(dynamic) onError,
     Function(Alert) onAlert,
   ) async {
-    if (pathComponents == null || pathComponents.length != 5) {
+    final pathComponents = path.split("/");
+    if (pathComponents.length != 5) {
       throw Exception("Invalid app link: $pathComponents");
     }
     // skip the first two components '/' and 'tailchat'
-    final op = pathComponents[2] as String;
+    final op = pathComponents[2];
     if (op != "add") {
       throw Exception("Unsupported app link operation: $op");
     }
-    final name = pathComponents[3] as String;
-    final deviceName = pathComponents[4] as String;
+    final name = pathComponents[3];
+    final deviceName = pathComponents[4];
     if (name.isEmpty || deviceName.isEmpty) {
       throw Exception("Invalid contact: ${pathComponents.sublist(3)}");
     }
-    if ((await _contactsRepository?.getDevice(
+    if ((await getDevice(
           Device.generateID(deviceName),
         )) !=
         null) {
@@ -257,8 +260,8 @@ class ChatServer {
       address: "",
       hostname: deviceName,
     );
-    if ((await _contactsRepository?.getContact(contact.id)) != null) {
-      await _contactsRepository?.addDevice(device);
+    if ((await getContact(contact.id)) != null) {
+      await addDevice(device);
       _logger.i(
         "handleAppLink: added device to existing contact $name: $device",
       );
@@ -268,7 +271,7 @@ class ChatServer {
       ));
     } else {
       contact.devices.add(device);
-      await _contactsRepository?.addContact(contact);
+      await addContact(contact);
       onAlert(Alert(
         "Added contact '$name' with device '$deviceName' through app link.",
         variant: AlertVariant.success,

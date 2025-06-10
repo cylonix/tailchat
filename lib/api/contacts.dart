@@ -6,9 +6,11 @@ import '../models/contacts/contact.dart';
 import '../models/contacts/contacts_repository.dart';
 import '../models/contacts/device.dart';
 import '../models/contacts/user_profile.dart';
+import '../utils/logger.dart';
 
 ContactsRepository? _repository;
 EventBus contactsEventBus = EventBus();
+const _logger = Logger(tag: "ContactsAPI");
 
 enum ContactsEventType {
   addContact,
@@ -86,6 +88,7 @@ Future<int> getDeviceCount() async {
 Future<void> addContact(Contact contact) async {
   _repository ??= await ContactsRepository.getInstance();
   await _repository?.addContact(contact);
+  _logger.i("Contact added: ${contact.username}");
   contactsEventBus.fire(
     ContactsEvent(
       eventType: ContactsEventType.addContact,

@@ -48,6 +48,7 @@ class _ContactListState extends State<ContactList> {
 
   @override
   void initState() {
+    _logger.d("Initializing ContactList");
     super.initState();
     _selfUser = Pst.selfUser;
     _registerToConfigChangeEvents();
@@ -59,6 +60,7 @@ class _ContactListState extends State<ContactList> {
 
   @override
   void dispose() {
+    _logger.d("Disposing ContactList");
     _configChangeSub?.cancel();
     _contactsEventSub?.cancel();
     _scrollController.dispose();
@@ -87,7 +89,8 @@ class _ContactListState extends State<ContactList> {
   void _registerToContactsEvents() {
     final eventBus = contactsEventBus;
     _contactsEventSub = eventBus.on<ContactsEvent>().listen((event) async {
-      _logger.d("Contact updated.");
+      _logger.d("Contact updated. contactID: ${event.contactID}, "
+          "deviceID: ${event.deviceID}, type: ${event.eventType}");
       var contactID = event.contactID;
       if (contactID == null) {
         if (event.deviceID != null) {
@@ -116,6 +119,13 @@ class _ContactListState extends State<ContactList> {
               }
             });
           }
+        } else {
+          _logger.d("Contact not found in list, reloading contacts.");
+          _hasMore = true;
+          _currentPage = 0;
+          _contacts = [];
+          _loadContactAndDeviceCount();
+          _loadMoreContacts();
         }
       }
     });

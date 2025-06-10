@@ -192,18 +192,12 @@ class _HomePageState extends State<HomePage>
       _isLoading = false;
     });
     _logger.d("done loading configurations and saved states");
-
-    final themeIndex = Pst.themeIndex ??
-        ((_enableTV || Global.isDarkModeARDevice)
-            ? ThemeOption.dark.index
-            : null);
-    if (themeIndex != null || _enableAR || _enableTV) {
-      final eventBus = Global.getThemeEventBus();
-      eventBus.fire(ThemeChangeEvent(
-        themeIndex: themeIndex,
-        textScaleFactor: _defaultTextScaleFactor,
-      ));
-    }
+    WidgetsBinding.instance.platformDispatcher.onPlatformBrightnessChanged =
+        () {
+      _logger.i("Platform brightness changed");
+      _setThemeIndex();
+    };
+    _setThemeIndex();
 
     await initNotifications();
 
@@ -215,13 +209,22 @@ class _HomePageState extends State<HomePage>
 
     // Start chat server.
     try {
-      ChatServer.init(_onChatServiceError, (alert) {
-        if (mounted) {
-          setState(() {
-            _alert = alert;
-          });
-        }
-      });
+      ChatServer.init(
+        _onChatServiceError,
+        (alert) {
+          _alert = alert;
+          if (mounted) {
+            setState(() {});
+          }
+        },
+        () {
+          if (mounted) {
+            Navigator.of(context).popUntil((route) {
+              return route.isFirst || route.settings.name == "/";
+            });
+          }
+        },
+      );
       ChatServer.startServer(_onChatServiceError);
       ChatServer.subscribeToMessages(_onChatServiceError);
     } catch (e) {
@@ -237,6 +240,24 @@ class _HomePageState extends State<HomePage>
     // Share callbacks.
     if (isMobile()) {
       _listenShareMediaFiles();
+    }
+  }
+
+  void _setThemeIndex() {
+    final brightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    final themeIndex = (_enableTV || Global.isDarkModeARDevice)
+        ? ThemeOption.dark.index
+        : brightness == Brightness.dark
+            ? ThemeOption.dark.index
+            : Pst.themeIndex;
+    if (themeIndex != null) {
+      Global.getThemeEventBus().fire(
+        ThemeChangeEvent(
+          themeIndex: themeIndex,
+          textScaleFactor: _defaultTextScaleFactor,
+        ),
+      );
     }
   }
 
@@ -376,6 +397,16 @@ class _HomePageState extends State<HomePage>
   void _navigateToShareMedia(List<SharedMediaFile> value) {
     _logger.d("received share media $value");
     if (value.isNotEmpty) {
+      // skip url that's our app links.
+      value.removeWhere(
+        (file) => file.path.startsWith(
+          "https://cylonix.io/tailchat/",
+        ),
+      );
+      if (value.isEmpty) {
+        _logger.d("no valid share media files found, skipping.");
+        return;
+      }
       Navigator.of(context).push(MaterialPageRoute(
         builder: (context) => ReceiveSharePage(
           files: value,
