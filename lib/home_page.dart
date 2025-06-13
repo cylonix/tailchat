@@ -67,6 +67,7 @@ class _HomePageState extends State<HomePage>
   StreamSubscription<ConfigChangeEvent>? _configChangeSub;
   Timer? _connectivityCheckTimer;
   bool _isNetworkAvailable = true;
+  bool _isAlertOfChatServiceError = false;
   late PageController _pageController;
   late final BottomBarSelection _selectPageNotifier;
   late final _buildStartCompleter = Completer<bool>();
@@ -213,10 +214,12 @@ class _HomePageState extends State<HomePage>
         _onChatServiceError,
         (alert) {
           _alert = alert;
+          _isAlertOfChatServiceError = false;
           if (mounted) {
             setState(() {});
           }
         },
+        _onChatServiceReady,
         () {
           if (mounted) {
             Navigator.of(context).popUntil((route) {
@@ -230,6 +233,7 @@ class _HomePageState extends State<HomePage>
     } catch (e) {
       _logger.e("Failed to start chat server: $e");
       setState(() {
+        _isAlertOfChatServiceError = true;
         _alert = Alert("Chat service error: $e");
       });
     }
@@ -240,6 +244,17 @@ class _HomePageState extends State<HomePage>
     // Share callbacks.
     if (isMobile()) {
       _listenShareMediaFiles();
+    }
+  }
+
+  void _onChatServiceReady() {
+    _logger.d("Chat service is ready");
+    if (_isAlertOfChatServiceError) {
+      _isAlertOfChatServiceError = false;
+      _alert = null;
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
@@ -265,6 +280,7 @@ class _HomePageState extends State<HomePage>
     _logger.e("Chat service error: $e");
     if (mounted) {
       setState(() {
+        _isAlertOfChatServiceError = true;
         _alert = Alert("Chat service error: $e");
       });
     }

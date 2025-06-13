@@ -43,6 +43,7 @@ class ChatServer {
   static bool isCylonixEnabled = false;
   static String? sharedFolderPath;
   static StreamSubscription? _serviceMessageSub;
+  static Function()? _onServiceReady;
 
   static EventBus getChatEventBus() {
     return _eventBus;
@@ -159,8 +160,11 @@ class ChatServer {
   static Future<void> init(
     Function(dynamic) onError,
     Function(Alert) onAlert,
+    Function() onServiceReady,
     Function() onNavigateToHome,
   ) async {
+    _logger.i("Initializing chat server");
+    _onServiceReady = onServiceReady;
     final appLinks = AppLinks(); // AppLinks is singleton
     appLinks.uriLinkStream.listen((uri) async {
       try {
@@ -535,6 +539,9 @@ class ChatServer {
         device.isAvailable = true;
         device.isOnline = true;
         device.lastSeen = DateTime.now();
+        if (event.isSelfDevice) {
+          _onServiceReady?.call();
+        }
         break;
       default:
         device.isAvailable = false;
