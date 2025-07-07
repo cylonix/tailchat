@@ -145,7 +145,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
             _alert = Alert(
               "Failed to update device hostname to "
               "$hostname: $e",
-              setter: "network_config",
+              setter: "network_config_update_device_$hostname",
             );
           });
         }
@@ -154,9 +154,6 @@ class _ContactsPageState extends State<NetworkMonitor> {
   }
 
   void _showAddNewDeviceDialog(Contact selfContact, Device newDevice) async {
-    setState(() {
-      _alert = null;
-    });
     final contact = await showDialog<Contact>(
       context: context,
       barrierDismissible: false,
@@ -180,6 +177,12 @@ class _ContactsPageState extends State<NetworkMonitor> {
       if (mounted) {
         setState(() {
           _alert = Alert("Failed to save contact ${contact.username}: $e");
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _alert = null;
         });
       }
     }
@@ -214,7 +217,6 @@ class _ContactsPageState extends State<NetworkMonitor> {
     final hostname = event.hostname ?? "";
     final Contact? selfContact;
     _logger.d("Network config event $event received");
-    _removeCurrentHostnameChangeDialog();
     if (selfContactID.isEmpty) {
       _logger.d('Self contact not found');
       if (hostname.isEmpty) {
@@ -225,7 +227,7 @@ class _ContactsPageState extends State<NetworkMonitor> {
               _alert = Alert(
                 "Cannot detect tailnet hostname and address. "
                 "Is mesh network like Tailscale or Cylonix running?",
-                setter: "network_config",
+                setter: "network_config_empty_hostname",
               );
             });
           }
@@ -277,13 +279,13 @@ class _ContactsPageState extends State<NetworkMonitor> {
         setState(() {
           _alert = Alert(
             "Is mesh network like Tailscale or Cylonix down?",
-            setter: "network_config",
+            setter: "network_config_empty_hostname",
           );
         });
       }
       return;
     }
-    if (_alert?.setter == "network_config") {
+    if (_alert?.setter == "network_config_empty_hostname") {
       if (mounted) {
         toast(context, 'Hostname detected: "$hostname"');
         setState(() {
@@ -297,7 +299,8 @@ class _ContactsPageState extends State<NetworkMonitor> {
       return;
     }
 
-    if (mounted) {
+    if (mounted &&
+        _alert?.setter != "network_config_hostname_change_$hostname") {
       toast(context, 'New hostname detected: "$hostname"');
     }
 
@@ -328,18 +331,23 @@ class _ContactsPageState extends State<NetworkMonitor> {
             _alert = Alert(
               'Address conflict: ${contact.username} '
               'has $hostname with the same $address.',
-              setter: "network_config",
+              setter: "network_config_address_conflict",
             );
           });
         }
+        _removeCurrentHostnameChangeDialog();
         return;
       }
       _logger.d("Hostname changed for the same address.");
       if (mounted) {
+        if (_alert?.setter == "network_config_hostname_change_$hostname") {
+          return;
+        }
+        _removeCurrentHostnameChangeDialog();
         setState(() {
           _alert = Alert(
             "Hostname changed from $currentDevice to $hostname",
-            setter: "network_config",
+            setter: "network_config_hostname_change_$hostname",
             actions: [
               AlertAction(
                 "Ignore",
@@ -382,11 +390,15 @@ class _ContactsPageState extends State<NetworkMonitor> {
       );
       if (mounted) {
         _logger.d("Change alert to add new device");
+        if (_alert?.setter == "network_config_hostname_change_$hostname") {
+          return;
+        }
+        _removeCurrentHostnameChangeDialog();
         setState(() {
           _alert = Alert(
             "Hostname changed from $currentDevice to $hostname and "
             "address changed from $currentAddress to $address.",
-            setter: "network_config",
+            setter: "network_config_hostname_change_$hostname",
             actions: [
               AlertAction(
                 "Ignore",
@@ -421,8 +433,10 @@ class _ContactsPageState extends State<NetworkMonitor> {
           ),
         );
       }
+      _removeCurrentHostnameChangeDialog();
       return;
     }
+    _removeCurrentHostnameChangeDialog();
     _logger.d('Switch to a new user: ${contact.name}@$hostname.');
     await Pst.saveSelfDevice(device);
     await Pst.saveSelfUser(contact);

@@ -143,7 +143,8 @@ class ChatPageState extends State<ChatPage>
     _chatID = ChatID(id: _session.sessionID);
     _storage = ChatStorage(chatID: _chatID.id);
     _user = ChatMessage.selfToAuthor();
-    _canReceive = ChatServer.isServiceSocketConnected;
+    _canReceive =
+        (ChatServer.isServiceSocketConnected && _chatID.isFromCurrentDevice);
     _pingPeers();
     _registerChatServerEvent();
     _registerSelfUserChangeEvent();
@@ -226,7 +227,8 @@ class ChatPageState extends State<ChatPage>
         if (mounted) {
           setState(() {
             _logger.i("Chat receive state changed: ${event.state.name}");
-            _canReceive = (event.state == ChatServiceState.connected);
+            _canReceive = (event.state == ChatServiceState.connected &&
+                _chatID.isFromCurrentDevice);
           });
         }
       } else {
@@ -677,7 +679,8 @@ class ChatPageState extends State<ChatPage>
       _logger.e("Failed to get chat peers: $e");
       return false;
     }
-    final hasPeersReady = peers.any((p) => p.isOnline);
+    final hasPeersReady =
+        peers.any((p) => p.isOnline) && _chatID.isFromCurrentDevice;
     var onlineUsersMap = <String, bool>{};
     if (self.isAvailable) {
       onlineUsersMap[self.id] = true;
@@ -2243,7 +2246,7 @@ class ChatPageState extends State<ChatPage>
         onTap: _cancelTryToConnect,
       );
     }
-    if (_hasPeersReady) {
+    if (_hasPeersReady || !_chatID.isFromCurrentDevice) {
       return null;
     }
     final request =
@@ -2303,6 +2306,15 @@ class ChatPageState extends State<ChatPage>
     super.build(context);
 
     final alerts = [
+      if (!_chatID.isFromCurrentDevice)
+        AlertChip(
+          Alert(
+            "This chat is when mesh network was setup as another device. "
+            "Your chat peer cannot send message to this chat.",
+            variant: AlertVariant.warning,
+          ),
+          width: double.infinity,
+        ),
       if (_alert != null)
         AlertChip(
           _alert!,

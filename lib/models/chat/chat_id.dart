@@ -121,6 +121,14 @@ class ChatID {
     return null;
   }
 
+  bool get isFromCurrentDevice {
+    if (machines == null || userIDs == null) {
+      return false;
+    }
+    final selfDevice = Pst.selfDevice?.id;
+    return machines!.contains(selfDevice);
+  }
+
   /// Null result means error
   Future<List<Device>?> get chatPeers async {
     var peers = <Device>[];

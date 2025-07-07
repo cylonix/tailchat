@@ -112,6 +112,7 @@ dependencies:
   uuid: ^4.5.1
   visibility_detector: ^0.4.0+2
   yaml: ^3.1.2
+  synchronized: ^3.4.0
 
 dev_dependencies:
   flutter_test:

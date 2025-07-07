@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/services.dart';
+import 'package:synchronized/synchronized.dart';
 import 'package:tailchat/utils/utils.dart';
 import 'package:uuid/uuid.dart';
 import '../models/chat/chat_event.dart';
@@ -165,6 +166,7 @@ class ChatService {
         if (disconnectIfExists) {
           _logger.d("Subscriber socket is already connected. Disconnecting.");
           _subscriberSocketListener?.close();
+          _subscriberSocketListener = null;
         } else {
           _logger.d("Subscriber socket is already connected. Skip.");
           throw Exception(
@@ -195,11 +197,15 @@ class ChatService {
       final listener = SubscriberSocketListener(
         address: await _getLocalAddress(address),
         port: port,
-        onData: (data) => dataHandler(data, sendResponse: (response) {
-          _logger.d("Sending response: $response");
-          _subscriberSocketListener?.write(response);
-          _subscriberSocketListener?.flush();
-          _logger.d("Response sent");
+        onData: (data) => dataHandler(data, sendResponse: (response) async {
+          _logger.d("$_subscriberSocketListener Sending response: $response");
+          try {
+            _subscriberSocketListener?.write(response);
+            await _subscriberSocketListener?.flush();
+            _logger.d("Response sent");
+          } catch (e, stack) {
+            _logger.e("Failed to send response: $e $stack");
+          }
         }),
         onDisconnected: () {
           _logger.i("Subscriber socket is now closed.");
@@ -348,6 +354,7 @@ class SocketListener {
   bool isConnecting = false;
   Socket? _socket;
   StreamSubscription<Uint8List>? _socketSub;
+  final _lock = Lock();
 
   SocketListener({
     required this.address,
@@ -496,12 +503,31 @@ class SocketListener {
     }
   }
 
-  void write(String data) {
+  // We couldn't called from different threads, so we need to use a lock.
+  // This is to prevent concurrent writes to the socket.
+  void write(String data) async {
     if (_socket == null) {
       _logger.e("$this is not connected. Cannot write.");
       throw Exception("$this is not connected. Cannot write.");
     }
-    _socket?.write(data);
+    await _lock.synchronized(() async {
+      try {
+        _socket?.write(data);
+        await _socket?.flush();
+      } catch (e, stack) {
+        _logger.e("$this write error: $e, stack: $stack");
+      }
+    });
+  }
+
+  void addStream(Stream<List<int>> stream) async {
+    if (_socket == null) {
+      _logger.e("$this is not connected. Cannot add stream.");
+      throw Exception("$this is not connected. Cannot add stream.");
+    }
+    await _lock.synchronized(() async {
+      await _socket?.addStream(stream);
+    });
   }
 
   Future<void> flush() async {
@@ -509,7 +535,9 @@ class SocketListener {
       _logger.e("$this is not connected. Cannot flush.");
       throw Exception("$this is not connected. Cannot flush.");
     }
-    await _socket?.flush();
+    await _lock.synchronized(() async {
+      await _socket?.flush();
+    });
   }
 }
 
@@ -731,8 +759,8 @@ class ChatServiceSender extends SocketListener {
       }
       final delay = DateTime.now().difference(start).inSeconds;
       _logger.d("$this: Send start=$start(after $delay seconds)");
-      _socket?.write("TEXT:$id:$message\n");
-      await _socket?.flush();
+      write("TEXT:$id:$message\n");
+      await flush();
       _logger.d("$this: Wait for ack of $id");
       await _waitForAck(id);
       _logger.d("$this: Sent: ${message.shortString(256)}...");
@@ -827,12 +855,12 @@ class ChatServiceSender extends SocketListener {
         throw Exception("failed to connect to peer");
       }
       _logger.d("$this: sendFile: start");
-      socket.write("FILE_START:$id:$filename:$fileSize\n");
+      write("FILE_START:$id:$filename:$fileSize\n");
       _logger.d("$this: sendFile: sent file information to peer");
-      await socket.flush();
+      await flush();
       final inputStream = file.openRead();
       _logger.d("$this: sendFile: read");
-      socket.addStream(inputStream);
+      addStream(inputStream);
       _logger.d("$this: sendFile: pipe");
       await _waitForFileDone(id, fileSize, onProgress);
     } catch (e) {

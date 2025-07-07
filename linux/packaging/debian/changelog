@@ -1,5 +1,5 @@
-tailchat (1.0.1-13-0) unstable; urgency=low
+tailchat (1.0.1-14-0) unstable; urgency=low
 
-  * Initial release.
+  * Fix device update issues and improve chat page status
 
- -- Cylonix authors <contact@cylonix.org>  Thu, 13 Mar 2025 10:00:00 +0000
+ -- Cylonix authors <contact@cylonix.org>  Thu, 03 July 2025 10:00:00 +0000
