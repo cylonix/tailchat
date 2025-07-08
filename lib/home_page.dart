@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 import 'dart:async';
+import 'dart:io';
 
 // Please keep imports in alphabetical order
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -14,6 +15,7 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 // From the same package
 import 'api/api.dart' as api;
 import 'api/chat_server.dart';
+import 'api/chat_service.dart';
 import 'api/config.dart';
 import 'api/contacts.dart';
 import 'api/notification.dart';
@@ -241,6 +243,26 @@ class _HomePageState extends State<HomePage>
     // Check first launch.
     await checkFirstLaunch();
 
+    print(">>>>>self device: ${Pst.selfDevice}");
+    if (Pst.selfDevice?.isPhysical == true && Platform.isIOS) {
+      // Check local network access.
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        try {
+          _logger.d("Checking local network access...");
+          await ChatService.checkLocalNetworkAccess();
+        } catch (e) {
+          _logger.e("Failed to check local network access: $e");
+          _showInitErrorDialog(
+            "Local Network Access required",
+            "Local network access is required for physical device address "
+                "based connections. Please check your settings and allow "
+                "local network access for Tailchat or use Cylonix or Tailscale "
+                "to set up mesh VPN network.",
+          );
+        }
+      });
+    }
+
     // Share callbacks.
     if (isMobile()) {
       _listenShareMediaFiles();
@@ -265,15 +287,13 @@ class _HomePageState extends State<HomePage>
         ? ThemeOption.dark.index
         : brightness == Brightness.dark
             ? ThemeOption.dark.index
-            : Pst.themeIndex;
-    if (themeIndex != null) {
-      Global.getThemeEventBus().fire(
-        ThemeChangeEvent(
-          themeIndex: themeIndex,
-          textScaleFactor: _defaultTextScaleFactor,
-        ),
-      );
-    }
+            : ThemeOption.light.index;
+    Global.getThemeEventBus().fire(
+      ThemeChangeEvent(
+        themeIndex: themeIndex,
+        textScaleFactor: _defaultTextScaleFactor,
+      ),
+    );
   }
 
   void _onChatServiceError(dynamic e) async {

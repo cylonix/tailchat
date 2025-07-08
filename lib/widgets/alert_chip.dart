@@ -15,6 +15,7 @@ class AlertChip extends Container {
     Color? backgroundColor,
     double? fontSize,
     double? width,
+    super.alignment,
     EdgeInsetsGeometry? margin,
     EdgeInsetsGeometry? padding,
   }) : super(

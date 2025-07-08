@@ -1,8 +1,8 @@
 # Tailchat
 
- A truly serverless, secure instant messaging app built on Tailscale's WireGuard®-based mesh network
+ A truly serverless, secure instant messaging app built on WireGuard®-based mesh network provided by Cylonix or Tailscale.
 
- No message storage off device. No central message servers. Just direct, encrypted communication
+ No message storage off device. No central message servers. Just direct, end-to-end encrypted communication
 
 **Note**: Tailchat is not affiliated with, endorsed by, or sponsored by Tailscale Inc. Tailscale® and Tailnet are trademarks of Tailscale Inc.
 
@@ -16,14 +16,19 @@
 
 No message storage servers. No relay servers except for derp relay servers used by Tailscale®. Messages are sent directly between devices through WireGuard® mesh network, ensuring complete privacy and zero data retention.
 
+### Special notes about iOS
+
 For iOS devices, iOS suspends apps that go into the background. The peer will need to use other communication channel
 to request to reconnect when the iOS user switches away from tailchat. Since switching apps can be a very frequent event, sender will automatically request to reconnect with push notifications. A per-device generated UUID and the push notification token assigned to the iOS device are saved in the push notification server. The UUID and the push notification token cannot be used to identify a device name or user. Chat message is never sent to the push notification server. For details, please refer to the link to the push notification server below:
 
 [Push notification server code](https://github.com/cylonix/tailchat/blob/main/pnserver)
 
-### 🔒 Built on Tailnet
+For Cylonix users, Cylonix which is the open source version of the Tailscale, provides on-device listening of the receiving port on the ios packet tunnel Network Extension to mitigate the background suspension issue. For details please refer to the
+code below: [Cylonix tailchat assist code](https://github.com/cylonix/wireguard-apple/tree/cylonix2/Sources/WireGuardKitGo/tailchat)
 
-Leverages Tailscale's WireGuard®-based mesh network (Tailnet) for secure, encrypted communication. Messages travel only through your private mesh network, protected by military-grade encryption.
+### 🔒 Built on WireGuard Mesh Network
+
+Leverages WireGuard®-based mesh network for secure, encrypted communication. Messages travel only through your private mesh network, protected by encryption.
 
 ### 💻 100% Open Source
 
@@ -52,7 +57,7 @@ Organizations requiring secure, auditable communication channels
 
 Groups wanting to maintain their own secure communication infrastructure
 
-## Terms of Service and Prviacy Policy
+## Terms of Service and Privacy Policy
 
 - [Terms of Service](https://cylonix.io/web/view/tailchat/terms.html)
 - [Privacy Policy](https://cylonix.io/web/view/tailchat/privacy_policy.html)

@@ -88,5 +88,12 @@
 		<string>io.cylonix.sase.tailchat.stateChange</string>
 		<string>io.cylonix.sase.tailchat.newMessage</string>
 	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>TailChat needs access to your local network to discover and connect to nearby devices when using physical network address.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_tailchat._tcp</string>
+		<string>_tailchat._udp</string>
+	</array>
 </dict>
 </plist>

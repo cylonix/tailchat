@@ -87,11 +87,13 @@ class ChatReceiveNetworkConfigEvent extends ChatReceiveNetworkEvent {
   final String? hostname;
   final int? port;
   final int? subscriberPort;
+  final bool isPhysical;
   ChatReceiveNetworkConfigEvent({
     this.address,
     this.hostname,
     this.port,
     this.subscriberPort,
+    this.isPhysical = false,
   });
 
   @override
@@ -109,7 +111,6 @@ class ChatReceiveNetworkAvailableEvent extends ChatReceiveNetworkEvent {
     return "available=$available";
   }
 }
-
 
 enum ChatServiceState {
   connected,

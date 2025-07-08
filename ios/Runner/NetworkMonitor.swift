@@ -9,12 +9,16 @@ import SystemConfiguration
 struct Device: Codable {
     let address: String
     let hostname: String
+    let interface: String?
     let isLocal: Bool
+    let isPhysical: Bool
 
     enum CodingKeys: String, CodingKey {
         case address
         case hostname
+        case interface
         case isLocal = "is_local"
+        case isPhysical = "is_physical"
     }
 }
 
@@ -73,9 +77,54 @@ class NetworkMonitor {
         logger.i("Started")
     }
 
-    private func getRoutes() throws -> [(address: String, isLocal: Bool)] {
-        var routes: [(address: String, isLocal: Bool)] = []
+    private func getRoutes() throws -> [(address: String, interface: String?, isLocal: Bool, isPhysical: Bool)] {
+        var routes: [(address: String, interface: String?, isLocal: Bool, isPhysical: Bool)] = []
 
+        // Get interface addresses using getifaddrs
+        var addrs: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&addrs) == 0 else {
+            throw NetworkError.interfaceNotFound
+        }
+        defer { freeifaddrs(addrs) }
+
+        var addr = addrs
+        while addr != nil {
+            let name = String(cString: addr!.pointee.ifa_name)
+
+            // Check for en0 (WiFi), en1 (Ethernet), pdp_ip0 (Cellular)
+            if ["en0", "en1", "pdp_ip0"].contains(name) {
+                var interface: String? = nil
+                if name == "en0" {
+                    interface = "WiFi"
+                } else if name == "en1" {
+                    interface = "Ethernet"
+                } else if name == "pdp_ip0" {
+                    interface = "Cellular"
+                }
+                var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                if let addr = addr!.pointee.ifa_addr {
+                    let family = addr.pointee.sa_family
+
+                    // Only handle IPv4 and IPv6
+                    if family == UInt8(AF_INET) || family == UInt8(AF_INET6) {
+                        if getnameinfo(addr,
+                                       socklen_t(addr.pointee.sa_len),
+                                       &hostname, socklen_t(hostname.count),
+                                       nil, 0,
+                                       NI_NUMERICHOST) == 0
+                        {
+                            let ip = String(cString: hostname)
+                            // Skip loopback addresses
+                            if !ip.hasPrefix("127."), !ip.hasPrefix("::1") {
+                                logger.d("Found interface \(name) with IP: \(ip)")
+                                routes.append((ip, interface, true, true))
+                            }
+                        }
+                    }
+                }
+            }
+            addr = addr!.pointee.ifa_next
+        }
         // Monitor all interfaces including VPN
         let monitor = NWPathMonitor()
         let semaphore = DispatchSemaphore(value: 0)
@@ -109,7 +158,7 @@ class NetworkMonitor {
                                 {
                                     let ip = String(cString: hostname)
                                     if self.isCGNATAddress(ip) {
-                                        routes.append((ip, true))
+                                        routes.append((ip, "vpn", true, false))
                                     }
                                 }
                             }
@@ -135,11 +184,23 @@ class NetworkMonitor {
             logger.d("Routes: \(routes)")
             for route in routes {
                 logger.d("Address found: \(route.address), isLocal: \(route.isLocal)")
+                if route.isPhysical {
+                    devices.append(Device(
+                        address: route.address,
+                        hostname: "",
+                        interface: route.interface,
+                        isLocal: true,
+                        isPhysical: true
+                    ))
+                    continue
+                }
                 if let hostname = try? await resolveDNS(for: route.address) {
                     devices.append(Device(
                         address: route.address,
                         hostname: hostname,
-                        isLocal: route.isLocal
+                        interface: route.interface,
+                        isLocal: route.isLocal,
+                        isPhysical: false
                     ))
                 }
             }

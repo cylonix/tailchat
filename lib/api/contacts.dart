@@ -85,9 +85,9 @@ Future<int> getDeviceCount() async {
   return (await _repository?.getDeviceCount()) ?? 0;
 }
 
-Future<void> addContact(Contact contact) async {
+Future<void> addContact(Contact contact, {bool mergeIfExists = false}) async {
   _repository ??= await ContactsRepository.getInstance();
-  await _repository?.addContact(contact);
+  await _repository?.addContact(contact, mergeIfExists: mergeIfExists);
   _logger.i("Contact added: ${contact.username}");
   contactsEventBus.fire(
     ContactsEvent(

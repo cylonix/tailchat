@@ -367,14 +367,22 @@ class ChatServer {
   // Cache what we got from the service side.
   static String? hostname, address;
   static int? port, subscriberPort;
+  static bool isPhysicalAddress = false;
   static void _updateNetworkConfig({
     String? newHostname,
     String? newAddress,
     int? newPort,
     int? newSubscriberPort,
+    bool isPhysical = false,
   }) async {
     hostname = newHostname;
     address = newAddress;
+    isPhysicalAddress = isPhysical;
+    _logger.i(
+      "Update network config: "
+      "address=$address, hostname=$hostname, port=$newPort, "
+      "subscriberPort=$newSubscriberPort, isPhysical=$isPhysicalAddress",
+    );
     port = newPort;
     subscriberPort = newSubscriberPort;
     _eventBus.fire(ChatReceiveNetworkConfigEvent(
@@ -382,6 +390,7 @@ class ChatServer {
       hostname: hostname,
       port: port,
       subscriberPort: subscriberPort,
+      isPhysical: isPhysical,
     ));
     if (address != null) {
       await _resetCylonixEnabled();
@@ -681,10 +690,17 @@ class ChatServer {
       }));
 
       final self = json.firstWhereOrNull(
-        (c) =>
-            (c['is_local'] ?? false) &&
-            (isFQDN(c['hostname']) || isIPv4Address(c['address'])),
-      );
+            (c) =>
+                (c['is_local'] ?? false) &&
+                !(c['is_physical'] ?? false) &&
+                (isFQDN(c['hostname']) || isIPv4Address(c['address'])),
+          ) ??
+          json.firstWhereOrNull(
+            (c) =>
+                (c['is_local'] ?? false) &&
+                (isIPv4Address(c['address']) &&
+                    (c['interface'] == 'WiFi' || c['interface'] == 'Ethernet')),
+          );
       if (self == null) {
         _logger.e("invalid update with self device information: $json");
         return;
@@ -706,6 +722,7 @@ class ChatServer {
         newAddress: self['address'],
         newHostname: self['hostname'],
         newPort: self['port'],
+        isPhysical: self['is_physical'] ?? false,
       );
     } catch (e) {
       _logger.e("failed to process network config: $e");

@@ -99,9 +99,28 @@ class ContactsStorage {
     await _prefs.setString(_storageKey, encoded);
   }
 
-  Future<void> addContact(Contact contact) async {
+  Future<void> addContact(Contact contact, {bool mergeIfExists = false}) async {
     final contacts = await getContacts();
     if (contacts.any((c) => c.id == contact.id)) {
+      if (mergeIfExists) {
+        final index = contacts.indexWhere((c) => c.id == contact.id);
+        final current = contacts[index];
+        for (var device in contact.devices) {
+          if (current.devices.any((d) => d.id == device.id)) {
+            // Device already exists, update it
+            final deviceIndex =
+                current.devices.indexWhere((d) => d.id == device.id);
+            current.devices[deviceIndex] = device;
+          } else {
+            // Add new device
+            current.devices.add(device);
+          }
+        }
+        contacts[index] = current; // Replace with updated contact
+        await saveContacts(contacts);
+        _logger.d("Contact updated: ${contact.name}");
+        return;
+      }
       throw Exception("contact exists");
     }
     contacts.add(contact);

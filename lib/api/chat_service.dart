@@ -25,8 +25,8 @@ class ChatService {
   static Stream<dynamic>? _eventStream;
 
   static SubscriberSocketListener? _subscriberSocketListener;
-  static ServiceSocketListner? _serviceSocketListener;
-  static bool _isSettingUpSubsciberSocket = false;
+  static ServiceSocketListener? _serviceSocketListener;
+  static bool _isSettingUpSubscriberSocket = false;
   static bool _isSettingUpServiceSocket = false;
   static bool _autoReconnectSubscriberSocket = true;
 
@@ -37,7 +37,7 @@ class ChatService {
       if (enabled) {
         return true;
       }
-      _logger.i("Cylonix servive: enabled=$enabled");
+      _logger.i("Cylonix service: enabled=$enabled");
     }
     return false;
   }
@@ -49,6 +49,18 @@ class ChatService {
       return path;
     }
     return null;
+  }
+
+  static Future<void> checkLocalNetworkAccess() async {
+    try {
+      final result = await platform.invokeMethod('checkLocalNetworkAccess');
+      if (result == true) {
+        return; // Permission granted
+      }
+      throw Exception('$result');
+    } catch (e) {
+      rethrow;
+    }
   }
 
   static Future<void> startService() async {
@@ -156,11 +168,11 @@ class ChatService {
     bool disconnectIfExists = false,
     Function(dynamic)? onError,
   }) async {
-    if (_isSettingUpSubsciberSocket) {
+    if (_isSettingUpSubscriberSocket) {
       _logger.d("Subscriber socket is already being set up. Skip.");
       return;
     }
-    _isSettingUpSubsciberSocket = true;
+    _isSettingUpSubscriberSocket = true;
     try {
       if (_subscriberSocketListener != null) {
         if (disconnectIfExists) {
@@ -224,7 +236,7 @@ class ChatService {
       listener.listen();
       _subscriberSocketListener = listener;
     } finally {
-      _isSettingUpSubsciberSocket = false;
+      _isSettingUpSubscriberSocket = false;
     }
   }
 
@@ -271,7 +283,7 @@ class ChatService {
         }
       }
 
-      final listener = ServiceSocketListner(
+      final listener = ServiceSocketListener(
         address: await _getLocalAddress(address),
         port: port,
         onData: (data) {
@@ -557,8 +569,8 @@ class SubscriberSocketListener extends SocketListener {
         );
 }
 
-class ServiceSocketListner extends SocketListener {
-  ServiceSocketListner({
+class ServiceSocketListener extends SocketListener {
+  ServiceSocketListener({
     String? address,
     int? port = 50311,
     super.onData,

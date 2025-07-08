@@ -59,7 +59,7 @@ String? get officialSupportUrl {
 }
 
 String? get androidAppLink {
-  return "https://play.google.com/apps/testing/io.cylonix.tailchat";
+  return "https://play.google.com/store/apps/details?id=io.cylonix.tailchat&pcampaignid=web_share";
 }
 
 String get appName {

@@ -1,17 +1,32 @@
 {
     "java.configuration.updateBuildConfiguration": "interactive",
     "cSpell.words": [
+        "addrs",
         "CGNAT",
         "Cupertino",
         "cylonix",
+        "Donenfeld",
         "downloadsfolder",
         "EZBLOCK",
+        "freeifaddrs",
+        "getifaddrs",
+        "getnameinfo",
         "Iface",
+        "ifaddrs",
+        "LOGNAME",
+        "MAXHOST",
         "neterr",
         "netlink",
+        "nodename",
+        "NUMERICHOST",
         "prefs",
         "Schyler",
+        "Sockfd",
+        "socklen",
         "Tailchat",
-        "tailchatd"
+        "tailchatd",
+        "tailnet",
+        "utsname",
+        "utun"
     ]
 }

@@ -180,7 +180,7 @@ class ChatService: NSObject, NetworkMonitorDelegate {
         }
     #endif
 
-    // Retarting listeners base on network availability does not work as
+    // Restarting listeners base on network availability does not work as
     // expected. Will do more investigation and experiments to decide the
     // best path forward.
     private func startNetworkMonitor() {

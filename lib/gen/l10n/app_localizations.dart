@@ -594,8 +594,14 @@ abstract class AppLocalizations {
   /// introduction page words
   ///
   /// In en, this message translates to:
-  /// **'Tailchat is a truly serverless, secure instant messaging app built on Tailscale\'s WireGuard®-based mesh network. No message storage. No central message servers. Just direct, encrypted communication. Tailchat is not affiliated with, endorsed by, or sponsored by Tailscale Inc. Tailscale® and Tailnet are trademarks of Tailscale Inc.'**
+  /// **'Tailchat is a truly serverless, secure instant messaging app built on WireGuard®-based mesh network provided by Cylonix or Tailscale. No message storage. No central message servers. Just direct, encrypted communication.'**
   String get introWords;
+
+  /// Copyright and disclaimer text
+  ///
+  /// In en, this message translates to:
+  /// **' Tailchat is not affiliated with, endorsed by, or sponsored by Tailscale Inc. WireGuard® is a registered trademark of Jason A. Donenfeld. Tailscale® and Tailnet are trademarks of Tailscale Inc.'**
+  String get disclaimer;
 
   /// introduction page title
   ///

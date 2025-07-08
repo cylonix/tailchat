@@ -16,6 +16,7 @@ class Device {
   int port;
   DateTime lastSeen;
   bool isOnline;
+  final bool isPhysical;
   bool isAvailable;
 
   Device({
@@ -27,6 +28,7 @@ class Device {
     this.pnUUID,
     this.isAvailable = false,
     this.isOnline = false,
+    this.isPhysical = false,
     DateTime? lastSeen,
   })  : id = generateID(hostname),
         lastSeen = lastSeen ?? DateTime.now();
@@ -45,6 +47,7 @@ class Device {
         'pnUUID': pnUUID,
         'lastSeen': lastSeen.toIso8601String(),
         'isOnline': isOnline,
+        'isPhysical': isPhysical,
         "isAvailable": isAvailable,
       };
 
@@ -58,6 +61,7 @@ class Device {
         lastSeen: DateTime.parse(json['lastSeen']),
         isOnline: json['isOnline'] ?? false,
         isAvailable: json['isAvailable'] ?? false,
+        isPhysical: json['isPhysical'] ?? false,
       );
 
   @override

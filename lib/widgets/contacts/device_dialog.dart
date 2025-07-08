@@ -21,10 +21,16 @@ import '../../utils/utils.dart';
 class DeviceDialog extends StatefulWidget {
   final Device? device;
   final String contact;
+  final bool isTailnet;
   final List<String>? exclude;
 
-  const DeviceDialog(
-      {super.key, this.device, this.exclude, required this.contact});
+  const DeviceDialog({
+    super.key,
+    this.device,
+    this.exclude,
+    required this.contact,
+    this.isTailnet = true,
+  });
 
   @override
   State<DeviceDialog> createState() => _DeviceDialogState();
@@ -33,6 +39,7 @@ class DeviceDialog extends StatefulWidget {
 class _DeviceDialogState extends State<DeviceDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _hostnameController;
+  late TextEditingController _addressController;
   late TextEditingController _portController;
   StreamSubscription<ChatReceiveNetworkConfigEvent>? _networkConfigSub;
   List<Device> _devicesKnown = [];
@@ -47,6 +54,7 @@ class _DeviceDialogState extends State<DeviceDialog> {
         .whereNot((d) => widget.exclude?.contains(d.hostname) ?? false)
         .toList();
     _hostnameController = TextEditingController(text: widget.device?.hostname);
+    _addressController = TextEditingController(text: widget.device?.address);
     _portController = TextEditingController(
       text: widget.device?.port.toString() ?? '50311',
     );
@@ -87,7 +95,7 @@ class _DeviceDialogState extends State<DeviceDialog> {
                 ),
                 _devicesDropDownMenu,
               ],
-              if (_devicesKnown.isEmpty) ...[
+              if (_devicesKnown.isEmpty && widget.isTailnet) ...[
                 const Text(
                   "Copy and paste the device's tailnet hostname or IP address:",
                 ),
@@ -100,6 +108,54 @@ class _DeviceDialogState extends State<DeviceDialog> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter hostname or IP';
+                    }
+                    // Check if it's an IP address first
+                    if (_isValidIPAddress(value)) {
+                      return null;
+                    }
+
+                    // If not IP, validate as FQDN
+                    if (!_isValidFQDN(value)) {
+                      return 'Invalid hostname. Must be a valid FQDN or IP address';
+                    }
+                    return null;
+                  },
+                  onFieldSubmitted: (_) => _saveDevice(),
+                ),
+              ],
+              if (_devicesKnown.isEmpty && !widget.isTailnet) ...[
+                const Text(
+                  "Enter the device's hostname and IP address:",
+                ),
+                TextFormField(
+                  controller: _hostnameController,
+                  decoration: InputDecoration(
+                    labelText: 'Hostname',
+                    hintText: 'Enter hostname',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter hostname';
+                    }
+                    if (!_isValidFQDN(value)) {
+                      return 'Invalid hostname. Must be a valid FQDN';
+                    }
+                    return null;
+                  },
+                  onFieldSubmitted: (_) => _saveDevice(),
+                ),
+                TextFormField(
+                  controller: _addressController,
+                  decoration: InputDecoration(
+                    labelText: 'IP Address',
+                    hintText: 'Enter IP address',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter IP address';
+                    }
+                    if (!_isValidIPAddress(value)) {
+                      return 'Invalid IP address. Must be IPv4 or IPv6';
                     }
                     return null;
                   },
@@ -174,6 +230,21 @@ class _DeviceDialogState extends State<DeviceDialog> {
     );
   }
 
+  bool _isValidFQDN(String value) {
+    // FQDN validation regex
+    // - Contains at least one dot
+    // - Each label max 63 chars
+    // - Only alphanumeric and hyphen (not at start/end of label)
+    // - Total length max 253 chars
+    final fqdnRegex = RegExp(
+        r'^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*\.[A-Za-z]{2,}$');
+    return fqdnRegex.hasMatch(value);
+  }
+
+  bool _isValidIPAddress(String value) {
+    return InternetAddress.tryParse(value) != null;
+  }
+
   Widget get _devicesDropDownMenu {
     return DropdownMenu<String>(
       controller: _hostnameController,
@@ -225,15 +296,17 @@ class _DeviceDialogState extends State<DeviceDialog> {
       }
       return;
     }
-    String? address;
-    if (InternetAddress.tryParse(hostname) != null) {
-      address = hostname;
-      hostname = await resolveHostname(address);
-    } else {
-      address = _devicesKnown
-              .firstWhereOrNull((d) => d.hostname == hostname)
-              ?.address ??
-          await resolveV4Address(hostname);
+    String? address = _addressController.text;
+    if (widget.isTailnet) {
+      if (InternetAddress.tryParse(hostname) != null) {
+        address = hostname;
+        hostname = await resolveHostname(address);
+      } else {
+        address = _devicesKnown
+                .firstWhereOrNull((d) => d.hostname == hostname)
+                ?.address ??
+            await resolveV4Address(hostname);
+      }
     }
     if (address == null) {
       if (mounted) {

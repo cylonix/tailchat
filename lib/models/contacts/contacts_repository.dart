@@ -24,7 +24,11 @@ class ContactsRepository {
       _storage.getContacts(idList: idList);
   Future<List<Device>?> getDevices(String? userID) async =>
       (await getContact(userID))?.devices;
-  Future<void> addContact(Contact contact) => _storage.addContact(contact);
+  Future<void> addContact(Contact contact, {bool mergeIfExists = false}) =>
+      _storage.addContact(
+        contact,
+        mergeIfExists: mergeIfExists,
+      );
   Future<void> updateContact(Contact contact) =>
       _storage.updateContact(contact);
   Future<void> deleteContact(String id) => _storage.deleteContact(id);

@@ -260,7 +260,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get publicKey => 'Public key';
 
   @override
-  String get introWords => 'Tailchat is a truly serverless, secure instant messaging app built on Tailscale\'s WireGuard®-based mesh network. No message storage. No central message servers. Just direct, encrypted communication. Tailchat is not affiliated with, endorsed by, or sponsored by Tailscale Inc. Tailscale® and Tailnet are trademarks of Tailscale Inc.';
+  String get introWords => 'Tailchat is a truly serverless, secure instant messaging app built on WireGuard®-based mesh network provided by Cylonix or Tailscale. No message storage. No central message servers. Just direct, encrypted communication.';
+
+  @override
+  String get disclaimer => ' Tailchat is not affiliated with, endorsed by, or sponsored by Tailscale Inc. WireGuard® is a registered trademark of Jason A. Donenfeld. Tailscale® and Tailnet are trademarks of Tailscale Inc.';
 
   @override
   String get introTitle => 'Welcome to Tailchat';

@@ -6,6 +6,7 @@ import UserNotifications
 #if os(iOS)
     import Flutter
     import Foundation
+    import Network
     import UIKit
 #elseif os(macOS)
     import AppKit
@@ -249,6 +250,34 @@ class AppDelegate: FlutterAppDelegate, FlutterStreamHandler, BackgroundTaskProto
             case "logs":
                 self.getLogs()
                 result(nil)
+            case "checkLocalNetworkAccess":
+                self.logger.i("Checking local network access")
+                if #available(iOS 14.0, *) {
+                    // Use Bundle.main.object(forInfoDictionaryKey:) to check if permission is declared
+                    guard Bundle.main.object(forInfoDictionaryKey: "NSLocalNetworkUsageDescription") != nil else {
+                        self.logger.e("NSLocalNetworkUsageDescription not declared in Info.plist")
+                        result(FlutterError(
+                            code: "PERMISSION_NOT_DECLARED",
+                            message: "Local network permission not declared",
+                            details: "Add NSLocalNetworkUsageDescription to Info.plist"
+                        ))
+                        return
+                    }
+
+                    // Create a NetService browser to trigger local network permission
+                    let browser = NetServiceBrowser()
+                    browser.searchForServices(ofType: "_tailchat._tcp.", inDomain: "local.")
+
+                    // Stop browsing after a brief moment and return result
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        browser.stop()
+                        // Permission request triggered, but we can't know the result immediately
+                        result("PERMISSION_REQUESTED")
+                    }
+                } else {
+                    // Pre-iOS 14 doesn't need permission
+                    result(true)
+                }
             default:
                 result(FlutterMethodNotImplemented)
             }
